@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>エタノールが沸騰する温度 シミュレーション（タッチドラッグ対応版）</title>
+<style>
+  /* =========================
+     共通デザイン
+  ========================== */
+  body{
+    font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    margin:0;
+    background:#f4f7fb;
+  }
+  header{
+    background:#006eb0;
+    color:#fff;
+    padding:10px 16px;
+  }
+  header h1{margin:0;font-size:20px;}
+  header p{margin:4px 0 0;font-size:13px;}
+  main{
+    padding:10px 16px 20px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+
+  .steps-nav{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+  .steps-nav button{
+    border:none;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:13px;
+    cursor:pointer;
+    background:#d0d9e8;
+  }
+  .steps-nav button.active{
+    background:#006eb0;
+    color:#fff;
+    font-weight:600;
+  }
+  .steps-nav button.disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+
+  .step{
+    display:none;
+    background:#fff;
+    border-radius:8px;
+    padding:12px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.08);
+    margin-bottom:60px;  /* 「次へ」ボタンぶんの余白 */
+    position:relative;
+  }
+  .step.active{display:block;}
+  .step h2{
+    margin-top:0;
+    font-size:18px;
+    border-left:4px solid #006eb0;
+    padding-left:8px;
+  }
+
+  .flex{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .panel{
+    background:#f8fbff;
+    border-radius:8px;
+    padding:10px;
+    flex:1;
+    min-width:260px;
+    border:1px solid #dde5f2;
+  }
+  .panel h3{margin-top:0;font-size:15px;}
+
+  #message{
+    margin-top:8px;
+    font-size:13px;
+    min-height:1.5em;
+  }
+  #message.ok{color:#00695c;}
+  #message.err{color:#c62828;}
+  .note{
+    font-size:12px;
+    color:#555;
+    margin-top:4px;
+  }
+
+  /* ▼ 「次へ」ボタン（ステップ枠の外側右下） */
+  #next-step-btn{
+    position:absolute;
+    right:24px;
+    bottom:-40px;   /* カードの下側に完全に出す */
+    border:none;
+    padding:8px 16px;
+    border-radius:999px;
+    background:#ff9800;
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 3px 6px rgba(0,0,0,0.2);
+    display:none;
+    z-index:50;
+  }
+  #next-step-btn:hover{
+    background:#fb8c00;
+  }
+
+  /* ===== 大きなエラーオーバーレイ ===== */
+  #error-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+  }
+  #error-box{
+    background:#ffffff;
+    padding:24px 32px;
+    border-radius:16px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.3);
+    text-align:center;
+    max-width:420px;
+    border:2px solid #c62828;
+  }
+  #error-box .big-x{
+    font-size:64px;
+    color:#c62828;
+    line-height:1;
+    margin-bottom:8px;
+  }
+  #error-box .error-text{
+    font-size:16px;
+    color:#c62828;
+    font-weight:600;
+    margin-top:4px;
+    white-space:pre-line;
+  }
+  #error-box .hint{
+    margin-top:8px;
+    font-size:12px;
+    color:#555;
+  }
+
+  /* ===== 実験練習完了オーバーレイ ===== */
+  #finish-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9998;
+  }
+  #finish-box{
+    background:#ffffff;
+    padding:24px 32px;
+    border-radius:16px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.3);
+    text-align:center;
+    max-width:480px;
+    border:2px solid #006eb0;
+  }
+  #finish-box .finish-title{
+    font-size:20px;
+    font-weight:700;
+    color:#006eb0;
+    margin-bottom:8px;
+  }
+  #finish-box .finish-text{
+    font-size:15px;
+    color:#333;
+    white-space:pre-line;
+  }
+  #finish-box .finish-hint{
+    margin-top:8px;
+    font-size:12px;
+    color:#555;
+  }
+
+  /* ===== 共通アイコン（小） ===== */
+  .tool{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#fff;
+    border-radius:10px;
+    padding:6px 12px;
+    border:1px solid #ccd6ea;
+    font-size:12px;
+    cursor:grab;
+    box-shadow:0 1px 2px rgba(0,0,0,0.08);
+    transition:background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .tool.dragging{opacity:0.6;}
+  /* ▼ ステップ2：選択中のカードの見た目 */
+  .tool.selected{
+    background:#e0ebff;
+    border-color:#5c6bc0;
+    box-shadow:0 0 0 2px rgba(92,107,192,0.5);
+  }
+
+  .tool-icon{
+    width:40px;
+    height:40px;
+    position:relative;
+  }
+  .tool-label{line-height:1.3;}
+
+  .burner-icon::before{
+    content:"";
+    position:absolute;
+    left:8px;bottom:8px;
+    width:12px;height:24px;
+    background:linear-gradient(#d0d4da,#767b85);
+    border-radius:6px 6px 3px 3px;
+  }
+  .burner-icon::after{
+    content:"";
+    position:absolute;
+    left:0;bottom:4px;
+    width:26px;height:8px;
+    background:#0b2c5a;
+    border-radius:10px;
+  }
+  .burner-icon span{
+    position:absolute;
+    left:10px;bottom:30px;
+    width:8px;height:16px;
+    border-radius:50% 50% 40% 40%;
+    background:radial-gradient(circle at 30% 30%,#e8f6ff,#0077ff);
+  }
+
+  .tripod-icon::before{
+    content:"";
+    position:absolute;
+    left:50%;bottom:18px;
+    width:32px;height:6px;
+    transform:translateX(-50%);
+    background:#555;
+    border-radius:4px;
+  }
+  .tripod-icon::after{
+    content:"";
+    position:absolute;
+    left:50%;bottom:4px;
+    width:4px;height:18px;
+    transform:translateX(-50%);
+    background:#555;
+    border-radius:2px;
+    box-shadow:-10px 2px 0 #555,10px 2px 0 #555;
+  }
+
+  .hotbeaker-icon::before{
+    content:"";
+    position:absolute;
+    left:50%;top:4px;
+    width:30px;height:30px;
+    transform:translateX(-50%);
+    border:3px solid #336699;
+    border-radius:0 0 8px 8px;
+    background:#eef6ff;
+  }
+
+  .stand-icon::before{
+    content:"";
+    position:absolute;
+    left:50%;bottom:0;
+    width:3px;height:36px;
+    transform:translateX(-50%);
+    background:#555;
+  }
+  .stand-icon::after{
+    content:"";
+    position:absolute;
+    left:50%;top:8px;
+    width:30px;height:3px;
+    transform:translateX(-50%);
+    background:#555;
+  }
+
+  .tubeSetMini{
+    width:40px;
+    height:40px;
+    position:relative;
+  }
+  .tube-mini-body{
+    position:absolute;
+    left:50%;
+    top:4px;
+    width:18px;
+    height:28px;
+    transform:translateX(-50%);
+    border:3px solid #336699;
+    border-radius:8px 8px 12px 12px;
+    background:#e3f2fd;
+  }
+  .tube-mini-thermo-rod{
+    position:absolute;
+    left:50%;
+    top:6px;
+    width:4px;
+    height:24px;
+    transform:translateX(-50%);
+    background:#ddd;
+    border-radius:4px;
+  }
+  .tube-mini-thermo-bulb{
+    position:absolute;
+    left:50%;
+    bottom:10px;
+    width:8px;
+    height:8px;
+    transform:translateX(-50%);
+    background:#e53935;
+    border-radius:50%;
+  }
+
+  /* ゴム管＋ガラス管（小アイコン） */
+  .hoseSet-icon::before{
+    content:"";
+    position:absolute;
+    left:10px;top:8px;
+    width:10px;height:26px;
+    background:rgba(227,242,253,0.9);
+    border-radius:6px;
+    box-shadow:0 0 0 2px #90caf9 inset;
+  }
+  .hoseSet-icon::after{
+    content:"";
+    position:absolute;
+    left:10px;top:26px;
+    width:26px;height:10px;
+    background:rgba(227,242,253,0.9);
+    border-radius:6px;
+    box-shadow:0 0 0 2px #90caf9 inset;
+  }
+
+  .icebeaker-icon::before{
+    content:"";
+    position:absolute;
+    left:50%;top:4px;
+    width:30px;height:30px;
+    transform:translateX(-50%);
+    border:3px solid #336699;
+    border-radius:0 0 8px 8px;
+    background:#f7fbff;
+  }
+  .icebeaker-icon::after{
+    content:"";
+    position:absolute;
+    left:50%;top:20px;
+    width:26px;height:12px;
+    transform:translateX(-50%);
+    background:linear-gradient(#b3e5fc,#4fc3f7);
+    border-radius:0 0 6px 6px;
+  }
+
+  .wire-icon::before{
+    content:"";
+    position:absolute;
+    left:4px;top:4px;
+    width:32px;height:32px;
+    border:3px solid #757575;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 4px, #bdbdbd 4px 5px),
+      repeating-linear-gradient(90deg, transparent 0 4px, #bdbdbd 4px 5px);
+  }
+
+  .tools{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  /* ===== ステップ1：器具の準備 ===== */
+  .prep-tools{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .prep-tool{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#fff;
+    border-radius:10px;
+    padding:6px 12px;
+    border:1px solid #ccd6ea;
+    font-size:12px;
+    cursor:grab;
+    box-shadow:0 1px 2px rgba(0,0,0,0.08);
+    transition:background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .prep-tool.dragging{opacity:0.6;}
+  .prep-tool.selected{
+    background:#e0ebff;
+    border-color:#5c6bc0;
+    box-shadow:0 0 0 2px rgba(92,107,192,0.5);
+  }
+
+  .prep-icon{
+    width:32px;
+    height:32px;
+    position:relative;
+  }
+  .prep-water::before{
+    content:"";
+    position:absolute;
+    left:4px;bottom:4px;
+    width:24px;height:18px;
+    background:#90caf9;
+    border-radius:6px;
+  }
+  .prep-ice::before{
+    content:"";
+    position:absolute;
+    left:4px;bottom:4px;
+    width:24px;height:18px;
+    background:#e1f5fe;
+    border-radius:6px;
+    box-shadow:0 0 0 2px #81d4fa inset;
+  }
+  .prep-ethanol::before{
+    content:"";
+    position:absolute;
+    left:10px;bottom:4px;
+    width:12px;height:22px;
+    background:#ffe0b2;
+    border-radius:4px;
+  }
+  .prep-stone::before{
+    content:"";
+    position:absolute;
+    left:4px;bottom:4px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:#8d6e63;
+    box-shadow:8px 4px 0 #a1887f,16px 1px 0 #6d4c41;
+  }
+  .prep-thermo::before{
+    content:"";
+    position:absolute;
+    left:14px;top:2px;
+    width:4px;height:22px;
+    background:#ddd;
+    border-radius:4px;
+  }
+  .prep-thermo::after{
+    content:"";
+    position:absolute;
+    left:11px;bottom:2px;
+    width:10px;height:10px;
+    background:#e53935;
+    border-radius:50%;
+  }
+
+  .prep-vessels{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:space-around;
+  }
+  .prep-vessel{
+    flex:1;
+    min-width:200px;
+    max-width:260px;
+    background:#fff;
+    border-radius:8px;
+    border:1px solid #cbd7ef;
+    padding:8px;
+    text-align:center;
+  }
+  .prep-vessel-icon{
+    width:80px;
+    height:80px;
+    margin:0 auto 4px;
+    position:relative;
+  }
+
+  /* 湯せんビーカー（準備） */
+  .prep-hot-bk::before{
+    content:"";
+    position:absolute;
+    left:10px;top:8px;
+    width:60px;height:60px;
+    border:3px solid #336699;
+    border-radius:0 0 10px 10px;
+    background:#f7fbff;
+  }
+  .prep-hot-water{
+    position:absolute;
+    left:14px;bottom:10px;
+    width:52px;height:26px;
+    background:#bbdefb;
+    border-radius:0 0 8px 8px;
+    display:none;
+  }
+  .prep-hot-stone{
+    position:absolute;
+    left:26px;bottom:12px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:#6d4c41;
+    box-shadow:16px 2px 0 #8d6e63;
+    display:none;
+  }
+
+  /* 氷水ビーカー（準備） */
+  .prep-ice-bk::before{
+    content:"";
+    position:absolute;
+    left:10px;top:8px;
+    width:60px;height:60px;
+    border:3px solid #336699;
+    border-radius:0 0 10px 10px;
+    background:#f7fbff;
+  }
+  .prep-ice-water{
+    position:absolute;
+    left:14px;bottom:10px;
+    width:52px;height:24px;
+    background:#b3e5fc;
+    border-radius:0 0 8px 8px;
+    display:none;
+  }
+  .prep-ice-ice{
+    position:absolute;
+    left:20px;bottom:26px;
+    width:14px;height:10px;
+    background:#e1f5fe;
+    border-radius:2px;
+    box-shadow:20px -2px 0 #e1f5fe;
+    display:none;
+  }
+
+  /* 枝つき試験管（準備） */
+  .prep-tube::before{
+    content:"";
+    position:absolute;
+    left:30px;top:4px;
+    width:20px;height:60px;
+    border:3px solid #336699;
+    border-radius:8px 8px 16px 16px;
+    background:#fafafa;
+  }
+  .prep-tube-ethanol{
+    position:absolute;
+    left:32px;bottom:16px;
+    width:16px;height:20px;
+    background:#ffe0b2;
+    border-radius:6px;
+    display:none;
+  }
+  .prep-tube-stone{
+    position:absolute;
+    left:36px;bottom:14px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:#8d6e63;
+    display:none;
+  }
+  .prep-tube-thermo-rod{
+    position:absolute;
+    left:42px;top:4px;
+    width:4px;height:60px;
+    background:#ddd;
+    border-radius:4px;
+    display:none;
+  }
+  .prep-tube-thermo-bulb{
+    position:absolute;
+    left:39px;bottom:8px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:#e53935;
+    display:none;
+  }
+
+  .prep-vessel-status{
+    font-size:11px;
+    text-align:left;
+    margin-top:4px;
+  }
+  .prep-vessel-status span.mark-ok{color:#2e7d32;font-weight:600;}
+  .prep-vessel-status span.mark-ng{color:#c62828;}
+
+  /* ===== ステップ2：装置図 ===== */
+  .apparatus-area{
+    position:relative;
+    width:900px;
+    max-width:100%;
+    height:420px;
+    background:linear-gradient(#eef3ff,#f9fbff);
+    border-radius:8px;
+    border:1px solid #cfd8ec;
+    margin:0 auto;
+  }
+  .apparatus-area::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;bottom:80px;
+    height:4px;
+    background:#c8c8d8;
+  }
+  .step-caption{
+    position:absolute;
+    top:6px;left:8px;
+    font-size:12px;
+    color:#555;
+    background:rgba(255,255,255,0.8);
+    padding:2px 6px;
+    border-radius:999px;
+  }
+
+  .dropzone{
+    position:absolute;
+    border:2px dashed rgba(120,140,200,0.9);
+    border-radius:12px;
+    background:rgba(255,255,255,0.0);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    text-align:center;
+    color:#445;
+    z-index:1;
+  }
+  .dropzone.filled{
+    border-style:solid;
+    background:rgba(225,245,233,0.9);
+    color:#114422;
+  }
+  .mini{
+    width:70px;
+    height:70px;
+    position:relative;
+  }
+
+  /* 装置の配置（左寄せ気味＋枠内に収める） */
+  #slot-stand{left:50px;bottom:90px;width:90px;height:230px;z-index:2;}
+  #slot-tube{left:225px;bottom:260px;width:80px;height:120px;z-index:5;}
+  #slot-tripod{left:185px;bottom:145px;width:130px;height:80px;z-index:2;}
+  #slot-wire{left:195px;bottom:200px;width:120px;height:40px;z-index:3;}
+  #slot-hotbeaker{left:195px;bottom:230px;width:120px;height:120px;z-index:3;}
+  #slot-burner{left:200px;bottom:75px;width:100px;height:70px;z-index:2;}
+  #slot-hose{left:290px;bottom:220px;width:210px;height:80px;z-index:2;}
+  #slot-icebeaker{left:430px;bottom:80px;width:130px;height:150px;z-index:2;}
+
+  /* ===== ステップ3：ガスバーナー ===== */
+  .burner-panel{
+    position:relative;
+    height:260px;
+    background:linear-gradient(#eef3ff,#f9fbff);
+    border-radius:8px;
+    border:1px solid #cfd8ec;
+  }
+  .burner-drawing{
+    position:absolute;
+    left:50%;
+    bottom:80px;
+    width:280px;
+    height:120px;
+    transform:translateX(-50%);
+  }
+  .burner-body-big{
+    position:absolute;
+    left:20px;bottom:26px;
+    width:32px;height:72px;
+    background:linear-gradient(#d0d4da,#757b86);
+    border-radius:10px 10px 4px 4px;
+    box-shadow:0 0 0 2px #555 inset;
+  }
+  .burner-base-big{
+    position:absolute;
+    left:5px;bottom:8px;
+    width:70px;height:18px;
+    background:#102b5c;
+    border-radius:24px;
+    box-shadow:0 3px 0 rgba(0,0,0,0.3);
+  }
+  #flame{
+    position:absolute;
+    left:30px;bottom:84px;
+    width:26px;height:48px;
+    border-radius:50% 50% 40% 40%;
+    background:#ccc;
+    transition:background 0.2s;
+  }
+  #flame.yellow{
+    background:radial-gradient(circle at 30% 30%,#fff7b0,#f7b500);
+  }
+  #flame.blue{
+    background:radial-gradient(circle at 30% 30%,#e8f6ff,#0077ff);
+  }
+  .burner-hose{
+    position:absolute;
+    left:56px;bottom:40px;
+    width:150px;height:20px;
+    border-radius:14px;
+    background:#ffe0b2;
+    box-shadow:inset 0 0 0 2px #c49a6c;
+  }
+  .burner-hose::before{
+    content:"";
+    position:absolute;
+    inset:4px 6px;
+    background:repeating-linear-gradient(
+      to right,
+      #f4e1b7,
+      #f4e1b7 6px,
+      #d8b982 6px,
+      #d8b982 8px
+    );
+    border-radius:10px;
+  }
+  .gas-tap{
+    position:absolute;
+    right:18px;bottom:34px;
+    width:46px;height:32px;
+    background:linear-gradient(#eeeeee,#b0bec5);
+    border-radius:10px;
+    box-shadow:0 0 0 2px #757575 inset;
+  }
+  .gas-tap::before{
+    content:"";
+    position:absolute;
+    left:4px;top:-16px;
+    width:38px;height:16px;
+    background:linear-gradient(#ff5252,#c62828);
+    border-radius:6px 6px 4px 4px;
+    box-shadow:0 0 0 2px #8e0000 inset;
+  }
+  .gas-tap::after{
+    content:"";
+    position:absolute;
+    left:10px;bottom:-6px;
+    width:26px;height:6px;
+    background:rgba(0,0,0,0.25);
+    border-radius:4px;
+  }
+
+  .cock-block{
+    position:absolute;
+    left:64px;bottom:56px;
+    width:16px;height:12px;
+    background:#757575;
+    border-radius:4px;
+    box-shadow:0 0 0 2px #555 inset;
+  }
+  .cock-block::after{
+    content:"";
+    position:absolute;
+    top:-7px;left:3px;
+    width:10px;height:5px;
+    background:#545454;
+    border-radius:3px;
+  }
+
+  .gas-knob,.air-knob{
+    position:absolute;
+    left:10px;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:#b0bec5;
+    box-shadow:0 0 0 2px #455a64 inset;
+  }
+  .gas-knob{bottom:38px;}
+  .air-knob{bottom:60px;}
+  .gas-knob::after,.air-knob::after{
+    content:"";
+    position:absolute;
+    left:4px;top:4px;
+    width:8px;height:8px;
+    border-radius:50%;
+    background:#eceff1;
+  }
+
+  /* マッチ：木＝薄橙、火薬＝赤 */
+  .match-icon{
+    position:absolute;
+    left:138px;
+    bottom:124px;
+    width:8px;
+    height:40px;
+    background:#ffcc80;          /* 木の部分（薄橙色） */
+    border-radius:4px;
+  }
+  .match-icon::before{
+    content:"";
+    position:absolute;
+    top:-10px;
+    left:-4px;
+    width:16px;
+    height:10px;
+    background:#d32f2f;          /* 火薬の部分（赤） */
+    border-radius:4px 4px 2px 2px;
+  }
+  .match-icon.lit::after{
+    content:"";
+    position:absolute;
+    top:-26px;left:-4px;
+    width:16px;height:24px;
+    border-radius:50% 50% 40% 40%;
+    background:radial-gradient(circle at 30% 30%,#fff8e1,#ff9800);
+  }
+
+  .hotspot{
+    position:absolute;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:2px solid #2e7d32;
+    background:rgba(0,255,0,0.22);
+    cursor:pointer;
+    z-index:50;
+  }
+  .hotspot.done{
+    border-color:#4caf50;
+    background:rgba(225,245,233,0.6);
+  }
+  .hotspot:hover{
+    border-color:#1b5e20;
+  }
+  #hs-main{left:215px;bottom:26px;}
+  #hs-cock{left:60px;bottom:40px;}
+  #hs-gas{left:0px;bottom:32px;}
+  #hs-air{left:0px;bottom:56px;}
+  #hs-match{left:120px;bottom:104px;}
+
+  /* ===== ステップ4：温度の読み取り ===== */
+  .thermo-zoom-wrap{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .thermo-zoom{
+    width:120px;
+    height:220px;
+    border-radius:20px;
+    border:3px solid #555;
+    position:relative;
+    background:#fafafa;
+    margin:0 auto;
+  }
+  .thermo-scale{
+    position:absolute;
+    left:50%;
+    top:10px;
+    bottom:26px;
+    width:2px;
+    background:#ccc;
+    transform:translateX(-50%);
+  }
+  .thermo-tick{
+    position:absolute;
+    left:50%;
+    width:18px;
+    height:1px;
+    background:#999;
+    transform:translateX(-50%);
+  }
+  .thermo-tick-label{
+    position:absolute;
+    left:62%;
+    font-size:10px;
+    color:#555;
+  }
+  #thermo-column{
+    position:absolute;
+    bottom:26px;
+    left:50%;
+    width:26px;
+    transform:translateX(-50%);
+    background:linear-gradient(#ff8a65,#e53935);
+    border-radius:13px 13px 0 0;
+    height:0;
+    transition:height 0.3s;
+  }
+  .thermo-bulb{
+    position:absolute;
+    bottom:5px;
+    left:50%;
+    width:32px;
+    height:32px;
+    transform:translateX(-50%);
+    background:linear-gradient(#ffab91,#e53935);
+    border-radius:50%;
+  }
+  #time-temp-log{
+    font-size:12px;
+    background:#fff;
+    border-radius:6px;
+    padding:6px;
+    border:1px dashed #c0cadc;
+    max-height:170px;
+    overflow:auto;
+  }
+  #time-temp-log ul{
+    margin:4px 0 0;
+    padding-left:20px;
+  }
+  #time-temp-log li{
+    margin:2px 0;
+  }
+  .btn-primary{
+    border:none;
+    padding:8px 14px;
+    border-radius:999px;
+    background:#006eb0;
+    color:#fff;
+    font-size:13px;
+    cursor:pointer;
+    margin-right:6px;
+  }
+  .btn-secondary{
+    border:1px solid #b0bedb;
+    padding:8px 14px;
+    border-radius:999px;
+    background:#fff;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  /* 装置図Bの枝つき試験管だけ、温度計位置を強制上書き */
+  .apparatus-area .tubeSetMini .tube-mini-thermo-rod{
+    height:16px !important;
+  }
+  .apparatus-area .tubeSetMini .tube-mini-thermo-bulb{
+    bottom:34px !important;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>実験シミュレーション：エタノールが沸騰する温度</h1>
+  <p>①器具の準備 → ②装置を組み立てる → ③ガスバーナー → ④温度の読み取り を練習します。</p>
+</header>
+
+<main>
+  <div class="steps-nav">
+    <button id="nav-step1" class="active">① 器具の準備</button>
+    <button id="nav-step2" class="disabled">② 装置を組み立てる</button>
+    <button id="nav-step3" class="disabled">③ 操作（ガスバーナー）</button>
+    <button id="nav-step4" class="disabled">④ 記録・読み取り</button>
+    <button id="reset-all" style="margin-left:auto;">初期化</button>
+  </div>
+
+  <div id="message"></div>
+
+  <!-- ===== ステップ1：器具の準備 ===== -->
+  <section id="step1" class="step active">
+    <h2>① 器具の準備（中身を入れる）</h2>
+    <div class="flex">
+      <div class="panel" style="flex:1.1;">
+        <h3>A：中身カードをドラッグまたはタップして、器具に入れよう</h3>
+        <p style="font-size:13px;">
+          カードを右の器具にドラッグするか、カードをタップしてから器具をタップします。<br>
+          <strong>湯せんビーカー：</strong> 水＋沸騰石<br>
+          <strong>氷水ビーカー：</strong> 水＋氷<br>
+          <strong>枝つき試験管：</strong> エタノール＋沸騰石＋温度計
+        </p>
+        <div class="prep-tools" id="prep-tools">
+          <div class="prep-tool" draggable="true" data-content="water">
+            <div class="prep-icon prep-water"></div><div>水</div>
+          </div>
+          <div class="prep-tool" draggable="true" data-content="ice">
+            <div class="prep-icon prep-ice"></div><div>氷</div>
+          </div>
+          <div class="prep-tool" draggable="true" data-content="ethanol">
+            <div class="prep-icon prep-ethanol"></div><div>エタノール</div>
+          </div>
+          <div class="prep-tool" draggable="true" data-content="stone">
+            <div class="prep-icon prep-stone"></div><div>沸騰石</div>
+          </div>
+          <div class="prep-tool" draggable="true" data-content="thermo">
+            <div class="prep-icon prep-thermo"></div><div>温度計</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1.3;">
+        <h3>B：ビーカーと枝つき試験管</h3>
+        <div class="prep-vessels">
+          <!-- 湯せん -->
+          <div class="prep-vessel prep-drop" id="prep-hot" data-vessel="hot">
+            <div class="prep-vessel-icon prep-hot-bk">
+              <div class="prep-hot-water" id="prep-hot-water"></div>
+              <div class="prep-hot-stone" id="prep-hot-stone"></div>
+            </div>
+            <div style="font-size:13px;font-weight:600;">湯せん用ビーカー</div>
+            <div class="prep-vessel-status">
+              ・水：<span id="prep-hot-water-status" class="mark-ng">✕</span><br>
+              ・沸騰石：<span id="prep-hot-stone-status" class="mark-ng">✕</span>
+            </div>
+          </div>
+
+          <!-- 氷水 -->
+          <div class="prep-vessel prep-drop" id="prep-ice" data-vessel="ice">
+            <div class="prep-vessel-icon prep-ice-bk">
+              <div class="prep-ice-water" id="prep-ice-water"></div>
+              <div class="prep-ice-ice" id="prep-ice-ice"></div>
+            </div>
+            <div style="font-size:13px;font-weight:600;">氷水のビーカー</div>
+            <div class="prep-vessel-status">
+              ・水：<span id="prep-ice-water-status" class="mark-ng">✕</span><br>
+              ・氷：<span id="prep-ice-ice-status" class="mark-ng">✕</span>
+            </div>
+          </div>
+
+          <!-- 枝つき試験管 -->
+          <div class="prep-vessel prep-drop" id="prep-tube" data-vessel="tube">
+            <div class="prep-vessel-icon prep-tube">
+              <div class="prep-tube-ethanol" id="prep-tube-ethanol"></div>
+              <div class="prep-tube-stone" id="prep-tube-stone"></div>
+              <div class="prep-tube-thermo-rod" id="prep-tube-thermo-rod"></div>
+              <div class="prep-tube-thermo-bulb" id="prep-tube-thermo-bulb"></div>
+            </div>
+            <div style="font-size:13px;font-weight:600;">枝つき試験管</div>
+            <div class="prep-vessel-status">
+              ・エタノール：<span id="prep-tube-ethanol-status" class="mark-ng">✕</span><br>
+              ・沸騰石：<span id="prep-tube-stone-status" class="mark-ng">✕</span><br>
+              ・温度計：<span id="prep-tube-thermo-status" class="mark-ng">✕</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ステップ2：装置を組み立てる ===== -->
+  <section id="step2" class="step">
+    <h2>② 装置を組み立てる</h2>
+    <div class="flex">
+      <div class="panel" style="flex:1.1;">
+        <h3>A：器具カードをドラッグまたはタップして、装置図にはめよう</h3>
+        <p style="font-size:13px;">
+          カードをドラッグするか、カードをタップしてから右の図の枠をタップします。<br>
+          中央では <b>三脚 → 金網 → 湯せんビーカー</b> の順に重ねます。
+        </p>
+        <div class="tools" id="tools">
+          <div class="tool" draggable="true" data-key="stand">
+            <div class="tool-icon stand-icon"></div><div class="tool-label">スタンド</div>
+          </div>
+          <div class="tool" draggable="true" data-key="tubeSet">
+            <div class="tool-icon tubeSetMini">
+              <div class="tube-mini-body"></div>
+              <div class="tube-mini-thermo-rod"></div>
+              <div class="tube-mini-thermo-bulb"></div>
+            </div>
+            <div class="tool-label">枝つき試験管（中に温度計）</div>
+          </div>
+          <div class="tool" draggable="true" data-key="tripod">
+            <div class="tool-icon tripod-icon"></div><div class="tool-label">三脚</div>
+          </div>
+          <div class="tool" draggable="true" data-key="wire">
+            <div class="tool-icon wire-icon"></div><div class="tool-label">金網</div>
+          </div>
+          <div class="tool" draggable="true" data-key="hotbeaker">
+            <div class="tool-icon hotbeaker-icon"></div>
+            <div class="tool-label">湯せんビーカー（水＋沸騰石入り）</div>
+          </div>
+          <div class="tool" draggable="true" data-key="burner">
+            <div class="tool-icon burner-icon"><span></span></div>
+            <div class="tool-label">ガスバーナー</div>
+          </div>
+          <div class="tool" draggable="true" data-key="hoseSet">
+            <div class="tool-icon hoseSet-icon"></div>
+            <div class="tool-label">ゴム管＋ガラス管</div>
+          </div>
+          <div class="tool" draggable="true" data-key="icebeaker">
+            <div class="tool-icon icebeaker-icon"></div>
+            <div class="tool-label">氷水ビーカー</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1.4;">
+        <h3>B：装置の図（教科書と同じ構造）</h3>
+        <div class="apparatus-area">
+          <div class="step-caption">
+            完成すると教科書の図と同じ構造になります。（左：スタンド／中央：三脚＋金網＋湯せん／右：氷水）
+          </div>
+          <div class="dropzone" id="slot-stand"     data-accept="stand">スタンド</div>
+          <div class="dropzone" id="slot-tube"      data-accept="tubeSet">枝つき試験管</div>
+          <div class="dropzone" id="slot-tripod"   data-accept="tripod">三脚</div>
+          <div class="dropzone" id="slot-wire"     data-accept="wire">金網</div>
+          <div class="dropzone" id="slot-hotbeaker"data-accept="hotbeaker">湯せんビーカー</div>
+          <div class="dropzone" id="slot-burner"   data-accept="burner">ガスバーナー</div>
+          <div class="dropzone" id="slot-hose"     data-accept="hoseSet">ゴム管＋ガラス管</div>
+          <div class="dropzone" id="slot-icebeaker"data-accept="icebeaker">氷水ビーカー</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ステップ3：操作（ガスバーナー） ===== -->
+  <section id="step3" class="step">
+    <h2>③ ガスバーナーに火をつける（図の中をクリック）</h2>
+    <div class="flex">
+      <div class="panel" style="flex:1.3;">
+        <h3>A：正しい順番でクリックしよう</h3>
+        <p style="font-size:13px;">
+          <b>元栓 → コック → マッチ → ガス調節ねじ → 空気調節ねじ</b> の順です。<br>
+          図の中の部品を直接クリック（タップ）します。
+        </p>
+        <div class="burner-panel">
+          <div class="burner-drawing">
+            <div class="burner-base-big"></div>
+            <div class="burner-body-big"></div>
+            <div id="flame"></div>
+            <div class="burner-hose"></div>
+            <div class="gas-tap"></div>
+            <div class="cock-block"></div>
+            <div class="gas-knob"></div>
+            <div class="air-knob"></div>
+            <div class="match-icon" id="match-icon"></div>
+
+            <!-- クリック領域 -->
+            <div id="hs-main"  class="hotspot" data-action="openMain"></div>
+            <div id="hs-cock"  class="hotspot" data-action="openCock"></div>
+            <div id="hs-match" class="hotspot" data-action="lightMatch"></div>
+            <div id="hs-gas"   class="hotspot" data-action="openGas"></div>
+            <div id="hs-air"   class="hotspot" data-action="openAir"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="max-width:320px;">
+        <h3>B：炎のようす</h3>
+        <p id="flame-text" style="font-size:13px;">まだ火はついていません。</p>
+        <ul style="font-size:13px;padding-left:18px;margin-top:4px;">
+          <li>元栓・コックだけではガスの通り道が開くだけで、まだ炎は出ない。</li>
+          <li>マッチまで終わると、いつでも火をつけられる準備ができる。</li>
+          <li>ガス調節ねじを開けたときに炎がつく。</li>
+          <li>空気調節ねじで青い炎に調節する。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ステップ4：記録（温度の読み取り） ===== -->
+  <section id="step4" class="step">
+    <h2>④ 温度の読み取り（加熱前と1分ごと）</h2>
+    <div class="thermo-zoom-wrap">
+      <div class="panel" style="max-width:220px;">
+        <h3>A：温度計の拡大図</h3>
+        <div class="thermo-zoom">
+          <div class="thermo-scale"></div>
+          <div id="thermo-column"></div>
+          <div class="thermo-bulb"></div>
+        </div>
+        <p style="font-size:13px;margin-top:6px;">
+          液柱の高さが温度を表します。実験では、この高さから温度を読み取ります。
+        </p>
+      </div>
+
+      <div class="panel" style="flex:1.2;">
+        <h3>B：時間ごとに温度を読もう</h3>
+        <p id="reading-status" style="font-size:13px;">
+          まず「加熱前の温度を読む」を押して、0分の温度を読もう。
+        </p>
+        <p id="current-reading" style="font-size:22px;font-weight:600;">--.- ℃（--分）</p>
+        <div style="margin:8px 0;">
+          <button class="btn-primary" id="btn-read-start">加熱前の温度を読む</button>
+          <button class="btn-secondary" id="btn-next-minute">1分経過</button>
+          <button class="btn-secondary" id="btn-reset-reading">リセット</button>
+        </div>
+        <div id="time-temp-log">
+          <strong>記録の例（プリントの表に書くイメージ）</strong>
+          <ul id="log-list"></ul>
+        </div>
+        <p class="note">
+          実際の実験では、プリントに「時間（分）」と「温度（℃）」の表を書き、
+          温度計を読んだ値を記録します。
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 右下「次へ」ボタン -->
+<button id="next-step-btn">次へ</button>
+
+<!-- 大きなエラー表示 -->
+<div id="error-overlay">
+  <div id="error-box">
+    <div class="big-x">×</div>
+    <div class="error-text" id="error-overlay-text">エラー</div>
+    <div class="hint">どこを直せばよいか、もう一度考えてみましょう。</div>
+  </div>
+</div>
+
+<!-- 実験練習完了の表示 -->
+<div id="finish-overlay">
+  <div id="finish-box">
+    <div class="finish-title">よくできました！</div>
+    <div class="finish-text">
+実験の練習はここまでです。
+実際の実験も、教科書を見ながら
+正しい手順で行いましょう。
+    </div>
+    <div class="finish-hint">（どこかをクリックすると閉じます）</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* メッセージ＆エラー・完了オーバーレイ */
+const messageEl = $("message");
+const errorOverlay = $("error-overlay");
+const errorOverlayText = $("error-overlay-text");
+let errorTimer = null;
+
+const finishOverlay = $("finish-overlay");
+let finishShown = false;
+
+function showErrorOverlay(text){
+  errorOverlayText.textContent = text;
+  errorOverlay.style.display = "flex";
+  if(errorTimer) clearTimeout(errorTimer);
+  errorTimer = setTimeout(()=>{ errorOverlay.style.display="none"; }, 2500);
+}
+errorOverlay.addEventListener("click",()=>{
+  errorOverlay.style.display="none";
+  if(errorTimer) clearTimeout(errorTimer);
+});
+
+function showFinishOverlay(){
+  if(finishShown) return;
+  finishShown = true;
+  finishOverlay.style.display = "flex";
+}
+finishOverlay.addEventListener("click",()=>{
+  finishOverlay.style.display = "none";
+});
+
+function showMessage(text,type=""){
+  messageEl.textContent = text;
+  messageEl.className = "";
+  if(type==="ok")  messageEl.classList.add("ok");
+  if(type==="err"){
+    messageEl.classList.add("err");
+    showErrorOverlay(text);
+  }
+}
+
+/* ステップ切り替え */
+const steps = {
+  step1:$("step1"),
+  step2:$("step2"),
+  step3:$("step3"),
+  step4:$("step4")
+};
+const nav1=$("nav-step1"),nav2=$("nav-step2"),
+      nav3=$("nav-step3"),nav4=$("nav-step4");
+const nextBtn = $("next-step-btn");
+let prepDone=false, assembleDone=false, burnerDone=false;
+
+function activateStep(id){
+  Object.values(steps).forEach(s=>s.classList.remove("active"));
+  steps[id].classList.add("active");
+  [nav1,nav2,nav3,nav4].forEach(b=>b.classList.remove("active"));
+  ({step1:nav1,step2:nav2,step3:nav3,step4:nav4}[id]).classList.add("active");
+  updateNextButton();
+}
+
+nav1.onclick=()=>activateStep("step1");
+nav2.onclick=()=>{if(!nav2.classList.contains("disabled")) activateStep("step2");};
+nav3.onclick=()=>{if(!nav3.classList.contains("disabled")) activateStep("step3");};
+nav4.onclick=()=>{if(!nav4.classList.contains("disabled")) activateStep("step4");};
+
+/* 右下「次へ」ボタンの表示と位置決め */
+function updateNextButton(){
+  nextBtn.style.display = "none";
+
+  const s1 = steps.step1.classList.contains("active");
+  const s2 = steps.step2.classList.contains("active");
+  const s3 = steps.step3.classList.contains("active");
+  const s4 = steps.step4.classList.contains("active");
+
+  let container = null;
+
+  if(s1 && prepDone){
+    container = steps.step1;
+    nextBtn.textContent = "次へ（② 装置を組み立てる）";
+    nextBtn.onclick = () => activateStep("step2");
+  }else if(s2 && assembleDone){
+    container = steps.step2;
+    nextBtn.textContent = "次へ（③ 操作）";
+    nextBtn.onclick = () => activateStep("step3");
+  }else if(s3 && burnerDone){
+    container = steps.step3;
+    nextBtn.textContent = "次へ（④ 記録・読み取り）";
+    nextBtn.onclick = () => activateStep("step4");
+  }
+
+  if(container){
+    container.appendChild(nextBtn);
+    nextBtn.style.display = "inline-flex";
+  }
+}
+
+/* ===== ステップ1：器具の準備 ===== */
+const prepStatus = {
+  hot:{water:false,stone:false},
+  ice:{water:false,ice:false},
+  tube:{ethanol:false,stone:false,thermo:false}
+};
+
+function updatePrepDisplay(){
+  // 湯せん
+  $("prep-hot-water").style.display   = prepStatus.hot.water ? "block":"none";
+  $("prep-hot-stone").style.display   = prepStatus.hot.stone ? "block":"none";
+  $("prep-hot-water-status").textContent = prepStatus.hot.water?"○":"✕";
+  $("prep-hot-stone-status").textContent = prepStatus.hot.stone?"○":"✕";
+  $("prep-hot-water-status").className   = prepStatus.hot.water?"mark-ok":"mark-ng";
+  $("prep-hot-stone-status").className   = prepStatus.hot.stone?"mark-ok":"mark-ng";
+
+  // 氷水
+  $("prep-ice-water").style.display   = prepStatus.ice.water ? "block":"none";
+  $("prep-ice-ice").style.display     = prepStatus.ice.ice   ? "block":"none";
+  $("prep-ice-water-status").textContent = prepStatus.ice.water?"○":"✕";
+  $("prep-ice-ice-status").textContent   = prepStatus.ice.ice?"○":"✕";
+  $("prep-ice-water-status").className   = prepStatus.ice.water?"mark-ok":"mark-ng";
+  $("prep-ice-ice-status").className     = prepStatus.ice.ice?"mark-ok":"mark-ng";
+
+  // 枝つき試験管
+  $("prep-tube-ethanol").style.display    = prepStatus.tube.ethanol?"block":"none";
+  $("prep-tube-stone").style.display      = prepStatus.tube.stone  ?"block":"none";
+  $("prep-tube-thermo-rod").style.display = prepStatus.tube.thermo ?"block":"none";
+  $("prep-tube-thermo-bulb").style.display= prepStatus.tube.thermo ?"block":"none";
+  $("prep-tube-ethanol-status").textContent = prepStatus.tube.ethanol?"○":"✕";
+  $("prep-tube-stone-status").textContent   = prepStatus.tube.stone  ?"○":"✕";
+  $("prep-tube-thermo-status").textContent  = prepStatus.tube.thermo ?"○":"✕";
+  $("prep-tube-ethanol-status").className   = prepStatus.tube.ethanol?"mark-ok":"mark-ng";
+  $("prep-tube-stone-status").className     = prepStatus.tube.stone  ?"mark-ok":"mark-ng";
+  $("prep-tube-thermo-status").className    = prepStatus.tube.thermo ?"mark-ok":"mark-ng";
+}
+updatePrepDisplay();
+
+function checkPrepComplete(){
+  prepDone =
+    prepStatus.hot.water && prepStatus.hot.stone &&
+    prepStatus.ice.water && prepStatus.ice.ice &&
+    prepStatus.tube.ethanol && prepStatus.tube.stone && prepStatus.tube.thermo;
+  if(prepDone){
+    nav2.classList.remove("disabled");
+    showMessage("器具の準備ができました。② 装置を組み立てる へ進みましょう。","ok");
+  }
+  updateNextButton();
+}
+
+/* 中身を入れる共通処理 */
+function applyPrepContent(vesselElement, content){
+  if(!content) return;
+  const vessel = vesselElement.dataset.vessel;
+
+  if(vessel==="hot"){
+    if(content==="water"){
+      if(prepStatus.hot.water) showMessage("湯せんビーカーにはすでに水が入っています。","err");
+      else {prepStatus.hot.water=true;showMessage("湯せんビーカーに水を入れました。","ok");}
+    }else if(content==="stone"){
+      if(prepStatus.hot.stone) showMessage("湯せんビーカーにはすでに沸騰石が入っています。","err");
+      else {prepStatus.hot.stone=true;showMessage("湯せんビーカーに沸騰石を入れました。","ok");}
+    }else{
+      showMessage("湯せんビーカーには「水」と「沸騰石」を入れます。","err");
+    }
+  }else if(vessel==="ice"){
+    if(content==="water"){
+      if(prepStatus.ice.water) showMessage("氷水ビーカーにはすでに水が入っています。","err");
+      else {prepStatus.ice.water=true;showMessage("氷水ビーカーに水を入れました。","ok");}
+    }else if(content==="ice"){
+      if(prepStatus.ice.ice) showMessage("氷水ビーカーにはすでに氷が入っています。","err");
+      else {prepStatus.ice.ice=true;showMessage("氷水ビーカーに氷を入れました。","ok");}
+    }else{
+      showMessage("氷水ビーカーには「水」と「氷」を入れます。","err");
+    }
+  }else if(vessel==="tube"){
+    if(content==="ethanol"){
+      if(prepStatus.tube.ethanol) showMessage("枝つき試験管にはすでにエタノールが入っています。","err");
+      else {prepStatus.tube.ethanol=true;showMessage("枝つき試験管にエタノールを入れました。","ok");}
+    }else if(content==="stone"){
+      if(prepStatus.tube.stone) showMessage("枝つき試験管にはすでに沸騰石が入っています。","err");
+      else {prepStatus.tube.stone=true;showMessage("枝つき試験管に沸騰石を入れました。","ok");}
+    }else if(content==="thermo"){
+      if(prepStatus.tube.thermo) showMessage("枝つき試験管にはすでに温度計が入っています。","err");
+      else {prepStatus.tube.thermo=true;showMessage("枝つき試験管に温度計を入れました。","ok");}
+    }else{
+      showMessage("枝つき試験管には「エタノール」「沸騰石」「温度計」を入れます。","err");
+    }
+  }
+
+  updatePrepDisplay();
+  checkPrepComplete();
+}
+
+/* ===== タッチ用リアルドラッグ（共通） ===== */
+/* ここを pointer → touch に作り直しました */
+function setupTouchDragForCard(card, getPayload, handleDrop){
+  card.addEventListener("touchstart", function(e){
+    if(e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const payload = getPayload(card);
+    if(!payload) return;
+
+    const rect = card.getBoundingClientRect();
+    const ghost = card.cloneNode(true);
+    ghost.style.position = "fixed";
+    ghost.style.left = rect.left + "px";
+    ghost.style.top  = rect.top  + "px";
+    ghost.style.width = rect.width + "px";
+    ghost.style.pointerEvents = "none";
+    ghost.style.zIndex = 9999;
+    ghost.style.opacity = 0.85;
+    ghost.style.transform = "scale(1.02)";
+    document.body.appendChild(ghost);
+
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
+    function move(ev){
+      if(ev.touches.length !== 1) return;
+      const t = ev.touches[0];
+      ev.preventDefault(); // 画面スクロールを止める
+      ghost.style.left = (t.clientX - offsetX) + "px";
+      ghost.style.top  = (t.clientY - offsetY) + "px";
+    }
+
+    function end(ev){
+      window.removeEventListener("touchmove", move);
+      window.removeEventListener("touchend", end);
+      ghost.remove();
+
+      const t = ev.changedTouches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      handleDrop(el, payload);
+    }
+
+    window.addEventListener("touchmove", move, {passive:false});
+    window.addEventListener("touchend", end);
+  });
+}
+
+/* カード（ステップ1）：ドラッグ＋タップ選択＋タッチリアルドラッグ */
+let draggedContent = null;
+let selectedContent = null;
+
+document.querySelectorAll(".prep-tool").forEach(tool=>{
+  // マウス用 HTML5 DnD
+  tool.addEventListener("dragstart",e=>{
+    draggedContent = tool.dataset.content;
+    e.dataTransfer.setData("text/plain",draggedContent);
+    tool.classList.add("dragging");
+  });
+  tool.addEventListener("dragend",()=>tool.classList.remove("dragging"));
+
+  // タップで選択（タップ操作も残しておく）
+  tool.addEventListener("click",()=>{
+    selectedContent = tool.dataset.content;
+    document.querySelectorAll(".prep-tool").forEach(t=>t.classList.remove("selected"));
+    tool.classList.add("selected");
+    const label = tool.textContent.trim();
+    showMessage("「"+label+"」のカードを選びました。入れる器具をタップしましょう。","ok");
+  });
+
+  // タッチ用リアルドラッグ
+  setupTouchDragForCard(
+    tool,
+    c => c.dataset.content,
+    (el, content)=>{
+      const drop = el && el.closest(".prep-drop");
+      if(drop){
+        applyPrepContent(drop, content);
+      }
+    }
+  );
+});
+
+/* ビーカー・試験管側：ドラッグ＆ドロップ＋タップ配置 */
+document.querySelectorAll(".prep-drop").forEach(v=>{
+  v.addEventListener("dragover",e=>e.preventDefault());
+  v.addEventListener("drop",e=>{
+    e.preventDefault();
+    const content = e.dataTransfer.getData("text/plain") || draggedContent;
+    applyPrepContent(v, content);
+  });
+
+  // タップで配置
+  v.addEventListener("click",()=>{
+    if(!selectedContent){
+      showMessage("先にカードをタップして選び、その後この器具をタップしてください。","err");
+      return;
+    }
+    applyPrepContent(v, selectedContent);
+  });
+});
+
+/* ===== ステップ2：装置を組み立てる ===== */
+let draggedKey=null;
+let selectedKey=null;
+
+document.querySelectorAll("#tools .tool").forEach(tool=>{
+  // マウス用 HTML5 DnD
+  tool.addEventListener("dragstart",e=>{
+    draggedKey = tool.dataset.key;
+    e.dataTransfer.setData("text/plain",draggedKey);
+    tool.classList.add("dragging");
+  });
+  tool.addEventListener("dragend",()=>tool.classList.remove("dragging"));
+
+  // タップで選択（タップ操作も残しておく）
+  tool.addEventListener("click",()=>{
+    selectedKey = tool.dataset.key;
+    document.querySelectorAll("#tools .tool").forEach(t=>t.classList.remove("selected"));
+    tool.classList.add("selected");
+    const label = tool.querySelector(".tool-label").textContent.trim();
+    showMessage("「"+label+"」のカードを選びました。装置図の位置をタップしましょう。","ok");
+  });
+
+  // タッチ用リアルドラッグ
+  setupTouchDragForCard(
+    tool,
+    c => c.dataset.key,
+    (el, key)=>{
+      const z = el && el.closest(".apparatus-area .dropzone");
+      if(z){
+        placeToolInZone(z, key);
+      }
+    }
+  );
+});
+
+function createMini(key){
+  const d=document.createElement("div");
+  d.classList.add("mini");
+  if(key==="burner"){d.classList.add("burner-icon");d.appendChild(document.createElement("span"));}
+  if(key==="tripod") d.classList.add("tripod-icon");
+  if(key==="hotbeaker") d.classList.add("hotbeaker-icon");
+  if(key==="stand") d.classList.add("stand-icon");
+  if(key==="hoseSet") d.classList.add("hoseSet-icon");
+  if(key==="icebeaker") d.classList.add("icebeaker-icon");
+  if(key==="wire") d.classList.add("wire-icon");
+  if(key==="tubeSet"){
+    d.classList.add("tubeSetMini");
+    d.innerHTML='<div class="tube-mini-body"></div><div class="tube-mini-thermo-rod"></div><div class="tube-mini-thermo-bulb"></div>';
+  }
+  return d;
+}
+
+const dropzones = document.querySelectorAll(".apparatus-area .dropzone");
+
+function checkAssembleComplete(){
+  assembleDone = Array.from(dropzones).every(z=>z.classList.contains("filled"));
+  if(assembleDone){
+    nav3.classList.remove("disabled");
+    showMessage("装置が完成しました。③ 操作 に進みましょう。","ok");
+  }
+  updateNextButton();
+}
+
+/* 装置図への配置共通処理 */
+function placeToolInZone(z, key){
+  if(!prepDone){
+    showMessage("まず① 器具の準備 を終えてから装置を組み立てましょう。","err");
+    return;
+  }
+  if(!key) return;
+  const expected = z.dataset.accept;
+  if(key===expected && !z.classList.contains("filled")){
+    z.classList.add("filled");
+    z.textContent="";
+    z.appendChild(createMini(key));
+    document.querySelectorAll('.tool[data-key="'+key+'"]').forEach(t=>t.style.opacity="0.4");
+    if(expected==="hotbeaker") z.style.pointerEvents="none";
+    showMessage("正しい位置に置けました。","ok");
+    checkAssembleComplete();
+  }else if(key===expected){
+    showMessage("ここにはすでに置いてあります。","err");
+  }else{
+    showMessage("ここには別の器具を置きます。教科書の図を思い出そう。","err");
+  }
+}
+
+/* ドラッグ＋タップ両対応（マウス側） */
+dropzones.forEach(z=>{
+  z.addEventListener("dragover",e=>{
+    if(prepDone) e.preventDefault();
+  });
+  z.addEventListener("drop",e=>{
+    e.preventDefault();
+    const key = e.dataTransfer.getData("text/plain") || draggedKey;
+    placeToolInZone(z, key);
+  });
+
+  // タップ配置
+  z.addEventListener("click",()=>{
+    if(!selectedKey){
+      showMessage("先に左のカードをタップして選び、その後この位置をタップしてください。","err");
+      return;
+    }
+    placeToolInZone(z, selectedKey);
+  });
+});
+
+/* ===== ステップ3：操作（ガスバーナー） ===== */
+const flameEl=$("flame"), flameText=$("flame-text"), matchIcon=$("match-icon");
+const hotspots=document.querySelectorAll(".hotspot");
+const seq=["openMain","openCock","lightMatch","openGas","openAir"];
+let burnerIndex=0;
+
+function updateFlame(){
+  if(burnerIndex<=2){
+    flameEl.className="";
+    flameText.textContent =
+      burnerIndex===0 ? "まだ火はついていません。" :
+      "ガスの通り道が開きましたが、まだ火はついていません。";
+  }else if(burnerIndex===3){
+    flameEl.className="";
+    flameText.textContent = "マッチに火がつきました。ガス調節ねじを開けると黄色い炎が出ます。";
+  }else if(burnerIndex===4){
+    flameEl.className="yellow";
+    flameText.textContent = "黄色い炎がつきました。空気調節ねじで青い炎に調節しましょう。";
+  }else{
+    flameEl.className="blue";
+    flameText.textContent = "よい青色の炎になりました。";
+  }
+}
+updateFlame();
+
+hotspots.forEach(hs=>{
+  hs.addEventListener("click",()=>{
+    if(!assembleDone){
+      showMessage("② 装置を組み立てる を終えてから点火しましょう。","err");
+      return;
+    }
+    const action = hs.dataset.action;
+    const expected = seq[burnerIndex];
+    if(action===expected){
+      burnerIndex++;
+      hs.classList.add("done");
+      if(action==="lightMatch") matchIcon.classList.add("lit");
+      showMessage("よい順番です。次の場所をクリックしましょう。","ok");
+      updateFlame();
+      if(burnerIndex>=seq.length){
+        burnerDone=true;
+        nav4.classList.remove("disabled");
+        showMessage("安全に火をつけることができました。④ 記録・読み取り へ進みましょう。","ok");
+        updateNextButton();
+      }
+    }else if(seq.includes(action)){
+      showMessage("順番がちがいます。元栓→コック→マッチ→ガス調節ねじ→空気調節ねじ の順です。","err");
+    }else{
+      showMessage("この場所は今回の手順には使いません。","err");
+    }
+  });
+});
+
+/* ===== ステップ4：温度の読み取り ===== */
+const thermoColumn=$("thermo-column");
+const readingStatus=$("reading-status");
+const currentReading=$("current-reading");
+const btnReadStart=$("btn-read-start");
+const btnNextMinute=$("btn-next-minute");
+const btnResetReading=$("btn-reset-reading");
+const logList=$("log-list");
+
+/* 目盛り（10℃ごと） */
+(function(){
+  const zoom=document.querySelector(".thermo-zoom");
+  for(let t=0;t<=100;t+=10){
+    const tick=document.createElement("div");
+    tick.className="thermo-tick";
+    const label=document.createElement("div");
+    label.className="thermo-tick-label";
+    const h=(t/100)*(220-40);
+    tick.style.bottom=(26+h)+"px";
+    label.style.bottom=(22+h)+"px";
+    label.textContent=t;
+    zoom.appendChild(tick);
+    zoom.appendChild(label);
+  }
+})();
+
+/* 温度データ（エタノールの例） */
+const timePoints=[0,1,2,3,4,5,6,7];
+const tempPoints=[20,34,49,62,72,78,78,78];
+let idx=-1;
+
+function setThermoTemp(temp){
+  const max=100;
+  const h=Math.max(0,Math.min(temp,max))/max*(220-40);
+  thermoColumn.style.height=h+"px";
+}
+function updateReading(){
+  if(idx<0){
+    currentReading.textContent="--.- ℃（--分）";
+    setThermoTemp(0);return;
+  }
+  const t=timePoints[idx],v=tempPoints[idx];
+  currentReading.textContent=v.toFixed(1)+" ℃（"+t+"分）";
+}
+function appendLog(){
+  const t=timePoints[idx],v=tempPoints[idx];
+  const li=document.createElement("li");
+  li.textContent=t+" 分： "+v.toFixed(1)+" ℃";
+  logList.appendChild(li);
+}
+
+btnReadStart.onclick=()=>{
+  if(!assembleDone || !burnerDone){
+    showMessage("③ 操作 を正しく終えてから温度を読み取りましょう。","err");
+    return;
+  }
+  logList.innerHTML="";
+  idx=0;
+  setThermoTemp(tempPoints[idx]);
+  updateReading();
+  appendLog();
+  readingStatus.textContent="加熱前（0分）の温度を読み取りました。プリントの「0分」に書きましょう。";
+  showMessage("0分の温度を読み取りました。","ok");
+};
+btnNextMinute.onclick=()=>{
+  if(!assembleDone || !burnerDone){
+    showMessage("③ 操作 を正しく終えてから温度を読み取りましょう。","err");
+    return;
+  }
+  if(idx<0){
+    showMessage("先に「加熱前の温度を読む」で0分から始めましょう。","err");
+    return;
+  }
+  if(idx>=timePoints.length-1){
+    showMessage("これ以上先の時間は用意していません。ここまでのデータでグラフを書きましょう。","ok");
+    return;
+  }
+  idx++;
+  setThermoTemp(tempPoints[idx]);
+  updateReading();
+  appendLog();
+  const t = timePoints[idx];
+  readingStatus.textContent =
+    t + "分後の温度を読み取りました。プリントの「" + t + "分」に書きましょう。";
+  showMessage(t + "分後の温度を読み取りました。","ok");
+
+  if(idx >= timePoints.length - 1){
+    showFinishOverlay();
+  }
+};
+btnResetReading.onclick=()=>{
+  idx=-1;
+  logList.innerHTML="";
+  setThermoTemp(0);
+  updateReading();
+  readingStatus.textContent="まず「加熱前の温度を読む」を押して、0分から読み取りを始めよう。";
+  showMessage("温度の読み取りをリセットしました。","ok");
+};
+
+/* ===== 全体リセット ===== */
+$("reset-all").onclick=()=>{
+  // ステップ1
+  prepStatus.hot={water:false,stone:false};
+  prepStatus.ice={water:false,ice:false};
+  prepStatus.tube={ethanol:false,stone:false,thermo:false};
+  updatePrepDisplay();
+
+  // ステップ2
+  dropzones.forEach(z=>{
+    z.classList.remove("filled");
+    z.style.pointerEvents="auto";
+    const key=z.dataset.accept;
+    const label =
+      key==="stand"?"スタンド":
+      key==="tubeSet"?"枝つき試験管":
+      key==="tripod"?"三脚":
+      key==="wire"?"金網":
+      key==="hotbeaker"?"湯せんビーカー":
+      key==="burner"?"ガスバーナー":
+      key==="hoseSet"?"ゴム管＋ガラス管":"氷水ビーカー";
+    z.textContent=label;
+  });
+  document.querySelectorAll("#tools .tool").forEach(t=>{
+    t.style.opacity="1";
+    t.classList.remove("selected");
+  });
+
+  // ステップ1カードの選択色も消す
+  document.querySelectorAll(".prep-tool").forEach(t=>t.classList.remove("selected"));
+
+  prepDone=false;assembleDone=false;burnerDone=false;
+  nav2.classList.add("disabled");
+  nav3.classList.add("disabled");
+  nav4.classList.add("disabled");
+
+  // ステップ3
+  burnerIndex=0;
+  document.querySelectorAll(".hotspot").forEach(h=>h.classList.remove("done"));
+  matchIcon.classList.remove("lit");
+  updateFlame();
+
+  // ステップ4
+  idx=-1;
+  logList.innerHTML="";
+  setThermoTemp(0);
+  updateReading();
+  readingStatus.textContent="まず「加熱前の温度を読む」を押して、0分から読み取りを始めよう。";
+  finishShown=false;
+  finishOverlay.style.display="none";
+
+  // 選択状態もリセット
+  draggedContent=null;
+  selectedContent=null;
+  draggedKey=null;
+  selectedKey=null;
+
+  activateStep("step1");
+  showMessage("すべて初期化しました。① 器具の準備 からやり直しましょう。");
+  updateNextButton();
+};
+
+updateNextButton();
+</script>
+</body>
+</html>
