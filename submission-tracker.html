@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>提出物チェックシステム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","Meiryo",sans-serif;background:#f0f2f5;color:#333}
+header{background:#1a73e8;color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px}
+header .info{font-size:12px;opacity:.85}
+nav{background:#fff;border-bottom:1px solid #ddd;display:flex;gap:0;padding:0 12px}
+nav button{border:none;background:none;padding:12px 18px;font-size:14px;cursor:pointer;border-bottom:3px solid transparent;color:#555}
+nav button.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600}
+nav button:hover{background:#f5f5f5}
+.page{display:none;padding:20px;max-width:960px;margin:0 auto}
+.page.active{display:block}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:20px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e8eaed}
+.btn{display:inline-block;padding:8px 16px;border:none;border-radius:4px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-primary{background:#1a73e8;color:#fff}
+.btn-primary:hover{background:#1557b0}
+.btn-danger{background:#d93025;color:#fff}
+.btn-danger:hover{background:#b3261e}
+.btn-success{background:#188038;color:#fff}
+.btn-success:hover{background:#0d652d}
+.btn-secondary{background:#e8eaed;color:#333}
+.btn-secondary:hover{background:#d2d5db}
+.btn-sm{padding:5px 10px;font-size:12px}
+input[type=text],input[type=number],input[type=date],select,textarea{border:1px solid #ccc;border-radius:4px;padding:8px 10px;font-size:14px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#555}
+.form-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+.form-row>div{flex:1;min-width:120px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center}
+th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
+.status-cell{cursor:pointer;user-select:none;min-width:36px;font-size:16px;transition:background .15s}
+.status-cell:hover{background:#e3f2fd}
+.s-submitted{background:#e6f4ea;color:#188038}
+.s-not-submitted{background:#fce8e6;color:#d93025}
+.s-blank{background:#fef7e0;color:#e37400}
+.s-none{background:#fff;color:#999}
+.summary-box{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.summary-item{padding:12px 20px;border-radius:8px;text-align:center;min-width:120px}
+.summary-item .num{font-size:28px;font-weight:700}
+.summary-item .lbl{font-size:12px;margin-top:4px}
+.si-total{background:#e8eaed;color:#333}
+.si-submitted{background:#e6f4ea;color:#188038}
+.si-not{background:#fce8e6;color:#d93025}
+.si-blank{background:#fef7e0;color:#e37400}
+.empty-msg{text-align:center;color:#999;padding:40px;font-size:14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.tag-submitted{background:#e6f4ea;color:#188038}
+.tag-not{background:#fce8e6;color:#d93025}
+.tag-blank{background:#fef7e0;color:#e37400}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:8px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h3{margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+@media print{header,nav,.btn,.no-print{display:none!important}.page{display:block!important;padding:0}.card{box-shadow:none;border:1px solid #ccc}}
+</style>
+</head>
+<body>
+<header>
+<h1>提出物チェックシステム</h1>
+<div class="info">データはこの端末内にのみ保存されます</div>
+</header>
+<nav id="mainNav">
+<button data-page="students" class="active">生徒管理</button>
+<button data-page="assignments">提出物管理</button>
+<button data-page="check">チェック</button>
+<button data-page="summary">集計</button>
+<button data-page="data">データ管理</button>
+</nav>
+
+<div id="page-students" class="page active">
+<div class="card">
+<h2>クラス設定</h2>
+<div class="form-row">
+<div><label>クラス名</label><input type="text" id="className" placeholder="例: 2年1組"></div>
+<div style="flex:0"><button class="btn btn-primary" onclick="saveClassName()" style="margin-top:18px">保存</button></div>
+</div>
+</div>
+<div class="card">
+<h2>生徒一覧 <span id="studentCount" style="font-weight:400;font-size:13px;color:#666"></span></h2>
+<div class="form-row">
+<div style="flex:0;min-width:80px"><label>出席番号</label><input type="number" id="sNum" min="1" max="99"></div>
+<div><label>名前</label><input type="text" id="sName" placeholder="生徒名を入力"></div>
+<div style="flex:0;min-width:80px"><label>性別</label><select id="sGender"><option value="男">男</option><option value="女">女</option></select></div>
+<div style="flex:0"><button class="btn btn-primary" onclick="addStudent()" style="margin-top:18px">追加</button></div>
+</div>
+<div id="studentList"></div>
+</div>
+<div class="card">
+<h2>Excelから一括登録</h2>
+<p style="font-size:13px;color:#666;margin-bottom:8px">①まずテンプレートをダウンロード → ②Excelで編集・保存 → ③ファイルを選んで読み込み</p>
+<div style="margin-bottom:12px">
+<button class="btn btn-secondary" onclick="downloadTemplate()">① テンプレートをダウンロード (.xlsx)</button>
+</div>
+<div style="margin-bottom:8px">
+<label>③ 編集済みExcelファイルを選択</label>
+<input type="file" id="excelFile" accept=".xlsx,.csv">
+</div>
+<button class="btn btn-success" onclick="importStudentsFromFile()">読み込む</button>
+<div id="importPreview" style="margin-top:12px"></div>
+</div>
+<div class="card">
+<h2>テキストで一括登録</h2>
+<p style="font-size:13px;color:#666;margin-bottom:8px">1行ごとに「出席番号,名前,性別」の形式で入力（性別は省略可）</p>
+<textarea id="bulkInput" rows="4" placeholder="1,山田太郎,男&#10;2,鈴木花子,女&#10;3,佐藤一郎"></textarea>
+<div style="margin-top:8px"><button class="btn btn-success" onclick="bulkAdd()">一括追加</button></div>
+</div>
+</div>
+
+<div id="page-assignments" class="page">
+<div class="card">
+<h2>提出物を登録</h2>
+<div class="form-row">
+<div><label>提出物名</label><input type="text" id="aName" placeholder="例: 数学プリントNo.5"></div>
+<div style="min-width:160px"><label>提出期限</label><input type="date" id="aDate"></div>
+<div style="flex:0"><button class="btn btn-primary" onclick="addAssignment()" style="margin-top:18px">登録</button></div>
+</div>
+</div>
+<div class="card">
+<h2>登録済み提出物</h2>
+<div id="assignmentList"></div>
+</div>
+</div>
+
+<div id="page-check" class="page">
+<div class="card">
+<h2>提出状況チェック</h2>
+<div class="form-row">
+<div><label>提出物を選択</label><select id="checkSelect" onchange="renderCheck()"><option value="">--選択--</option></select></div>
+</div>
+<p style="font-size:12px;color:#666;margin-bottom:8px">セルをクリックで状態を切り替え: ー → ◯ → ✕ → △ → ー</p>
+<div id="checkArea"></div>
+<div id="checkSummary" class="summary-box"></div>
+</div>
+</div>
+
+<div id="page-summary" class="page">
+<div class="card">
+<h2>全体集計</h2>
+<div id="summaryArea"></div>
+</div>
+</div>
+
+<div id="page-data" class="page">
+<div class="card">
+<h2>データのバックアップ</h2>
+<p style="font-size:13px;color:#666;margin-bottom:12px">データはこの端末のブラウザ内に保存されています。<br>万が一に備え、定期的にファイルに保存してください。</p>
+<button class="btn btn-primary" onclick="exportData()">データを保存（エクスポート）</button>
+</div>
+<div class="card">
+<h2>データの復元</h2>
+<p style="font-size:13px;color:#666;margin-bottom:12px">保存したファイルからデータを復元します。<br>※ 現在のデータは上書きされます。</p>
+<input type="file" id="importFile" accept=".json" style="margin-bottom:8px">
+<br><button class="btn btn-success" onclick="importData()">データを復元（インポート）</button>
+</div>
+<div class="card">
+<h2>データの初期化</h2>
+<p style="font-size:13px;color:#666;margin-bottom:12px">すべてのデータを削除します。この操作は元に戻せません。</p>
+<button class="btn btn-danger" onclick="resetAll()">すべてのデータを削除</button>
+</div>
+</div>
+
+<script>
+/* ======== データ管理 ======== */
+const STORAGE_KEY='submission_tracker_v1';
+function loadData(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||defaultData()}catch(e){return defaultData()}}
+function defaultData(){return{className:'',students:[],assignments:[],records:{}}}
+function saveData(d){localStorage.setItem(STORAGE_KEY,JSON.stringify(d))}
+let D=loadData();
+
+/* ======== ナビゲーション ======== */
+document.querySelectorAll('#mainNav button').forEach(b=>{
+b.addEventListener('click',()=>{
+document.querySelectorAll('#mainNav button').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+b.classList.add('active');
+document.getElementById('page-'+b.dataset.page).classList.add('active');
+if(b.dataset.page==='check')refreshCheckSelect();
+if(b.dataset.page==='summary')renderSummary();
+});
+});
+
+/* ======== クラス名 ======== */
+function saveClassName(){D.className=document.getElementById('className').value.trim();saveData(D);alert('クラス名を保存しました');}
+
+/* ======== 生徒管理 ======== */
+function addStudent(){
+const num=parseInt(document.getElementById('sNum').value);
+const name=document.getElementById('sName').value.trim();
+const gender=document.getElementById('sGender').value;
+if(!num||!name){alert('出席番号と名前を入力してください');return;}
+if(D.students.find(s=>s.num===num)){alert('出席番号'+num+'は既に登録されています');return;}
+D.students.push({num,name,gender});
+D.students.sort((a,b)=>a.num-b.num);
+saveData(D);document.getElementById('sNum').value='';document.getElementById('sName').value='';renderStudents();
+}
+function removeStudent(num){
+if(!confirm('出席番号'+num+'の生徒を削除しますか？'))return;
+D.students=D.students.filter(s=>s.num!==num);
+Object.keys(D.records).forEach(k=>{delete D.records[k][num];});
+saveData(D);renderStudents();
+}
+function bulkAdd(){
+const lines=document.getElementById('bulkInput').value.trim().split('\n');
+let added=0;
+lines.forEach(line=>{
+const parts=line.split(/[,\t，]/);
+if(parts.length>=2){
+const num=parseInt(parts[0].trim());const name=parts[1].trim();
+const gender=(parts[2]||'').trim()||'';
+if(num&&name&&!D.students.find(s=>s.num===num)){D.students.push({num,name,gender});added++;}
+}
+});
+D.students.sort((a,b)=>a.num-b.num);saveData(D);
+document.getElementById('bulkInput').value='';renderStudents();
+alert(added+'名を追加しました');
+}
+function renderStudents(){
+const c=document.getElementById('studentList');
+document.getElementById('studentCount').textContent=D.students.length?'（'+D.students.length+'名）':'';
+if(!D.students.length){c.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';return;}
+let h='<table><tr><th style="width:60px">番号</th><th>名前</th><th style="width:50px">性別</th><th style="width:60px">操作</th></tr>';
+D.students.forEach(s=>{h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td><td>'+(esc(s.gender||''))+'</td><td><button class="btn btn-danger btn-sm" onclick="removeStudent('+s.num+')">削除</button></td></tr>';});
+h+='</table>';c.innerHTML=h;
+}
+
+/* ======== 提出物管理 ======== */
+function addAssignment(){
+const name=document.getElementById('aName').value.trim();
+const date=document.getElementById('aDate').value;
+if(!name){alert('提出物名を入力してください');return;}
+const id='a'+Date.now();
+D.assignments.push({id,name,date:date||''});
+D.records[id]={};saveData(D);
+document.getElementById('aName').value='';document.getElementById('aDate').value='';renderAssignments();
+}
+function removeAssignment(id){
+if(!confirm('この提出物を削除しますか？'))return;
+D.assignments=D.assignments.filter(a=>a.id!==id);delete D.records[id];saveData(D);renderAssignments();
+}
+function renderAssignments(){
+const c=document.getElementById('assignmentList');
+if(!D.assignments.length){c.innerHTML='<div class="empty-msg">提出物が登録されていません</div>';return;}
+let h='<table><tr><th>提出物名</th><th style="width:120px">期限</th><th style="width:80px">状況</th><th style="width:60px">操作</th></tr>';
+D.assignments.forEach(a=>{
+const rec=D.records[a.id]||{};const total=D.students.length;
+let sub=0;Object.values(rec).forEach(v=>{if(v==='submitted')sub++;});
+h+='<tr><td style="text-align:left">'+esc(a.name)+'</td><td>'+(a.date||'ー')+'</td><td>'+sub+'/'+total+'</td>';
+h+='<td><button class="btn btn-danger btn-sm" onclick="removeAssignment(\''+a.id+'\')">削除</button></td></tr>';
+});
+h+='</table>';c.innerHTML=h;
+}
+
+/* ======== チェック画面 ======== */
+const STATUS_CYCLE=['none','submitted','not_submitted','blank'];
+const STATUS_LABEL={none:'ー',submitted:'◯',not_submitted:'✕',blank:'△'};
+const STATUS_CLASS={none:'s-none',submitted:'s-submitted',not_submitted:'s-not-submitted',blank:'s-blank'};
+
+function refreshCheckSelect(){
+const sel=document.getElementById('checkSelect');const cur=sel.value;
+sel.innerHTML='<option value="">--選択--</option>';
+D.assignments.forEach(a=>{sel.innerHTML+='<option value="'+a.id+'">'+esc(a.name)+'</option>';});
+if(cur&&D.assignments.find(a=>a.id===cur))sel.value=cur;
+renderCheck();
+}
+function renderCheck(){
+const id=document.getElementById('checkSelect').value;
+const area=document.getElementById('checkArea');
+const sumArea=document.getElementById('checkSummary');
+if(!id){area.innerHTML='<div class="empty-msg">提出物を選択してください</div>';sumArea.innerHTML='';return;}
+if(!D.students.length){area.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';sumArea.innerHTML='';return;}
+if(!D.records[id])D.records[id]={};
+const rec=D.records[id];
+let h='<table><tr><th style="width:60px">番号</th><th>名前</th><th style="width:80px">状態</th></tr>';
+D.students.forEach(s=>{
+const st=rec[s.num]||'none';
+h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td>';
+h+='<td class="status-cell '+STATUS_CLASS[st]+'" onclick="toggleStatus(\''+id+'\','+s.num+')">'+STATUS_LABEL[st]+'</td></tr>';
+});
+h+='</table>';area.innerHTML=h;
+/* 集計 */
+let counts={submitted:0,not_submitted:0,blank:0,none:0};
+D.students.forEach(s=>{const st=rec[s.num]||'none';counts[st]++;});
+sumArea.innerHTML=
+'<div class="summary-item si-total"><div class="num">'+D.students.length+'</div><div class="lbl">全体</div></div>'+
+'<div class="summary-item si-submitted"><div class="num">'+counts.submitted+'</div><div class="lbl">提出 ◯</div></div>'+
+'<div class="summary-item si-not"><div class="num">'+counts.not_submitted+'</div><div class="lbl">未提出 ✕</div></div>'+
+'<div class="summary-item si-blank"><div class="num">'+counts.blank+'</div><div class="lbl">未記入 △</div></div>';
+}
+function toggleStatus(aId,sNum){
+if(!D.records[aId])D.records[aId]={};
+const cur=D.records[aId][sNum]||'none';
+const idx=STATUS_CYCLE.indexOf(cur);
+D.records[aId][sNum]=STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
+saveData(D);renderCheck();
+}
+
+/* ======== 集計画面 ======== */
+function renderSummary(){
+const area=document.getElementById('summaryArea');
+if(!D.assignments.length||!D.students.length){area.innerHTML='<div class="empty-msg">生徒と提出物を登録してください</div>';return;}
+let h='<div style="overflow-x:auto"><table><tr><th style="width:60px">番号</th><th>名前</th>';
+D.assignments.forEach(a=>{h+='<th>'+esc(a.name)+'</th>';});
+h+='<th>提出率</th></tr>';
+D.students.forEach(s=>{
+h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td>';
+let sub=0;
+D.assignments.forEach(a=>{
+const st=(D.records[a.id]||{})[s.num]||'none';
+h+='<td class="'+STATUS_CLASS[st]+'">'+STATUS_LABEL[st]+'</td>';
+if(st==='submitted')sub++;
+});
+const rate=D.assignments.length?Math.round(sub/D.assignments.length*100):0;
+h+='<td><strong>'+rate+'%</strong></td></tr>';
+});
+/* 合計行 */
+h+='<tr style="font-weight:600"><td colspan="2">提出数</td>';
+D.assignments.forEach(a=>{
+const rec=D.records[a.id]||{};let c=0;D.students.forEach(s=>{if(rec[s.num]==='submitted')c++;});
+h+='<td>'+c+'/'+D.students.length+'</td>';
+});
+h+='<td></td></tr></table></div>';
+area.innerHTML=h;
+}
+
+/* ======== データ管理 ======== */
+function exportData(){
+const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+const url=URL.createObjectURL(blob);const a=document.createElement('a');
+a.href=url;a.download='提出物データ_'+(D.className||'クラス')+'_'+new Date().toISOString().slice(0,10)+'.json';
+a.click();URL.revokeObjectURL(url);
+}
+function importData(){
+const f=document.getElementById('importFile').files[0];
+if(!f){alert('ファイルを選択してください');return;}
+if(!confirm('現在のデータを上書きしますか？'))return;
+const r=new FileReader();r.onload=function(e){
+try{D=JSON.parse(e.target.result);saveData(D);alert('データを復元しました');location.reload();}
+catch(err){alert('ファイルの読み込みに失敗しました');}
+};r.readAsText(f);
+}
+function resetAll(){
+if(!confirm('すべてのデータを削除しますか？\nこの操作は元に戻せません。'))return;
+if(!confirm('本当に削除しますか？'))return;
+localStorage.removeItem(STORAGE_KEY);D=defaultData();location.reload();
+}
+
+/* ======== Excel (xlsx) ユーティリティ ======== */
+const strToU8=s=>new TextEncoder().encode(s);
+const escXml=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c;}return t;})();
+function crc32(buf){let c=0xFFFFFFFF;for(let i=0;i<buf.length;i++)c=crcT[(c^buf[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+
+function zipStore(files){
+const lhs=[],cds=[];let off=0;
+files.forEach(f=>{
+const nm=strToU8(f.name),sz=f.data.length,cr=crc32(f.data);
+const lh=new Uint8Array(30+nm.length+sz);const lv=new DataView(lh.buffer);
+lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);
+lv.setUint16(8,0,true);lv.setUint32(14,cr,true);
+lv.setUint32(18,sz,true);lv.setUint32(22,sz,true);
+lv.setUint16(26,nm.length,true);
+lh.set(nm,30);lh.set(f.data,30+nm.length);lhs.push(lh);
+const ch=new Uint8Array(46+nm.length);const cv=new DataView(ch.buffer);
+cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+cv.setUint16(10,0,true);cv.setUint32(16,cr,true);
+cv.setUint32(20,sz,true);cv.setUint32(24,sz,true);
+cv.setUint16(28,nm.length,true);cv.setUint32(42,off,true);
+ch.set(nm,46);cds.push(ch);off+=lh.length;
+});
+let csz=0;cds.forEach(c=>csz+=c.length);
+const eocd=new Uint8Array(22);const ev=new DataView(eocd.buffer);
+ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);
+ev.setUint16(10,files.length,true);ev.setUint32(12,csz,true);ev.setUint32(16,off,true);
+const r=new Uint8Array(off+csz+22);let p=0;
+lhs.forEach(l=>{r.set(l,p);p+=l.length;});
+cds.forEach(c=>{r.set(c,p);p+=c.length;});
+r.set(eocd,p);return r;
+}
+
+function downloadTemplate(){
+const ss=['年','組','番号','性別','姓名','2','1','1','男','山田 太郎','2','1','2','女','鈴木 花子'];
+const ssXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+ss.length+'" uniqueCount="'+ss.length+'">'+ss.map(s=>'<si><t>'+escXml(s)+'</t></si>').join('')+'</sst>';
+const cols='<cols><col min="1" max="2" width="8"/><col min="3" max="4" width="8"/><col min="5" max="5" width="20"/></cols>';
+const r1='<row r="1"><c r="A1" t="s" s="1"><v>0</v></c><c r="B1" t="s" s="1"><v>1</v></c><c r="C1" t="s" s="1"><v>2</v></c><c r="D1" t="s" s="1"><v>3</v></c><c r="E1" t="s" s="1"><v>4</v></c></row>';
+const r2='<row r="2"><c r="A2" t="s"><v>5</v></c><c r="B2" t="s"><v>6</v></c><c r="C2" t="s"><v>7</v></c><c r="D2" t="s"><v>8</v></c><c r="E2" t="s"><v>9</v></c></row>';
+const r3='<row r="3"><c r="A3" t="s"><v>10</v></c><c r="B3" t="s"><v>11</v></c><c r="C3" t="s"><v>12</v></c><c r="D3" t="s"><v>13</v></c><c r="E3" t="s"><v>14</v></c></row>';
+const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+r1+r2+r3+'</sheetData></worksheet>';
+const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="生徒一覧" sheetId="1" r:id="rId1"/></sheets></workbook>';
+const wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+const sty='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/></font><font><b/><sz val="11"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf fontId="1" applyFont="1"/></cellXfs></styleSheet>';
+const z=zipStore([
+{name:'[Content_Types].xml',data:strToU8(ct)},
+{name:'_rels/.rels',data:strToU8(rels)},
+{name:'xl/workbook.xml',data:strToU8(wb)},
+{name:'xl/_rels/workbook.xml.rels',data:strToU8(wbr)},
+{name:'xl/worksheets/sheet1.xml',data:strToU8(sheet)},
+{name:'xl/sharedStrings.xml',data:strToU8(ssXml)},
+{name:'xl/styles.xml',data:strToU8(sty)}
+]);
+const blob=new Blob([z],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+a.download='生徒一覧テンプレート.xlsx';a.click();URL.revokeObjectURL(a.href);
+}
+
+function parseZipEntries(buf){
+const v=new DataView(buf),u=new Uint8Array(buf),entries=[];
+let ep=-1;for(let i=u.length-22;i>=0;i--){if(v.getUint32(i,true)===0x06054b50){ep=i;break;}}
+if(ep<0)throw new Error('Invalid ZIP');
+const cnt=v.getUint16(ep+8,true);let pos=v.getUint32(ep+16,true);
+for(let i=0;i<cnt;i++){
+const comp=v.getUint16(pos+10,true),csz=v.getUint32(pos+20,true);
+const nLen=v.getUint16(pos+28,true),eLen=v.getUint16(pos+30,true),cLen=v.getUint16(pos+32,true);
+const lOff=v.getUint32(pos+42,true);
+const name=new TextDecoder().decode(u.slice(pos+46,pos+46+nLen));
+const lnl=v.getUint16(lOff+26,true),lel=v.getUint16(lOff+28,true);
+const dStart=lOff+30+lnl+lel;
+entries.push({name,comp,raw:u.slice(dStart,dStart+csz)});
+pos+=46+nLen+eLen+cLen;
+}return entries;
+}
+async function inflateEntry(e){
+if(e.comp===0)return e.raw;
+if(e.comp===8){
+const ds=new DecompressionStream('deflate-raw');
+const w=ds.writable.getWriter();const rd=ds.readable.getReader();
+w.write(e.raw);w.close();
+const ch=[];while(true){const{done,value}=await rd.read();if(done)break;ch.push(value);}
+const tot=ch.reduce((s,c)=>s+c.length,0),r=new Uint8Array(tot);
+let o=0;ch.forEach(c=>{r.set(c,o);o+=c.length;});return r;
+}throw new Error('未対応の圧縮形式です');
+}
+async function getZipText(entries,name){
+const e=entries.find(x=>x.name===name||x.name===name.replace(/^\//,''));
+if(!e)return null;return new TextDecoder().decode(await inflateEntry(e));
+}
+async function readXlsx(buf){
+const entries=parseZipEntries(buf);
+const sharedStrings=[];
+const ssXml=await getZipText(entries,'xl/sharedStrings.xml');
+if(ssXml){new DOMParser().parseFromString(ssXml,'text/xml').querySelectorAll('si').forEach(si=>{sharedStrings.push(si.textContent);});}
+const sheetXml=await getZipText(entries,'xl/worksheets/sheet1.xml');
+if(!sheetXml)throw new Error('シートが見つかりません');
+const doc=new DOMParser().parseFromString(sheetXml,'text/xml');
+const rows=[];
+doc.querySelectorAll('row').forEach(row=>{
+const cells=[];
+row.querySelectorAll('c').forEach(c=>{
+const t=c.getAttribute('t'),vEl=c.querySelector('v');
+let val=vEl?vEl.textContent:'';
+if(t==='s')val=sharedStrings[parseInt(val)]||'';
+const is=c.querySelector('is t');if(is)val=is.textContent;
+cells.push(val.trim());
+});rows.push(cells);
+});return rows;
+}
+
+async function importStudentsFromFile(){
+const fileEl=document.getElementById('excelFile');
+const f=fileEl.files[0];
+if(!f){alert('ファイルを選択してください');return;}
+try{
+let rows;
+if(f.name.endsWith('.csv')){
+const text=await f.text();
+rows=text.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(',').map(c=>c.trim()));
+}else{
+const buf=await f.arrayBuffer();
+rows=await readXlsx(buf);
+}
+if(rows.length<2){alert('データが見つかりません');return;}
+const header=rows[0].map(h=>h.replace(/\s/g,''));
+const iYear=header.indexOf('年'),iClass=header.indexOf('組');
+const iNum=header.indexOf('番号'),iGender=header.indexOf('性別'),iName=header.indexOf('姓名');
+if(iNum<0||iName<0){alert('ヘッダーに「番号」「姓名」列が見つかりません');return;}
+let added=0,skipped=0;
+for(let i=1;i<rows.length;i++){
+const r=rows[i];if(!r[iNum]&&!r[iName])continue;
+const num=parseInt(r[iNum]);const name=(r[iName]||'').trim();
+if(!num||!name){skipped++;continue;}
+if(D.students.find(s=>s.num===num)){skipped++;continue;}
+const gender=iGender>=0?(r[iGender]||'').trim():'';
+D.students.push({num,name,gender});added++;
+}
+if(iYear>=0&&iClass>=0&&rows[1]){
+const y=rows[1][iYear]||'';const cl=rows[1][iClass]||'';
+if(y&&cl&&!D.className){D.className=y+'年'+cl+'組';document.getElementById('className').value=D.className;}
+}
+D.students.sort((a,b)=>a.num-b.num);saveData(D);renderStudents();
+alert(added+'名を追加しました'+(skipped?'（'+skipped+'名はスキップ）':''));
+}catch(e){alert('ファイルの読み込みに失敗しました: '+e.message);}
+}
+
+/* ======== ユーティリティ ======== */
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+/* ======== 初期描画 ======== */
+document.getElementById('className').value=D.className||'';
+renderStudents();renderAssignments();
+</script>
+</body>
+</html>
