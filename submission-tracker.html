@@ -14,6 +14,9 @@ nav{background:#fff;border-bottom:1px solid #ddd;display:flex;gap:0;padding:0 12
 nav button{border:none;background:none;padding:12px 18px;font-size:14px;cursor:pointer;border-bottom:3px solid transparent;color:#555}
 nav button.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600}
 nav button:hover{background:#f5f5f5}
+#classBar{background:#eaf1fb;border-bottom:1px solid #d6e2f5;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#classBar .cb-label{font-size:13px;font-weight:600;color:#1a4a8a}
+#classBar select{width:auto;min-width:200px;flex:0 1 auto}
 .page{display:none;padding:20px;max-width:960px;margin:0 auto}
 .page.active{display:block}
 .card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:20px;margin-bottom:16px}
@@ -76,13 +79,18 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
 <button data-page="data">データ管理</button>
 </nav>
 
+<div id="classBar">
+<span class="cb-label">クラス</span>
+<select id="classSwitcher" onchange="switchClass(this.value)"></select>
+<button class="btn btn-primary btn-sm" onclick="addClass()">＋ 新規クラス</button>
+<button class="btn btn-secondary btn-sm" onclick="renameClass()">名前変更</button>
+<button class="btn btn-danger btn-sm" onclick="deleteClass()">クラス削除</button>
+</div>
+
 <div id="page-students" class="page active">
 <div class="card">
-<h2>クラス設定</h2>
-<div class="form-row">
-<div><label>クラス名</label><input type="text" id="className" placeholder="例: 2年1組"></div>
-<div style="flex:0"><button class="btn btn-primary" onclick="saveClassName()" style="margin-top:18px">保存</button></div>
-</div>
+<h2>クラスについて</h2>
+<p style="font-size:13px;color:#666">上部の「クラス」欄で操作対象のクラスを切り替えられます。「＋ 新規クラス」で追加、「名前変更」「クラス削除」も上部から行えます。<br>Excelから複数クラスをまとめて取り込むと、「年」「組」の列ごとに自動でクラスが作成されます。</p>
 </div>
 <div class="card">
 <h2>生徒一覧 <span id="studentCount" style="font-weight:400;font-size:13px;color:#666"></span></h2>
@@ -96,7 +104,7 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
 </div>
 <div class="card">
 <h2>Excelから一括登録</h2>
-<p style="font-size:13px;color:#666;margin-bottom:8px">①まずテンプレートをダウンロード → ②Excelで編集・保存 → ③ファイルを選んで読み込み</p>
+<p style="font-size:13px;color:#666;margin-bottom:8px">①まずテンプレートをダウンロード → ②Excelで編集・保存 → ③ファイルを選んで読み込み<br><strong>「年」「組」の列でクラスを判別し、複数クラスをまとめて取り込めます（クラスは自動作成）。</strong></p>
 <div style="margin-bottom:12px">
 <button class="btn btn-secondary" onclick="downloadTemplate()">① テンプレートをダウンロード (.xlsx)</button>
 </div>
@@ -170,11 +178,45 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
 
 <script>
 /* ======== データ管理 ======== */
-const STORAGE_KEY='submission_tracker_v1';
-function loadData(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||defaultData()}catch(e){return defaultData()}}
-function defaultData(){return{className:'',students:[],assignments:[],records:{}}}
-function saveData(d){localStorage.setItem(STORAGE_KEY,JSON.stringify(d))}
+const STORAGE_KEY='submission_tracker_v2';
+const OLD_KEY='submission_tracker_v1';
+function defaultData(){return{classes:[],currentClassId:''};}
+function genId(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+/* 旧形式(1クラス)→新形式(複数クラス)へ移行 */
+function migrateOld(o){
+const cls={id:genId('c'),name:(o&&o.className)||'クラス1',students:(o&&o.students)||[],assignments:(o&&o.assignments)||[],records:(o&&o.records)||{}};
+return{classes:[cls],currentClassId:cls.id};
+}
+/* 読み込んだ任意データを新形式に正規化 */
+function normalize(data){
+if(!data||typeof data!=='object')return defaultData();
+if(Array.isArray(data.classes)){
+data.classes.forEach(c=>{
+c.id=c.id||genId('c');
+c.name=c.name||'クラス';
+c.students=Array.isArray(c.students)?c.students:[];
+c.assignments=Array.isArray(c.assignments)?c.assignments:[];
+c.records=(c.records&&typeof c.records==='object')?c.records:{};
+});
+if(!data.classes.find(c=>c.id===data.currentClassId))data.currentClassId=data.classes[0]?data.classes[0].id:'';
+return data;
+}
+if('students' in data||'className' in data||'assignments' in data)return migrateOld(data);
+return defaultData();
+}
+function loadData(){
+try{
+const v2=localStorage.getItem(STORAGE_KEY);
+if(v2)return normalize(JSON.parse(v2));
+const v1=localStorage.getItem(OLD_KEY);
+if(v1)return normalize(JSON.parse(v1));
+}catch(e){}
+return defaultData();
+}
+function saveData(d){localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}
 let D=loadData();
+/* 現在のクラス */
+function cur(){return D.classes.find(c=>c.id===D.currentClassId)||null;}
 
 /* ======== ナビゲーション ======== */
 document.querySelectorAll('#mainNav button').forEach(b=>{
@@ -188,27 +230,59 @@ if(b.dataset.page==='summary')renderSummary();
 });
 });
 
-/* ======== クラス名 ======== */
-function saveClassName(){D.className=document.getElementById('className').value.trim();saveData(D);alert('クラス名を保存しました');}
+/* ======== クラス管理 ======== */
+function renderClassBar(){
+const sel=document.getElementById('classSwitcher');
+if(!D.classes.length){sel.innerHTML='<option value="">（クラスがありません）</option>';return;}
+sel.innerHTML=D.classes.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'（'+c.students.length+'名）</option>').join('');
+sel.value=D.currentClassId;
+}
+function switchClass(id){D.currentClassId=id;saveData(D);refreshAll();}
+function addClass(){
+const name=(prompt('新しいクラス名を入力してください（例: 2年1組）')||'').trim();
+if(!name)return;
+const c={id:genId('c'),name,students:[],assignments:[],records:{}};
+D.classes.push(c);D.currentClassId=c.id;saveData(D);refreshAll();
+}
+function renameClass(){
+const c=cur();if(!c){alert('クラスがありません');return;}
+const name=(prompt('クラス名を変更します',c.name)||'').trim();
+if(!name)return;
+c.name=name;saveData(D);refreshAll();
+}
+function deleteClass(){
+const c=cur();if(!c){alert('クラスがありません');return;}
+if(!confirm('クラス「'+c.name+'」を削除しますか？\n生徒・提出物・記録もすべて削除されます。'))return;
+D.classes=D.classes.filter(x=>x.id!==c.id);
+D.currentClassId=D.classes[0]?D.classes[0].id:'';
+saveData(D);refreshAll();
+}
+/* すべて再描画 */
+function refreshAll(){renderClassBar();renderStudents();renderAssignments();refreshCheckSelect();renderSummary();}
 
 /* ======== 生徒管理 ======== */
 function addStudent(){
+const c=cur();
+if(!c){alert('先に上部の「＋ 新規クラス」でクラスを追加してください');return;}
 const num=parseInt(document.getElementById('sNum').value);
 const name=document.getElementById('sName').value.trim();
 const gender=document.getElementById('sGender').value;
 if(!num||!name){alert('出席番号と名前を入力してください');return;}
-if(D.students.find(s=>s.num===num)){alert('出席番号'+num+'は既に登録されています');return;}
-D.students.push({num,name,gender});
-D.students.sort((a,b)=>a.num-b.num);
+if(c.students.find(s=>s.num===num)){alert('出席番号'+num+'は既に登録されています');return;}
+c.students.push({num,name,gender});
+c.students.sort((a,b)=>a.num-b.num);
 saveData(D);document.getElementById('sNum').value='';document.getElementById('sName').value='';renderStudents();
 }
 function removeStudent(num){
+const c=cur();if(!c)return;
 if(!confirm('出席番号'+num+'の生徒を削除しますか？'))return;
-D.students=D.students.filter(s=>s.num!==num);
-Object.keys(D.records).forEach(k=>{delete D.records[k][num];});
+c.students=c.students.filter(s=>s.num!==num);
+Object.keys(c.records).forEach(k=>{delete c.records[k][num];});
 saveData(D);renderStudents();
 }
 function bulkAdd(){
+const c=cur();
+if(!c){alert('先に上部の「＋ 新規クラス」でクラスを追加してください');return;}
 const lines=document.getElementById('bulkInput').value.trim().split('\n');
 let added=0;
 lines.forEach(line=>{
@@ -216,47 +290,56 @@ const parts=line.split(/[,\t，]/);
 if(parts.length>=2){
 const num=parseInt(parts[0].trim());const name=parts[1].trim();
 const gender=(parts[2]||'').trim()||'';
-if(num&&name&&!D.students.find(s=>s.num===num)){D.students.push({num,name,gender});added++;}
+if(num&&name&&!c.students.find(s=>s.num===num)){c.students.push({num,name,gender});added++;}
 }
 });
-D.students.sort((a,b)=>a.num-b.num);saveData(D);
+c.students.sort((a,b)=>a.num-b.num);saveData(D);
 document.getElementById('bulkInput').value='';renderStudents();
 alert(added+'名を追加しました');
 }
 function renderStudents(){
-const c=document.getElementById('studentList');
-document.getElementById('studentCount').textContent=D.students.length?'（'+D.students.length+'名）':'';
-if(!D.students.length){c.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';return;}
+renderClassBar();
+const c=cur();
+const cont=document.getElementById('studentList');
+const countEl=document.getElementById('studentCount');
+if(!c){countEl.textContent='';cont.innerHTML='<div class="empty-msg">クラスがありません。上部の「＋ 新規クラス」かExcel取込でクラスを作成してください。</div>';return;}
+countEl.textContent=c.students.length?'（'+c.students.length+'名）':'';
+if(!c.students.length){cont.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';return;}
 let h='<table><tr><th style="width:60px">番号</th><th>名前</th><th style="width:50px">性別</th><th style="width:60px">操作</th></tr>';
-D.students.forEach(s=>{h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td><td>'+(esc(s.gender||''))+'</td><td><button class="btn btn-danger btn-sm" onclick="removeStudent('+s.num+')">削除</button></td></tr>';});
-h+='</table>';c.innerHTML=h;
+c.students.forEach(s=>{h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td><td>'+(esc(s.gender||''))+'</td><td><button class="btn btn-danger btn-sm" onclick="removeStudent('+s.num+')">削除</button></td></tr>';});
+h+='</table>';cont.innerHTML=h;
 }
 
 /* ======== 提出物管理 ======== */
 function addAssignment(){
+const c=cur();
+if(!c){alert('先に上部の「＋ 新規クラス」でクラスを追加してください');return;}
 const name=document.getElementById('aName').value.trim();
 const date=document.getElementById('aDate').value;
 if(!name){alert('提出物名を入力してください');return;}
-const id='a'+Date.now();
-D.assignments.push({id,name,date:date||''});
-D.records[id]={};saveData(D);
+const id=genId('a');
+c.assignments.push({id,name,date:date||''});
+c.records[id]={};saveData(D);
 document.getElementById('aName').value='';document.getElementById('aDate').value='';renderAssignments();
 }
 function removeAssignment(id){
+const c=cur();if(!c)return;
 if(!confirm('この提出物を削除しますか？'))return;
-D.assignments=D.assignments.filter(a=>a.id!==id);delete D.records[id];saveData(D);renderAssignments();
+c.assignments=c.assignments.filter(a=>a.id!==id);delete c.records[id];saveData(D);renderAssignments();
 }
 function renderAssignments(){
-const c=document.getElementById('assignmentList');
-if(!D.assignments.length){c.innerHTML='<div class="empty-msg">提出物が登録されていません</div>';return;}
+const c=cur();
+const cont=document.getElementById('assignmentList');
+if(!c){cont.innerHTML='<div class="empty-msg">クラスがありません</div>';return;}
+if(!c.assignments.length){cont.innerHTML='<div class="empty-msg">提出物が登録されていません</div>';return;}
 let h='<table><tr><th>提出物名</th><th style="width:120px">期限</th><th style="width:80px">状況</th><th style="width:60px">操作</th></tr>';
-D.assignments.forEach(a=>{
-const rec=D.records[a.id]||{};const total=D.students.length;
+c.assignments.forEach(a=>{
+const rec=c.records[a.id]||{};const total=c.students.length;
 let sub=0;Object.values(rec).forEach(v=>{if(v==='submitted')sub++;});
 h+='<tr><td style="text-align:left">'+esc(a.name)+'</td><td>'+(a.date||'ー')+'</td><td>'+sub+'/'+total+'</td>';
 h+='<td><button class="btn btn-danger btn-sm" onclick="removeAssignment(\''+a.id+'\')">削除</button></td></tr>';
 });
-h+='</table>';c.innerHTML=h;
+h+='</table>';cont.innerHTML=h;
 }
 
 /* ======== チェック画面 ======== */
@@ -265,22 +348,25 @@ const STATUS_LABEL={none:'ー',submitted:'◯',not_submitted:'✕',blank:'△'};
 const STATUS_CLASS={none:'s-none',submitted:'s-submitted',not_submitted:'s-not-submitted',blank:'s-blank'};
 
 function refreshCheckSelect(){
-const sel=document.getElementById('checkSelect');const cur=sel.value;
+const c=cur();
+const sel=document.getElementById('checkSelect');const prev=sel.value;
 sel.innerHTML='<option value="">--選択--</option>';
-D.assignments.forEach(a=>{sel.innerHTML+='<option value="'+a.id+'">'+esc(a.name)+'</option>';});
-if(cur&&D.assignments.find(a=>a.id===cur))sel.value=cur;
+if(c)c.assignments.forEach(a=>{sel.innerHTML+='<option value="'+a.id+'">'+esc(a.name)+'</option>';});
+if(prev&&c&&c.assignments.find(a=>a.id===prev))sel.value=prev;
 renderCheck();
 }
 function renderCheck(){
+const c=cur();
 const id=document.getElementById('checkSelect').value;
 const area=document.getElementById('checkArea');
 const sumArea=document.getElementById('checkSummary');
+if(!c){area.innerHTML='<div class="empty-msg">クラスがありません</div>';sumArea.innerHTML='';return;}
 if(!id){area.innerHTML='<div class="empty-msg">提出物を選択してください</div>';sumArea.innerHTML='';return;}
-if(!D.students.length){area.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';sumArea.innerHTML='';return;}
-if(!D.records[id])D.records[id]={};
-const rec=D.records[id];
+if(!c.students.length){area.innerHTML='<div class="empty-msg">生徒が登録されていません</div>';sumArea.innerHTML='';return;}
+if(!c.records[id])c.records[id]={};
+const rec=c.records[id];
 let h='<table><tr><th style="width:60px">番号</th><th>名前</th><th style="width:80px">状態</th></tr>';
-D.students.forEach(s=>{
+c.students.forEach(s=>{
 const st=rec[s.num]||'none';
 h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td>';
 h+='<td class="status-cell '+STATUS_CLASS[st]+'" onclick="toggleStatus(\''+id+'\','+s.num+')">'+STATUS_LABEL[st]+'</td></tr>';
@@ -288,44 +374,47 @@ h+='<td class="status-cell '+STATUS_CLASS[st]+'" onclick="toggleStatus(\''+id+'\
 h+='</table>';area.innerHTML=h;
 /* 集計 */
 let counts={submitted:0,not_submitted:0,blank:0,none:0};
-D.students.forEach(s=>{const st=rec[s.num]||'none';counts[st]++;});
+c.students.forEach(s=>{const st=rec[s.num]||'none';counts[st]++;});
 sumArea.innerHTML=
-'<div class="summary-item si-total"><div class="num">'+D.students.length+'</div><div class="lbl">全体</div></div>'+
+'<div class="summary-item si-total"><div class="num">'+c.students.length+'</div><div class="lbl">全体</div></div>'+
 '<div class="summary-item si-submitted"><div class="num">'+counts.submitted+'</div><div class="lbl">提出 ◯</div></div>'+
 '<div class="summary-item si-not"><div class="num">'+counts.not_submitted+'</div><div class="lbl">未提出 ✕</div></div>'+
 '<div class="summary-item si-blank"><div class="num">'+counts.blank+'</div><div class="lbl">未記入 △</div></div>';
 }
 function toggleStatus(aId,sNum){
-if(!D.records[aId])D.records[aId]={};
-const cur=D.records[aId][sNum]||'none';
-const idx=STATUS_CYCLE.indexOf(cur);
-D.records[aId][sNum]=STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
+const c=cur();if(!c)return;
+if(!c.records[aId])c.records[aId]={};
+const v=c.records[aId][sNum]||'none';
+const idx=STATUS_CYCLE.indexOf(v);
+c.records[aId][sNum]=STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
 saveData(D);renderCheck();
 }
 
 /* ======== 集計画面 ======== */
 function renderSummary(){
+const c=cur();
 const area=document.getElementById('summaryArea');
-if(!D.assignments.length||!D.students.length){area.innerHTML='<div class="empty-msg">生徒と提出物を登録してください</div>';return;}
+if(!c){area.innerHTML='<div class="empty-msg">クラスがありません</div>';return;}
+if(!c.assignments.length||!c.students.length){area.innerHTML='<div class="empty-msg">生徒と提出物を登録してください</div>';return;}
 let h='<div style="overflow-x:auto"><table><tr><th style="width:60px">番号</th><th>名前</th>';
-D.assignments.forEach(a=>{h+='<th>'+esc(a.name)+'</th>';});
+c.assignments.forEach(a=>{h+='<th>'+esc(a.name)+'</th>';});
 h+='<th>提出率</th></tr>';
-D.students.forEach(s=>{
+c.students.forEach(s=>{
 h+='<tr><td>'+s.num+'</td><td style="text-align:left">'+esc(s.name)+'</td>';
 let sub=0;
-D.assignments.forEach(a=>{
-const st=(D.records[a.id]||{})[s.num]||'none';
+c.assignments.forEach(a=>{
+const st=(c.records[a.id]||{})[s.num]||'none';
 h+='<td class="'+STATUS_CLASS[st]+'">'+STATUS_LABEL[st]+'</td>';
 if(st==='submitted')sub++;
 });
-const rate=D.assignments.length?Math.round(sub/D.assignments.length*100):0;
+const rate=c.assignments.length?Math.round(sub/c.assignments.length*100):0;
 h+='<td><strong>'+rate+'%</strong></td></tr>';
 });
 /* 合計行 */
 h+='<tr style="font-weight:600"><td colspan="2">提出数</td>';
-D.assignments.forEach(a=>{
-const rec=D.records[a.id]||{};let c=0;D.students.forEach(s=>{if(rec[s.num]==='submitted')c++;});
-h+='<td>'+c+'/'+D.students.length+'</td>';
+c.assignments.forEach(a=>{
+const rec=c.records[a.id]||{};let cnt=0;c.students.forEach(s=>{if(rec[s.num]==='submitted')cnt++;});
+h+='<td>'+cnt+'/'+c.students.length+'</td>';
 });
 h+='<td></td></tr></table></div>';
 area.innerHTML=h;
@@ -335,7 +424,7 @@ area.innerHTML=h;
 function exportData(){
 const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
 const url=URL.createObjectURL(blob);const a=document.createElement('a');
-a.href=url;a.download='提出物データ_'+(D.className||'クラス')+'_'+new Date().toISOString().slice(0,10)+'.json';
+a.href=url;a.download='提出物データ_'+new Date().toISOString().slice(0,10)+'.json';
 a.click();URL.revokeObjectURL(url);
 }
 function importData(){
@@ -343,14 +432,14 @@ const f=document.getElementById('importFile').files[0];
 if(!f){alert('ファイルを選択してください');return;}
 if(!confirm('現在のデータを上書きしますか？'))return;
 const r=new FileReader();r.onload=function(e){
-try{D=JSON.parse(e.target.result);saveData(D);alert('データを復元しました');location.reload();}
+try{D=normalize(JSON.parse(e.target.result));saveData(D);alert('データを復元しました');location.reload();}
 catch(err){alert('ファイルの読み込みに失敗しました');}
 };r.readAsText(f);
 }
 function resetAll(){
 if(!confirm('すべてのデータを削除しますか？\nこの操作は元に戻せません。'))return;
 if(!confirm('本当に削除しますか？'))return;
-localStorage.removeItem(STORAGE_KEY);D=defaultData();location.reload();
+localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(OLD_KEY);D=defaultData();location.reload();
 }
 
 /* ======== Excel (xlsx) ユーティリティ ======== */
@@ -388,13 +477,25 @@ r.set(eocd,p);return r;
 }
 
 function downloadTemplate(){
-const ss=['年','組','番号','性別','姓名','2','1','1','男','山田 太郎','2','1','2','女','鈴木 花子'];
-const ssXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+ss.length+'" uniqueCount="'+ss.length+'">'+ss.map(s=>'<si><t>'+escXml(s)+'</t></si>').join('')+'</sst>';
+const headers=['年','組','番号','性別','姓名'];
+const sample=[['2','1','1','男','山田 太郎'],['2','1','2','女','鈴木 花子'],['2','2','1','男','田中 次郎'],['2','2','2','女','高橋 美咲']];
+const tableRows=[headers].concat(sample);
+const ssList=[],ssIndex={};
+const si=v=>{if(!(v in ssIndex)){ssIndex[v]=ssList.length;ssList.push(v);}return ssIndex[v];};
+const colLetter=i=>String.fromCharCode(65+i);
+let rowsXml='';
+tableRows.forEach((row,ri)=>{
+const rnum=ri+1;let cells='';
+row.forEach((val,ci)=>{
+const styleAttr=ri===0?' s="1"':'';
+cells+='<c r="'+colLetter(ci)+rnum+'" t="s"'+styleAttr+'><v>'+si(String(val))+'</v></c>';
+});
+rowsXml+='<row r="'+rnum+'">'+cells+'</row>';
+});
+const cellCount=tableRows.reduce((n,r)=>n+r.length,0);
+const ssXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+cellCount+'" uniqueCount="'+ssList.length+'">'+ssList.map(s=>'<si><t>'+escXml(s)+'</t></si>').join('')+'</sst>';
 const cols='<cols><col min="1" max="2" width="8"/><col min="3" max="4" width="8"/><col min="5" max="5" width="20"/></cols>';
-const r1='<row r="1"><c r="A1" t="s" s="1"><v>0</v></c><c r="B1" t="s" s="1"><v>1</v></c><c r="C1" t="s" s="1"><v>2</v></c><c r="D1" t="s" s="1"><v>3</v></c><c r="E1" t="s" s="1"><v>4</v></c></row>';
-const r2='<row r="2"><c r="A2" t="s"><v>5</v></c><c r="B2" t="s"><v>6</v></c><c r="C2" t="s"><v>7</v></c><c r="D2" t="s"><v>8</v></c><c r="E2" t="s"><v>9</v></c></row>';
-const r3='<row r="3"><c r="A3" t="s"><v>10</v></c><c r="B3" t="s"><v>11</v></c><c r="C3" t="s"><v>12</v></c><c r="D3" t="s"><v>13</v></c><c r="E3" t="s"><v>14</v></c></row>';
-const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+r1+r2+r3+'</sheetData></worksheet>';
+const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>';
 const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
 const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
 const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="生徒一覧" sheetId="1" r:id="rId1"/></sheets></workbook>';
@@ -445,24 +546,40 @@ async function getZipText(entries,name){
 const e=entries.find(x=>x.name===name||x.name===name.replace(/^\//,''));
 if(!e)return null;return new TextDecoder().decode(await inflateEntry(e));
 }
+function colRefToIndex(ref){
+const m=/^([A-Z]+)/.exec(ref||'');
+if(!m)return -1;
+let n=0;for(let i=0;i<m[1].length;i++)n=n*26+(m[1].charCodeAt(i)-64);
+return n-1;
+}
 async function readXlsx(buf){
 const entries=parseZipEntries(buf);
 const sharedStrings=[];
 const ssXml=await getZipText(entries,'xl/sharedStrings.xml');
 if(ssXml){new DOMParser().parseFromString(ssXml,'text/xml').querySelectorAll('si').forEach(si=>{sharedStrings.push(si.textContent);});}
-const sheetXml=await getZipText(entries,'xl/worksheets/sheet1.xml');
+let sheetName='xl/worksheets/sheet1.xml';
+if(!entries.find(e=>e.name===sheetName)){
+const any=entries.find(e=>/^xl\/worksheets\/.*\.xml$/.test(e.name));
+if(any)sheetName=any.name;
+}
+const sheetXml=await getZipText(entries,sheetName);
 if(!sheetXml)throw new Error('シートが見つかりません');
 const doc=new DOMParser().parseFromString(sheetXml,'text/xml');
 const rows=[];
 doc.querySelectorAll('row').forEach(row=>{
-const cells=[];
+const cells=[];let auto=0;
 row.querySelectorAll('c').forEach(c=>{
-const t=c.getAttribute('t'),vEl=c.querySelector('v');
+const t=c.getAttribute('t'),ref=c.getAttribute('r'),vEl=c.querySelector('v');
 let val=vEl?vEl.textContent:'';
 if(t==='s')val=sharedStrings[parseInt(val)]||'';
 const is=c.querySelector('is t');if(is)val=is.textContent;
-cells.push(val.trim());
-});rows.push(cells);
+let ci=colRefToIndex(ref);
+if(ci<0)ci=auto;
+auto=ci+1;
+cells[ci]=(val||'').trim();
+});
+for(let i=0;i<cells.length;i++)if(cells[i]===undefined)cells[i]='';
+rows.push(cells);
 });return rows;
 }
 
@@ -480,25 +597,48 @@ const buf=await f.arrayBuffer();
 rows=await readXlsx(buf);
 }
 if(rows.length<2){alert('データが見つかりません');return;}
-const header=rows[0].map(h=>h.replace(/\s/g,''));
+const header=rows[0].map(h=>(h||'').replace(/\s/g,''));
 const iYear=header.indexOf('年'),iClass=header.indexOf('組');
 const iNum=header.indexOf('番号'),iGender=header.indexOf('性別'),iName=header.indexOf('姓名');
 if(iNum<0||iName<0){alert('ヘッダーに「番号」「姓名」列が見つかりません');return;}
-let added=0,skipped=0;
+/* 年・組の列が無い行のための既定クラス名（現在クラス→無ければ「クラス1」） */
+const fallbackName=(cur()&&cur().name)||'クラス1';
+function classNameFromRow(r){
+const y=iYear>=0?(r[iYear]||'').trim():'';
+const cl=iClass>=0?(r[iClass]||'').trim():'';
+if(y&&cl)return y+'年'+cl+'組';
+if(cl)return cl+'組';
+if(y)return y+'年';
+return fallbackName;
+}
+let createdClasses=0;
+function ensureClass(name){
+let t=D.classes.find(c=>c.name===name);
+if(!t){t={id:genId('c'),name,students:[],assignments:[],records:{}};D.classes.push(t);createdClasses++;}
+return t;
+}
+const perClass={};
+let totalAdded=0,totalSkipped=0,firstTarget=null;
 for(let i=1;i<rows.length;i++){
-const r=rows[i];if(!r[iNum]&&!r[iName])continue;
+const r=rows[i];if(!r||(!r[iNum]&&!r[iName]))continue;
+const target=ensureClass(classNameFromRow(r));
+if(!firstTarget)firstTarget=target;
+if(!perClass[target.name])perClass[target.name]={cls:target,added:0,skipped:0};
 const num=parseInt(r[iNum]);const name=(r[iName]||'').trim();
-if(!num||!name){skipped++;continue;}
-if(D.students.find(s=>s.num===num)){skipped++;continue;}
+if(!num||!name){perClass[target.name].skipped++;totalSkipped++;continue;}
+if(target.students.find(s=>s.num===num)){perClass[target.name].skipped++;totalSkipped++;continue;}
 const gender=iGender>=0?(r[iGender]||'').trim():'';
-D.students.push({num,name,gender});added++;
+target.students.push({num,name,gender});perClass[target.name].added++;totalAdded++;
 }
-if(iYear>=0&&iClass>=0&&rows[1]){
-const y=rows[1][iYear]||'';const cl=rows[1][iClass]||'';
-if(y&&cl&&!D.className){D.className=y+'年'+cl+'組';document.getElementById('className').value=D.className;}
-}
-D.students.sort((a,b)=>a.num-b.num);saveData(D);renderStudents();
-alert(added+'名を追加しました'+(skipped?'（'+skipped+'名はスキップ）':''));
+D.classes.forEach(c=>c.students.sort((a,b)=>a.num-b.num));
+if(!cur()&&firstTarget)D.currentClassId=firstTarget.id;
+saveData(D);refreshAll();
+const names=Object.keys(perClass);
+let msg=totalAdded+'名を追加しました'+(totalSkipped?'（'+totalSkipped+'名はスキップ）':'');
+if(createdClasses>0)msg+='\n新しく'+createdClasses+'クラスを作成しました。';
+if(names.length>1){msg+='\n\n[クラス別]';names.forEach(n=>{msg+='\n・'+n+'：'+perClass[n].added+'名';});}
+alert(msg);
+fileEl.value='';
 }catch(e){alert('ファイルの読み込みに失敗しました: '+e.message);}
 }
 
@@ -506,8 +646,7 @@ alert(added+'名を追加しました'+(skipped?'（'+skipped+'名はスキッ�
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 /* ======== 初期描画 ======== */
-document.getElementById('className').value=D.className||'';
-renderStudents();renderAssignments();
+refreshAll();
 </script>
 </body>
 </html>
