@@ -1,0 +1,26 @@
+{
+  "xlsm_path": "進度予定表システム_鳴海.xlsm",
+  "modules": [
+    {
+      "name": "ThisWorkbook",
+      "file": "vba/ThisWorkbook.cls",
+      "textoffset": 4282,
+      "target_compressed_size": 1067,
+      "stream_size": 5349
+    },
+    {
+      "name": "Sheet1",
+      "file": "vba/Sheet1.cls",
+      "textoffset": 827,
+      "target_compressed_size": 172,
+      "stream_size": 999
+    },
+    {
+      "name": "Module1",
+      "file": "vba/Module1.bas",
+      "textoffset": 59419,
+      "target_compressed_size": 21338,
+      "stream_size": 80757
+    }
+  ]
+}
