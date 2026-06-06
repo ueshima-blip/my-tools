@@ -360,7 +360,7 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
     <button class="stab" onclick="switchTab('group')" id="tab-group">班色</button>
     <button class="stab" onclick="switchTab('cond')" id="tab-cond">条件</button>
     <button class="stab" onclick="switchTab('history')" id="tab-history">履歴</button>
-    <button class="stab" onclick="switchTab('settings')" id="tab-settings">設定</button>
+    <button class="stab" onclick="switchTab('settings')" id="tab-settings">設定<span id="backupDot" style="display:none;color:#f59e0b;font-size:9px;vertical-align:super;margin-left:1px;" title="バックアップをおすすめします">●</span></button>
   </div>
   <div class="scontent">
 
@@ -627,12 +627,15 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
         <div id="roomManageList"></div>
       </div>
       <div class="fsec">
-        <div class="ftitle">データのエクスポート／インポート</div>
-        <p class="fhint" style="margin-bottom:8px;">バックアップや他の端末への引き継ぎに使います。クラス・教室・名簿・座席設定・履歴をすべて保存します。</p>
-        <button class="btn btp btn-full" onclick="exportData()" style="margin-bottom:6px;">📤 データをエクスポート（保存）</button>
-        <button class="btn bts btn-full" onclick="document.getElementById('importFile').click()" style="margin-bottom:4px;">📥 データをインポート（読み込み）</button>
-        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
-        <p class="fhint">※インポートすると現在のデータはすべて上書きされます</p>
+        <div class="ftitle">データのバックアップ（外部保存）</div>
+        <p class="fhint" style="margin-bottom:8px;">万が一に備え、ブラウザの外（iCloud Drive・Google Drive・メール・USB など）に定期的に保存してください。名簿・教室・座席設定・班・条件・固定・履歴・デザイン設定まで、すべてを含みます。</p>
+        <div id="backupStatus" class="fhint" style="margin-bottom:6px;color:var(--tx2);"></div>
+        <div id="backupWarn" class="warn-box" style="display:none;margin-bottom:8px;">📌 しばらくバックアップが保存されていません。万が一に備えて保存をおすすめします。</div>
+        <button class="btn btp btn-full" id="shareBackupBtn" onclick="shareBackup()" style="margin-bottom:6px;display:none;">📲 バックアップを共有／送信（外部に保存）</button>
+        <button class="btn btp btn-full" id="exportBtn" onclick="exportData()" style="margin-bottom:6px;">📤 ファイルに書き出す（ダウンロード）</button>
+        <button class="btn bts btn-full" onclick="document.getElementById('importFile').click()" style="margin-bottom:4px;">📥 バックアップから復元（インポート）</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importData(this)">
+        <p class="fhint">※復元すると現在のデータはすべて上書きされます</p>
       </div>
       <div class="fsec">
         <div class="ftitle">データの消去</div>
@@ -1046,6 +1049,9 @@ window.onload=()=>{
   let dpref='simple';
   try{ dpref=localStorage.getItem('sekigae_design')||'simple'; }catch{}
   setDesign(dpref);
+  // バックアップUIの初期化と催促表示
+  setupBackupUI();
+  updateBackupReminder();
 };
 
 // ============================================================
@@ -2987,6 +2993,7 @@ function switchTab(name){
   if(name==='layout'){refreshCopyRoomSelect();genderColState={};alternatePhase=0;onGenderEditTypeChange();}
   if(name==='cond'){refreshCondStudentSelects();refreshPinStudentSelect();renderPinList();syncPinSeatMode();renderGrid();}
   if(name==='history'){refreshHistoryFilters();renderHistoryList();}
+  if(name==='settings'){updateBackupReminder();}
 }
 
 // ============================================================
@@ -4148,61 +4155,146 @@ function renderMiniGrid(entry){
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
+// バックアップ対象データを収集（メイン＋付属の全キー）
+function collectBackupExtra(parsed){
+  const extra = {};
+  const prefix = ['_cond','_gmode','_zsplit','_pins'];
+  // 全クラス×全教室の組み合わせで付属キー（条件・班・履歴・中断ルーレット等）を収集
+  Object.keys(parsed.classes||{}).forEach(cid=>{
+    Object.keys(parsed.rooms||{}).forEach(rid=>{
+      const ak = `${cid}_${rid}`;
+      prefix.forEach(p=>{
+        const key = ak + p;
+        const val = localStorage.getItem(key);
+        if(val) extra[key] = val;
+      });
+      const hk = `sekigae_hist_${cid}_${rid}`;
+      const hv = localStorage.getItem(hk);
+      if(hv) extra[hk] = hv;
+      const rk = RL_KEY_PREFIX + ak;
+      const rv = localStorage.getItem(rk);
+      if(rv) extra[rk] = rv;
+    });
+  });
+  // 取りこぼし防止：sekigae* のキーをすべて含める（効果音・デザイン設定・将来追加分など）
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k || k === SK) continue;
+    if(k === 'sekigae_lastBackup') continue; // バックアップ日時は端末ごとに持つ
+    if(k.indexOf('sekigae') === 0 && !(k in extra)){
+      const v = localStorage.getItem(k);
+      if(v != null) extra[k] = v;
+    }
+  }
+  return extra;
+}
+
+// バックアップ用オブジェクト／ファイル名を生成
+function buildBackupObject(){
+  const mainData = localStorage.getItem(SK);
+  if(!mainData) return null;
+  const parsed = JSON.parse(mainData);
+  return { version: 2, app: 'seat-shuffle', exportedAt: new Date().toISOString(), main: mainData, extra: collectBackupExtra(parsed) };
+}
+function backupFilename(){
+  return `席替えアプリ_バックアップ_${new Date().toISOString().slice(0,10)}.json`;
+}
+
+// 最終バックアップ日時の記録・取得・催促
+function getLastBackup(){
+  const v = localStorage.getItem('sekigae_lastBackup');
+  if(!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function hasAppData(){
+  try{ return Object.values(app.classes||{}).some(c=>(c.students||[]).length>0); }catch{ return false; }
+}
+function recordBackup(){
+  try{ localStorage.setItem('sekigae_lastBackup', new Date().toISOString()); }catch{}
+  updateBackupReminder();
+}
+function updateBackupReminder(){
+  const last = getLastBackup();
+  const hasData = hasAppData();
+  const overdue = hasData && (!last || (Date.now()-last.getTime())/86400000 >= 14);
+  const st = document.getElementById('backupStatus');
+  if(st){
+    if(!last){ st.textContent = hasData ? 'まだ一度もバックアップを保存していません。' : 'バックアップ履歴：なし'; }
+    else{
+      const days = Math.floor((Date.now()-last.getTime())/86400000);
+      const ds = `${last.getFullYear()}/${last.getMonth()+1}/${last.getDate()}`;
+      st.textContent = `最終バックアップ：${ds}（${days<=0?'今日':days+'日前'}）`;
+    }
+  }
+  const warn = document.getElementById('backupWarn');
+  if(warn) warn.style.display = overdue ? '' : 'none';
+  const dot = document.getElementById('backupDot');
+  if(dot) dot.style.display = overdue ? '' : 'none';
+}
+
+// 端末が「ファイルの共有」に対応していれば共有ボタンを優先表示、非対応ならダウンロードを主役にする
+function setupBackupUI(){
+  let canShareFiles = false;
+  try{
+    const f = new File(['{}'], 'test.json', {type:'application/json'});
+    canShareFiles = !!(navigator.canShare && navigator.canShare({files:[f]}));
+  }catch{ canShareFiles = false; }
+  const shareBtn = document.getElementById('shareBackupBtn');
+  const expBtn = document.getElementById('exportBtn');
+  if(shareBtn && expBtn){
+    if(canShareFiles){
+      shareBtn.style.display = '';
+      expBtn.classList.remove('btp'); expBtn.classList.add('bts');
+    } else {
+      shareBtn.style.display = 'none';
+      expBtn.classList.remove('bts'); expBtn.classList.add('btp');
+    }
+  }
+}
+
+// ファイルに書き出す（ダウンロード）
 function exportData(){
   try{
-    // メインデータ
-    const mainData = localStorage.getItem(SK);
-    if(!mainData){ showToast('保存されたデータがありません'); return; }
-
-    const parsed = JSON.parse(mainData);
-
-    // 付属データ（条件・履歴・設定）をすべて収集
-    const extra = {};
-    const prefix = ['_cond','_gmode','_zsplit','_pins'];
-
-    // 全クラス×全教室の組み合わせで付属キーを収集
-    Object.keys(parsed.classes||{}).forEach(cid=>{
-      Object.keys(parsed.rooms||{}).forEach(rid=>{
-        const ak = `${cid}_${rid}`;
-        prefix.forEach(p=>{
-          const key = ak + p;
-          const val = localStorage.getItem(key);
-          if(val) extra[key] = val;
-        });
-        // 履歴
-        const hk = `sekigae_hist_${cid}_${rid}`;
-        const hv = localStorage.getItem(hk);
-        if(hv) extra[hk] = hv;
-        // 中断中ルーレットセッション
-        const rk = RL_KEY_PREFIX + ak;
-        const rv = localStorage.getItem(rk);
-        if(rv) extra[rk] = rv;
-      });
-    });
-
-    // 効果音設定
-    const sound = localStorage.getItem('sekigae_sound');
-    if(sound) extra['sekigae_sound'] = sound;
-
-    const exportObj = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      main: mainData,
-      extra
-    };
-
-    const json = JSON.stringify(exportObj, null, 2);
+    const obj = buildBackupObject();
+    if(!obj){ showToast('保存されたデータがありません'); return; }
+    const json = JSON.stringify(obj, null, 2);
     const blob = new Blob([json], {type:'application/json'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    const date = new Date().toISOString().slice(0,10);
     a.href     = url;
-    a.download = `席替えアプリ_バックアップ_${date}.json`;
+    a.download = backupFilename();
     a.click();
     URL.revokeObjectURL(url);
-    showToast('エクスポートしました');
+    recordBackup();
+    showToast('バックアップを書き出しました');
   }catch(e){
     showToast('エクスポートに失敗しました: ' + e.message);
+  }
+}
+
+// 共有／送信（iCloud Drive・Google Drive・メール等の外部へ）
+async function shareBackup(){
+  try{
+    const obj = buildBackupObject();
+    if(!obj){ showToast('保存されたデータがありません'); return; }
+    const json = JSON.stringify(obj, null, 2);
+    const file = new File([json], backupFilename(), {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        files: [file],
+        title: '席替えアプリ バックアップ',
+        text: '席替えアプリのバックアップです。iCloud Drive・Google Drive・メールなどに保存できます。'
+      });
+      recordBackup();
+      showToast('バックアップを共有しました');
+    } else {
+      showToast('この端末は共有に未対応のため、ファイル保存します');
+      exportData();
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return; // ユーザーがキャンセルした場合は無視
+    showToast('共有に失敗しました: ' + e.message);
   }
 }
 
