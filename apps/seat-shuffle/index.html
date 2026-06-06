@@ -168,6 +168,12 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
 
 .rl-cur-label{font-size:13px;color:var(--tx2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rl-done-label{font-size:13px;color:var(--ac);font-weight:700;}
+/* ルーレットの全画面トグル／完了ボタン */
+.rl-fs-btn{padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);white-space:nowrap;}
+.rl-fs-btn:hover{background:var(--bd);}
+.rl-finish-btn{padding:12px 18px;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:#16a34a;color:#fff;white-space:nowrap;box-shadow:0 3px 12px rgba(22,163,74,.45);animation:rlFinishPulse 1.4s ease-in-out infinite;}
+.rl-finish-btn:hover{background:#15803d;}
+@keyframes rlFinishPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
 .rl-progress{font-size:12px;color:var(--tx3);white-space:nowrap;}
 
 /* seat name scroll animation */
@@ -764,6 +770,8 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
         <span id="rlDoneLabel" class="rl-done-label" style="display:none;"></span>
       </div>
       <div class="rl-topbar-right">
+        <button class="rl-finish-btn" id="rlFinishBtn" onclick="exitRoulette()" style="display:none;">✓ 全画面を解除して終了</button>
+        <button class="rl-fs-btn" id="rlFsBtn" onclick="toggleAppFullscreen()">⛶ 全画面</button>
         <button class="rl-btn start" id="rlStartBtn" onclick="toggleRoulette()">START</button>
         <button class="btn bts bsm" onclick="exitRoulette()">✕ 終了</button>
       </div>
@@ -2506,7 +2514,10 @@ function resumeRoulette(){
   rlRunning = false; rlActiveSeatIdx = -1;
   saveRlSession();
 
-  // ルーレット画面を開く
+  // ルーレット画面を開く（自動で全画面表示にする）
+  enterAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='none';
   document.getElementById('rouletteView').classList.add('open');
   document.getElementById('mainToolbar').style.display='none';
@@ -2526,6 +2537,7 @@ function resumeRoulette(){
       document.getElementById('rlCurLabel').textContent = '';
       document.getElementById('rlDoneLabel').style.display='block';
       document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
+      showRlFinish(true);
     }
     renderRlQueue();
   } else {
@@ -2587,6 +2599,10 @@ function startRoulette(mode){
   // 開始時点でルーレットセッションを保存（クラッシュ時に再開できるよう）
   saveRlSession();
 
+  // 自動で全画面表示にする（教室モニター用。ボタン操作の同期タイミングで要求）
+  enterAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='none';
   document.getElementById('rouletteView').classList.add('open');
   document.getElementById('mainToolbar').style.display='none';
@@ -2619,6 +2635,9 @@ function startRoulette(mode){
 
 function exitRoulette(){
   stopRlInterval();
+  exitAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='flex';
   document.getElementById('rouletteView').classList.remove('open');
   document.getElementById('mainToolbar').style.display='flex';
@@ -2629,6 +2648,37 @@ function exitRoulette(){
   // 途中で抜けた場合は再開バナーを出す（完了済みなら hasResumableRoulette が false で消える）
   refreshResumeBanner();
 }
+
+// ===== 全画面（フルスクリーン）制御：ルーレットを教室モニターに大きく表示する =====
+function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function isFullscreen(){ return !!fsElement(); }
+function enterAppFullscreen(){
+  if(isFullscreen()) return Promise.resolve();
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(!req) return Promise.resolve(); // 非対応端末は画面内の拡大表示にとどめる
+  try{ const p = req.call(el); return (p && p.catch) ? p.catch(()=>{}) : Promise.resolve(); }
+  catch(e){ return Promise.resolve(); }
+}
+function exitAppFullscreen(){
+  if(!isFullscreen()) return Promise.resolve();
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if(!ex) return Promise.resolve();
+  try{ const p = ex.call(document); return (p && p.catch) ? p.catch(()=>{}) : Promise.resolve(); }
+  catch(e){ return Promise.resolve(); }
+}
+function toggleAppFullscreen(){ isFullscreen() ? exitAppFullscreen() : enterAppFullscreen(); }
+function updateFsButton(){
+  const btn = document.getElementById('rlFsBtn');
+  if(btn) btn.textContent = isFullscreen() ? '⛶ 全画面解除' : '⛶ 全画面';
+}
+// 完了後にワンクリックで全画面解除＋終了できるボタンの表示切替
+function showRlFinish(show){
+  const btn = document.getElementById('rlFinishBtn');
+  if(btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+document.addEventListener('fullscreenchange', updateFsButton);
+document.addEventListener('webkitfullscreenchange', updateFsButton);
 
 function toggleRoulette(){
   wakeAudio(); // ユーザー操作の同期タイミングで AudioContext を起動
@@ -2665,6 +2715,7 @@ function toggleSeqRoulette(){
       document.getElementById('rlDoneLabel').style.display='block';
       document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
       document.getElementById('rlCurLabel').textContent='';
+      showRlFinish(true);
     } else {
       playDecide();
       document.getElementById('rlStartBtn').textContent='START';
@@ -2761,6 +2812,7 @@ function toggleBulkRoulette(){
     document.getElementById('rlDoneLabel').style.display='block';
     document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
     document.getElementById('rlCurLabel').textContent='';
+    showRlFinish(true);
   } else {
     document.getElementById('rlStartBtn').textContent='STOP';
     document.getElementById('rlStartBtn').className='rl-btn stop';
