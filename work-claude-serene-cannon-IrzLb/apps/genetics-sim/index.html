@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>遺伝のモデル実験</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <h1>探Q実習 1 ｜ 遺伝のモデル実験</h1>
+  <div id="myBadge" class="hidden">
+    <span id="myName"></span>
+    <span class="cards" id="myCards"></span>
+    <span id="syncDot" class="sync-dot" title="同期状態"></span>
+    <button id="logoutBtn" type="button">退出</button>
+  </div>
+</header>
+
+<main>
+  <!-- フォルダ選択画面 -->
+  <section id="folderScreen" class="screen">
+    <div class="login-box">
+      <h2>① 共有フォルダを選んでください</h2>
+      <p class="hint">
+        このページを開いている <strong>同じフォルダ</strong> を選んでください。<br>
+        クラスのみんなと同じフォルダを選ぶと、データが共有されます。
+      </p>
+      <button id="chooseFolderBtn" type="button" class="primary big">📁 共有フォルダを選ぶ</button>
+      <p id="folderError" class="error"></p>
+      <p class="hint" id="browserNote"></p>
+    </div>
+  </section>
+
+  <!-- ログイン画面 -->
+  <section id="loginScreen" class="screen hidden">
+    <div class="login-box">
+      <h2>② 名前を入力</h2>
+      <p class="hint">フォルダ：<code id="folderPath"></code></p>
+      <label>名前
+        <input id="nameInput" type="text" maxlength="24" placeholder="例：山田 太郎" />
+      </label>
+      <label class="row">
+        <input id="teacherCheck" type="checkbox" />
+        <span>先生として参加する</span>
+      </label>
+      <label id="passwordRow" class="hidden">先生用パスワード
+        <input id="passwordInput" type="password" placeholder="（初期値：sensei）" />
+      </label>
+      <button id="loginBtn" type="button" class="primary">参加する</button>
+      <button id="changeFolderBtn" type="button">フォルダを選び直す</button>
+      <p id="loginError" class="error"></p>
+    </div>
+  </section>
+
+  <!-- メイン画面 -->
+  <section id="mainScreen" class="screen hidden">
+    <div class="layout">
+      <div class="panel self-panel">
+        <h2>あなたの遺伝子</h2>
+        <div id="bigCards" class="big-cards"></div>
+        <p>形質：<strong id="myPhenotype">-</strong>（遺伝子型 <strong id="myGenotype">-</strong>）</p>
+
+        <div class="mode-tabs">
+          <button class="tab active" data-mode="pair" type="button">ペアで子をつくる</button>
+          <button class="tab" data-mode="gift" type="button">遺伝子を交換する</button>
+        </div>
+
+        <div id="pairMode" class="mode-area">
+          <p class="hint">相手を選ぶと、お互いの遺伝子から1つずつをランダムに選び、子の遺伝子型をつくります。</p>
+          <select id="pairTarget"></select>
+          <button id="pairBtn" class="primary" type="button">交配を申し込む</button>
+        </div>
+
+        <div id="giftMode" class="mode-area hidden">
+          <p class="hint">自分の遺伝子1つを相手に渡し、代わりに相手の遺伝子1つを受け取ります。</p>
+          <select id="giftTarget"></select>
+          <div class="row">
+            <span>渡す遺伝子：</span>
+            <label><input type="radio" name="giveAllele" value="0" checked /> 1枚目</label>
+            <label><input type="radio" name="giveAllele" value="1" /> 2枚目</label>
+          </div>
+          <button id="giftBtn" class="primary" type="button">交換を申し込む</button>
+        </div>
+      </div>
+
+      <div class="panel roster-panel">
+        <h2>クラスのみんな <span id="rosterCount" class="muted"></span></h2>
+        <div id="roster" class="roster"></div>
+      </div>
+
+      <div class="panel summary-panel">
+        <h2>クラス集計</h2>
+        <table class="summary-table">
+          <thead><tr><th>遺伝子型</th><th>AA</th><th>Aa</th><th>aa</th></tr></thead>
+          <tbody><tr><th>人数</th><td id="cAA">0</td><td id="cAa">0</td><td id="caa">0</td></tr></tbody>
+        </table>
+        <p>形質の比　丸：しわ ＝ <strong id="phenotypeRatio">-</strong></p>
+        <p>遺伝子型の比　AA : Aa : aa ＝ <strong id="genotypeRatio">-</strong></p>
+
+        <h3>活動の記録</h3>
+        <div id="history" class="history"></div>
+
+        <div id="teacherPanel" class="teacher-panel hidden">
+          <h3>👩‍🏫 先生メニュー</h3>
+          <label>初期化モード
+            <select id="initMode">
+              <option value="all-AA">全員 AA（純系・丸）</option>
+              <option value="all-Aa" selected>全員 Aa（雑種）</option>
+              <option value="all-aa">全員 aa（純系・しわ）</option>
+              <option value="half">AA と aa を半々に（ステップ1用）</option>
+              <option value="custom">配分を指定…</option>
+            </select>
+          </label>
+          <div id="customRatioRow" class="hidden custom-ratio">
+            <span>比率　</span>
+            <label>AA <input type="number" id="ratioAA" min="0" value="1" /></label>
+            <label>Aa <input type="number" id="ratioAa" min="0" value="2" /></label>
+            <label>aa <input type="number" id="ratioaa" min="0" value="1" /></label>
+            <p class="hint">例：1:2:1 でメンデルの予想比に。クラス人数を比の合計で按分し、ランダムに割り当てます。</p>
+          </div>
+          <p id="initPreview" class="hint"></p>
+          <button id="resetBtn" type="button">全員を初期化</button>
+          <button id="cleanupBtn" type="button">古いデータを掃除</button>
+          <p class="hint">個別変更は生徒名の右の「設定」ボタンから。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<div id="pairDialog" class="dialog hidden">
+  <div class="dialog-box">
+    <h3>交配の申し込み</h3>
+    <p id="pairDialogText"></p>
+    <div class="row">
+      <button id="pairAccept" class="primary" type="button">受ける</button>
+      <button id="pairDecline" type="button">ことわる</button>
+    </div>
+  </div>
+</div>
+
+<div id="giftDialog" class="dialog hidden">
+  <div class="dialog-box">
+    <h3>遺伝子の交換申し込み</h3>
+    <p id="giftDialogText"></p>
+    <div class="row">
+      <span>自分のどちらと入れ替えますか？</span>
+      <label><input type="radio" name="replaceIdx" value="0" checked /> 1枚目</label>
+      <label><input type="radio" name="replaceIdx" value="1" /> 2枚目</label>
+    </div>
+    <div class="row">
+      <button id="giftAccept" class="primary" type="button">受ける</button>
+      <button id="giftDecline" type="button">ことわる</button>
+    </div>
+  </div>
+</div>
+
+<div id="resultDialog" class="dialog hidden">
+  <div class="dialog-box">
+    <h3 id="resultTitle">結果</h3>
+    <div id="resultBody"></div>
+    <button id="resultClose" class="primary" type="button">閉じる</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
