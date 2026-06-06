@@ -422,6 +422,10 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
           📂 Excelファイル（.xlsx）を読み込む
         </button>
         <input type="file" id="xlsxFileInput" accept=".xlsx,.xls" style="display:none;" onchange="importFromXlsx(this)">
+        <button class="btn bts btn-full" onclick="downloadRosterTemplate()" style="margin-bottom:4px;">
+          📄 名簿テンプレート（Excel）をダウンロード
+        </button>
+        <p class="fhint" style="margin-bottom:4px;">空のテンプレートに入力 → 上の「読み込む」で取り込めます。</p>
         <details style="margin-top:4px;">
           <summary style="font-size:12px;color:var(--tx3);cursor:pointer;padding:4px 0;">テキスト貼り付けで読み込む（旧方式）</summary>
           <div style="margin-top:8px;">
@@ -1262,6 +1266,31 @@ function renderManageLists(){
 // ============================================================
 // XLSX IMPORT
 // ============================================================
+// 名簿テンプレート（.xlsx）を生成してダウンロード。取り込み時の列（出席番号・氏名・
+// ふりがな・性別）に合わせてあるので、記入してそのまま読み込める。
+function downloadRosterTemplate(){
+  if(typeof XLSX === 'undefined'){
+    showToast('ライブラリの読み込みに失敗しました。ネットワークを確認してください。');
+    return;
+  }
+  const aoa = [
+    ['出席番号','氏名','ふりがな','性別'],
+    [1,'山田 太郎','やまだ たろう','男'],
+    [2,'佐藤 花子','さとう はなこ','女'],
+  ];
+  for(let n=3; n<=40; n++) aoa.push([n,'','','']);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:8},{wch:18},{wch:20},{wch:6}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '名簿');
+  try{
+    XLSX.writeFile(wb, '席替えアプリ_名簿テンプレート.xlsx');
+    showToast('名簿テンプレートをダウンロードしました');
+  }catch(e){
+    showToast('ダウンロードに失敗しました: ' + e.message);
+  }
+}
+
 function importFromXlsx(input){
   const file = input.files[0];
   if(!file){ return; }
