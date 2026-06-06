@@ -1,0 +1,4303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>席替えアプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f2ee;--surface:#fff;--s2:#f9f8f5;--bd:#e0ddd6;--bd2:#ccc8be;
+  --tx:#1a1916;--tx2:#6b6760;--tx3:#9e9b94;
+  --ac:#2d6a4f;--acl:#e8f4ee;--ac2:#1b4332;
+  --mb:#dbeafe;--mbb:#93c5fd;--mbt:#1d4ed8;
+  --fb:#fce7f3;--fbb:#f9a8d4;--fbt:#be185d;
+  --danger:#dc2626;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.06);
+  --shl:0 4px 16px rgba(0,0,0,.12),0 8px 32px rgba(0,0,0,.08);
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.6;}
+
+.app-header{background:var(--ac2);color:#fff;padding:0 14px;height:52px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.app-title{font-size:15px;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
+.hsel{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--rs);padding:4px 7px;font-size:13px;font-family:inherit;cursor:pointer;max-width:140px;}
+.hsel option{background:var(--ac2);}
+.hbtn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:var(--rs);padding:4px 9px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.hbtn:hover{background:rgba(255,255,255,.25);}
+.hdiv{width:1px;height:24px;background:rgba(255,255,255,.2);flex-shrink:0;}
+.hlbl{font-size:11px;opacity:.7;white-space:nowrap;}
+
+.app-body{display:flex;height:calc(100vh - 52px);}
+
+.sidebar{width:272px;min-width:272px;background:var(--surface);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;}
+.stabs{display:flex;border-bottom:1px solid var(--bd);}
+.stab{flex:1;padding:9px 2px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--tx2);border-bottom:2px solid transparent;transition:all .15s;font-family:inherit;}
+.stab.active{color:var(--ac);border-bottom-color:var(--ac);background:var(--acl);}
+.scontent{flex:1;overflow-y:auto;padding:14px;}
+.spanel{display:none;}
+.spanel.active{display:block;}
+
+.fsec{margin-bottom:18px;}
+.ftitle{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--bd);}
+.fg{margin-bottom:9px;}
+.flbl{display:block;font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:3px;}
+.fi{width:100%;padding:7px 10px;border:1px solid var(--bd2);border-radius:var(--rs);font-size:13px;font-family:inherit;background:var(--s2);color:var(--tx);transition:border-color .15s;}
+.fi:focus{outline:none;border-color:var(--ac);background:#fff;}
+textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
+.frow{display:flex;gap:8px;align-items:center;}
+.fhint{font-size:11px;color:var(--tx3);margin-top:3px;line-height:1.5;}
+.nui{width:52px;padding:6px 5px;border:1px solid var(--bd2);border-radius:var(--rs);font-size:13px;text-align:center;font-family:inherit;background:var(--s2);}
+.nui:focus{outline:none;border-color:var(--ac);background:#fff;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;border-radius:var(--rs);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btp{background:var(--ac);color:#fff;}
+.btp:hover{background:var(--ac2);}
+.bts{background:var(--s2);color:var(--tx);border:1px solid var(--bd2);}
+.bts:hover{background:var(--bd);}
+.btd{background:#fee2e2;color:var(--danger);border:1px solid #fca5a5;}
+.btd:hover{background:#fecaca;}
+.btw{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+.btw:hover{background:#fde68a;}
+.btn-full{width:100%;}
+.bsm{padding:4px 9px;font-size:12px;}
+
+.slist{list-style:none;display:flex;flex-direction:column;gap:3px;}
+.sitem{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:var(--rs);background:var(--s2);border:1px solid var(--bd);font-size:12px;cursor:pointer;transition:background .1s;}
+.sitem:hover{background:var(--acl);}
+.snum{font-size:10px;color:var(--tx3);min-width:18px;text-align:right;}
+.sname{flex:1;font-weight:500;}
+.syomi{color:var(--tx3);font-size:11px;}
+.bm{padding:1px 6px;border-radius:10px;font-size:10px;background:var(--mb);color:var(--mbt);border:1px solid var(--mbb);font-weight:500;}
+.bf{padding:1px 6px;border-radius:10px;font-size:10px;background:var(--fb);color:var(--fbt);border:1px solid var(--fbb);font-weight:500;}
+.scnt{font-size:11px;color:var(--tx3);margin-top:5px;text-align:right;}
+
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.toolbar{background:var(--surface);border-bottom:1px solid var(--bd);padding:7px 14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:46px;}
+.tlbl{font-size:12px;color:var(--tx2);font-weight:500;}
+.tdiv{width:1px;height:22px;background:var(--bd2);}
+
+.classroom-wrapper{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.classroom-container{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.teacher-desk{background:#6b5c3e;color:#f5ede0;font-size:13px;font-weight:700;letter-spacing:.08em;padding:7px 36px;border-radius:var(--rs);box-shadow:var(--sh);}
+.seat-grid{display:grid;gap:var(--seat-gap,8px);}
+.grid-info{font-size:11px;color:var(--tx3);text-align:center;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;}
+.gender-warn{color:#dc2626;font-weight:700;}
+.gender-ok{color:var(--ac);font-weight:600;}
+
+/* SEATS */
+.seat-wrap{padding:0;border-radius:var(--rs);}
+.seat-wrap.has-group{padding:4px;border-radius:calc(var(--rs) + 2px);}
+.seat{width:var(--seat-w,88px);height:var(--seat-h,64px);border-radius:var(--rs);border:2px solid var(--bd2);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s,background .12s,transform .12s;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;user-select:none;}
+.seat:hover{border-color:var(--ac);box-shadow:0 2px 8px rgba(45,106,79,.2);transform:translateY(-1px);}
+.seat.disabled{background:#ebebeb !important;border:2px dashed #bbb !important;opacity:.45;cursor:default;box-shadow:none !important;transform:none !important;}
+.seat.skip-assign{background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px) !important;border:2px dashed #9ca3af !important;color:#6b7280 !important;cursor:default;box-shadow:none !important;transform:none !important;}
+.seat.skip-assign .skip-lbl{font-size:10px;font-weight:700;color:#6b7280;letter-spacing:.5px;}
+.seat.empty{background:var(--s2);border-style:dashed;border-color:var(--bd);box-shadow:none;}
+.seat.empty:hover{border-color:var(--ac);border-style:dashed;transform:none;box-shadow:none;}
+.seat.male{background:var(--mb);}
+.seat.female{background:var(--fb);}
+.seat.roulette-active{background:#fef9c3 !important;border:2px solid #f59e0b !important;box-shadow:0 0 0 3px #fde68a !important;transform:none !important;}
+.seat.layout-selected{outline:3px solid var(--ac);outline-offset:1px;}
+.seat-num{position:absolute;top:2px;left:4px;font-size:9px;color:var(--tx3);line-height:1;font-weight:500;}
+.seat-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:0 4px;}
+.seat-yomi{font-size:9px;color:var(--tx3);line-height:1;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-align:center;max-width:100%;}
+.seat.male .seat-yomi{color:var(--mbt);opacity:.7;}
+.seat.female .seat-yomi{color:var(--fbt);opacity:.7;}
+.seat-name{font-size:16px;font-weight:700;line-height:1.1;text-align:center;max-width:100%;white-space:nowrap;overflow:hidden;}
+.seat.male .seat-name{color:var(--mbt);}
+.seat.female .seat-name{color:var(--fbt);}
+.seat.swap-selected{outline:3px solid #f59e0b !important;outline-offset:2px;background:#fffbeb !important;}
+.seat-empty-lbl{font-size:11px;color:var(--tx3);}
+.seat-gdot{position:absolute;bottom:3px;right:3px;width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.2);}
+
+/* LAYOUT EDIT hint */
+.edit-hint{background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:10px;}
+
+/* COLOR PALETTE */
+.palette{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.palette-grid{display:grid;grid-template-columns:repeat(9,22px);gap:4px;margin-top:6px;}
+.swatch{width:22px;height:22px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0;}
+.swatch:hover{transform:scale(1.25);}
+.swatch.sel{border-color:#333 !important;}
+.swatch.clear-sw{background:var(--surface);border:1.5px solid var(--bd2) !important;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--tx3);width:22px;height:22px;}
+
+/* GROUP LIST */
+.glist{display:flex;flex-direction:column;gap:5px;}
+.gitem{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--rs);border:2px solid;font-size:12px;background:var(--surface);}
+.gdot{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);flex-shrink:0;}
+.gname{flex:1;font-weight:500;}
+.gcnt{color:var(--tx3);font-size:11px;}
+
+/* ROULETTE UI */
+.roulette-wrap{display:none;flex-direction:column;width:100%;height:100%;overflow:hidden;background:var(--bg);position:relative;}
+.roulette-wrap.open{display:flex;}
+
+/* 上部バー */
+.rl-topbar{display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background:var(--surface);border-bottom:1px solid var(--bd);gap:10px;flex-shrink:0;height:80px;}
+.rl-topbar-left{display:flex;align-items:center;gap:14px;flex:1;overflow:hidden;}
+.rl-topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* ボディ：グリッド＋右パネル */
+.rl-body{display:flex;flex:1;overflow:hidden;gap:0;min-height:0;}
+.rl-grid-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:8px 8px 6px;overflow:hidden;min-width:0;min-height:0;}
+.rl-right{width:180px;min-width:180px;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--bd);overflow:hidden;}
+
+/* Roulette queue */
+.rl-queue{flex:1;overflow-y:auto;}
+.rl-q-header{padding:8px 12px;font-size:11px;font-weight:700;color:var(--tx3);border-bottom:1px solid var(--bd);letter-spacing:.06em;text-transform:uppercase;position:sticky;top:0;background:var(--surface);}
+.rl-q-item{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:13px;}
+.rl-q-item:last-child{border-bottom:none;}
+.rl-q-item.current{background:var(--acl);font-weight:700;color:var(--ac2);}
+.rl-q-item.done{opacity:.35;text-decoration:line-through;}
+.rl-q-arrow{color:var(--ac);font-size:12px;flex-shrink:0;}
+.rl-q-num{font-size:10px;color:var(--tx3);min-width:16px;}
+
+/* 一括モード時は右パネル非表示 */
+.rl-right.hidden{display:none;}
+
+/* START/STOP button */
+.rl-btn{width:72px;height:72px;border-radius:50%;font-size:14px;font-weight:700;border:none;cursor:pointer;touch-action:manipulation;font-family:inherit;transition:all .12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.rl-btn.start{background:var(--ac);color:#fff;box-shadow:0 3px 10px rgba(45,106,79,.4);}
+.rl-btn.start:hover{background:var(--ac2);transform:scale(1.05);}
+.rl-btn.stop{background:#dc2626;color:#fff;box-shadow:0 3px 10px rgba(220,38,38,.4);}
+.rl-btn.stop:hover{background:#b91c1c;transform:scale(1.05);}
+.rl-btn:active{transform:scale(.95) !important;}
+
+.rl-cur-label{font-size:13px;color:var(--tx2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rl-done-label{font-size:13px;color:var(--ac);font-weight:700;}
+.rl-progress{font-size:12px;color:var(--tx3);white-space:nowrap;}
+
+/* seat name scroll animation */
+@keyframes nameScroll{0%{transform:translateY(0);}100%{transform:translateY(-100%);}}
+@keyframes popIn{0%{transform:scale(.8);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+.seat.animating{animation:popIn .35s ease-out forwards;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--r);box-shadow:var(--shl);width:460px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.mhdr{padding:13px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.mtitle{font-size:15px;font-weight:700;}
+.mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2);padding:0 4px;line-height:1;}
+.mbody{padding:18px;overflow-y:auto;flex:1;}
+.mfoot{padding:11px 18px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ac2);color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:300;transition:transform .3s ease;pointer-events:none;box-shadow:var(--shl);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+.infob{background:var(--acl);border:1px solid #a7d7b8;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--ac2);margin-bottom:10px;}
+.nli{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:12px;}
+.nli:last-child{border-bottom:none;}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:var(--acl);color:var(--ac);font-weight:500;}
+.empty-state{text-align:center;padding:28px 14px;color:var(--tx3);}
+.es-icon{font-size:28px;margin-bottom:7px;}
+.es-txt{font-size:13px;}
+.cb-row{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:6px;}
+
+/* CONDITION LIST */
+.cond-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--s2);margin-bottom:6px;font-size:12px;}
+.cond-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.cond-body{flex:1;line-height:1.5;}
+.cond-names{font-weight:700;color:var(--tx);}
+.cond-desc{color:var(--tx2);}
+.cond-del{background:none;border:none;cursor:pointer;color:var(--tx3);font-size:16px;line-height:1;padding:0 2px;flex-shrink:0;}
+.cond-del:hover{color:var(--danger);}
+.warn-box{background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:8px;}
+
+/* ===== PRINT CSS ===== */
+@page { size: A4 landscape; margin: 10mm; }
+@media print {
+  html, body { background: #fff !important; margin:0 !important; padding:0 !important; }
+  .app-header, .sidebar, .toolbar, #mainToolbar, .grid-info, #rlResumeBanner { display: none !important; }
+  .app-body { display: block !important; height: auto !important; }
+  .main-area { overflow: visible !important; width:auto !important; }
+  .classroom-wrapper { padding: 0 !important; overflow: visible !important; display:block !important; }
+  .seat-grid { page-break-inside: avoid; }
+  .seat { box-shadow: none !important; }
+  .seat-wrap.has-group { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .seat.male, .seat.female { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .print-header { display: block !important; }
+  /* 1ページに収めるための縮尺：印刷直前に JS が --print-scale を設定 */
+  body.print-mode .classroom-container {
+    transform: scale(var(--print-scale, 1));
+    transform-origin: top center;
+    margin: 0 auto !important;
+  }
+  /* 教師視点でも正立で印刷したいので回転は維持しつつ scale を後段に適用 */
+  body.print-mode .classroom-wrapper.flipped .classroom-container {
+    transform: scale(var(--print-scale, 1)) rotate(180deg);
+  }
+}
+/* 月日表示は座席表の右下に絶対配置（印刷／JPG時のみ表示） */
+.classroom-container { position: relative; }
+.print-header {
+  display: none;
+  position: absolute;
+  bottom: 2px;
+  right: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tx);
+  text-align: right;
+  pointer-events: none;
+  white-space: nowrap;
+}
+/* 教師視点ではコンテナが180°回転しているため、画面右下に表示されるよう
+   コンテナ座標では左上に配置し、テキストが正立するよう自身を 180° 回転 */
+.classroom-wrapper.flipped .print-header {
+  bottom: auto;
+  right: auto;
+  top: 2px;
+  left: 6px;
+  text-align: left;
+}
+
+/* ===== VIEW TOGGLE ===== */
+.view-btn { padding:5px 12px; border-radius:var(--rs); font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; border:1px solid var(--bd2); background:var(--s2); color:var(--tx); transition:all .15s; }
+.view-btn.active { background:var(--ac); color:#fff; border-color:var(--ac); }
+/* 教師視点: コンテナ全体を180度回転 → 教卓が下に来る */
+.classroom-wrapper.flipped .classroom-container { transform: rotate(180deg); }
+/* 座席ラッパー・教卓・グリッド情報テキストを正立させる */
+.classroom-wrapper.flipped .seat-wrap { transform: rotate(180deg); }
+.classroom-wrapper.flipped .teacher-desk { transform: rotate(180deg); }
+.classroom-wrapper.flipped .grid-info { transform: rotate(180deg); }
+.classroom-wrapper.flipped .print-header { transform: rotate(180deg); }
+
+/* ルーレット全画面モード */
+.roulette-mode .sidebar { display:none !important; }
+.roulette-mode .main-area { width:100vw !important; }
+.roulette-wrap { background: var(--bg); }
+
+/* PRINT
+<style>
+/* HISTORY */
+.hist-item{border:1px solid var(--bd);border-radius:var(--rs);background:var(--surface);margin-bottom:8px;overflow:hidden;}
+.hist-header{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;transition:background .1s;}
+.hist-header:hover{background:var(--s2);}
+.hist-date{font-size:11px;color:var(--tx3);min-width:110px;}
+.hist-label{flex:1;font-size:13px;font-weight:500;color:var(--tx);}
+.hist-cls{font-size:11px;color:var(--tx3);}
+.hist-actions{display:flex;gap:5px;padding:6px 10px;border-top:1px solid var(--bd);background:var(--s2);}
+.hist-preview{padding:8px 10px;border-top:1px solid var(--bd);font-size:11px;color:var(--tx2);display:none;}
+.hist-item.expanded .hist-preview{display:block;}
+.hist-mini-grid{display:grid;gap:3px;margin-top:6px;}
+.hist-mini-seat{border-radius:3px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;}
+.hist-mini-seat.male{background:var(--mb);border-color:var(--mbb);color:var(--mbt);}
+.hist-mini-seat.female{background:var(--fb);border-color:var(--fbb);color:var(--fbt);}
+</style>
+<style>
+/* PIN SEAT */
+.seat.pin-select-mode:not(.disabled){cursor:crosshair !important;border-color:var(--ac) !important;border-style:dashed !important;background:#f0fdf4;min-height:40px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(45,106,79,.2);}
+.seat.pin-select-mode.male{background:var(--mb) !important;border-color:var(--mbb) !important;}
+.seat.pin-select-mode.female{background:var(--fb) !important;border-color:var(--fbb) !important;}
+.seat.pin-select-mode:hover{background:#dcfce7 !important;border-color:var(--ac2) !important;}
+.seat.pin-selected{outline:3px solid #f59e0b !important;outline-offset:2px;background:#fef9c3 !important;border-style:solid !important;}
+.pin-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--s2);margin-bottom:6px;font-size:12px;}
+.pin-icon{font-size:15px;flex-shrink:0;}
+.pin-body{flex:1;line-height:1.5;}
+.pin-name{font-weight:700;color:var(--tx);}
+.pin-desc{color:var(--tx2);}
+.pin-del{background:none;border:none;cursor:pointer;color:var(--tx3);font-size:16px;line-height:1;padding:0 2px;flex-shrink:0;}
+.pin-del:hover{color:var(--danger);}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">📋 席替えアプリ</div>
+  <div class="hdiv"></div>
+  <span class="hlbl">クラス</span>
+  <select class="hsel" id="classSelect" onchange="switchClass(this.value)"></select>
+  <button class="hbtn" onclick="openModal('addClass')">＋</button>
+  <div class="hdiv"></div>
+  <span class="hlbl">教室</span>
+  <select class="hsel" id="roomSelect" onchange="switchRoom(this.value)"></select>
+  <button class="hbtn" onclick="openModal('addRoom')">＋</button>
+  <div class="hdiv"></div>
+  <span id="headerMode" style="font-size:12px;opacity:.8;flex:1;"></span>
+  <button class="hbtn" onclick="openWipeModal()" title="データを消去（年度末・引継ぎ用）" style="background:rgba(220,38,38,.25);border-color:rgba(255,200,200,.4);">🗑 データ消去</button>
+</header>
+
+<div class="app-body">
+<aside class="sidebar">
+  <div class="stabs">
+    <button class="stab active" onclick="switchTab('roster')" id="tab-roster">名簿</button>
+    <button class="stab" onclick="switchTab('layout')" id="tab-layout">配置</button>
+    <button class="stab" onclick="switchTab('group')" id="tab-group">班色</button>
+    <button class="stab" onclick="switchTab('cond')" id="tab-cond">条件</button>
+    <button class="stab" onclick="switchTab('history')" id="tab-history">履歴</button>
+    <button class="stab" onclick="switchTab('settings')" id="tab-settings">設定</button>
+  </div>
+  <div class="scontent">
+
+    <!-- 名簿タブ -->
+    <div class="spanel active" id="panel-roster">
+      <div class="fsec">
+        <div class="ftitle">名簿の取り込み</div>
+        <div class="infob">
+          Excelファイル（.xlsx）の1行目：出席番号・氏名・ふりがな・性別<br>
+          2行目以降に生徒データを入力してください。
+        </div>
+        <button class="btn btp btn-full" onclick="document.getElementById('xlsxFileInput').click()" style="margin-bottom:8px;">
+          📂 Excelファイル（.xlsx）を読み込む
+        </button>
+        <input type="file" id="xlsxFileInput" accept=".xlsx,.xls" style="display:none;" onchange="importFromXlsx(this)">
+        <details style="margin-top:4px;">
+          <summary style="font-size:12px;color:var(--tx3);cursor:pointer;padding:4px 0;">テキスト貼り付けで読み込む（旧方式）</summary>
+          <div style="margin-top:8px;">
+            <p class="fhint" style="margin-bottom:4px;">番号・氏名・ふりがな・性別をタブ区切りで貼り付け</p>
+            <textarea class="fi" id="rosterInput" placeholder="1	田中太郎	たなかたろう	男&#10;2	山田花子	やまだはなこ	女"></textarea>
+            <button class="btn bts btn-full" onclick="importRoster()" style="margin-top:6px;">テキストから読み込む</button>
+          </div>
+        </details>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">生徒一覧 <span id="studentCountBadge" style="font-weight:400;text-transform:none;letter-spacing:0;"></span></div>
+        <div id="studentListArea"><div class="empty-state"><div class="es-icon">👥</div><div class="es-txt">名簿を読み込んでください</div></div></div>
+      </div>
+    </div>
+
+    <!-- レイアウトタブ -->
+    <div class="spanel" id="panel-layout">
+      <div class="fsec">
+        <div class="ftitle">グリッドサイズ</div>
+        <div class="fg">
+          <label class="flbl">列数（横）</label>
+          <div class="frow"><input type="number" class="nui" id="colsInput" value="6" min="1" max="15"><span style="font-size:13px;color:var(--tx2);">列</span></div>
+        </div>
+        <div class="fg">
+          <label class="flbl">行数（縦）</label>
+          <div class="frow"><input type="number" class="nui" id="rowsInput" value="6" min="1" max="15"><span style="font-size:13px;color:var(--tx2);">行</span></div>
+        </div>
+        <button class="btn bts btn-full" onclick="applyLayout()" style="margin-bottom:6px;">レイアウトを更新</button>
+        <p class="fhint">更新すると座席配置はリセットされます</p>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">座席の有効／無効編集</div>
+        <div class="edit-hint" id="layoutEditHint" style="display:none;">編集モード中：座席をクリックするたびに「通常 → 使わない席 → 無効（非表示）→ 通常」の順に切り替わります</div>
+        <button class="btn btn-full" id="layoutEditBtn" onclick="toggleLayoutEdit()">🖊 座席編集モードON</button>
+        <p class="fhint" style="margin-top:6px;">・<b>通常</b>：生徒が座る席<br>・<b>使わない席</b>：座席は残すが誰も座らない（特別教室で座席数＞生徒数のとき用）<br>・<b>無効</b>：席そのものを非表示（空きスペース）</p>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">座席配置を他のクラス／教室からコピー</div>
+        <div class="fg">
+          <label class="flbl">コピー元（クラス × 教室）</label>
+          <select class="fi" id="copyRoomSelect"></select>
+        </div>
+        <p class="fhint" style="margin-bottom:6px;">選択したクラス×教室の「列数・行数・有効/無効・グループ色・男女設定」を、現在のクラス×教室にコピーします。現在の配置はリセットされます。</p>
+        <button class="btn bts btn-full" onclick="copyRoomLayout()">📋 ここにコピー</button>
+      </div>
+      <div class="fsec" id="manualGenderEditBtn">
+        <div class="ftitle">席ごとの男女設定（手動モード用）</div>
+        <div class="fhint" style="margin-bottom:8px;">設定した男女指定は「条件」タブの配置モードで「手動指定」を選んだときに使われます。</div>
+        <div class="fg">
+          <label class="flbl">設定モード</label>
+          <select class="fi" id="genderEditType" onchange="onGenderEditTypeChange()">
+            <option value="click">クリックで1席ずつ切り替え</option>
+            <option value="col">列単位でクリック切り替え</option>
+            <option value="alternate">男女交互（自動設定）</option>
+            <option value="all_any">全席をどちらでも（リセット）</option>
+          </select>
+        </div>
+        <!-- クリックモード -->
+        <div id="genderClickOptions">
+          <button class="btn btn-full" id="genderEditBtn" onclick="toggleGenderEdit()">🚻 クリック設定モードON</button>
+          <p class="fhint" style="margin-top:4px;">青＝男子 / ピンク＝女子 / 白＝どちらでも　の順で切り替わります</p>
+        </div>
+        <!-- 列クリックモード -->
+        <div id="genderColOptions" style="display:none;">
+          <div class="fhint" style="margin-bottom:6px;">座席表の列ヘッダーをタップして男女を切り替えます。列全体が一括で設定されます。</div>
+          <div id="genderColBtns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+          <button class="btn btp btn-full" onclick="saveGenderColMode()">💾 列設定を保存</button>
+        </div>
+        <!-- 交互・リセットモード -->
+        <div id="genderBulkOptions" style="display:none;">
+          <button class="btn btp btn-full" id="alternateBulkBtn" onclick="applyBulkGender()">男女交互で設定（押すたびに反転）</button>
+          <p class="fhint" style="margin-top:4px;" id="alternateBulkHint"></p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 班グループタブ -->
+    <div class="spanel" id="panel-group">
+      <div class="fsec">
+        <div class="ftitle">班・グループの色設定</div>
+        <div class="infob">座席をクリックして選択し、色を選んで「グループ色を適用」を押してください。<br>複数選択してまとめて設定できます。</div>
+        <div class="fg">
+          <label class="flbl">選択中の座席</label>
+          <div id="selectedSeatsInfo" style="font-size:12px;color:var(--tx3);padding:4px 0;">0席選択中</div>
+        </div>
+        <div class="fg">
+          <label class="flbl">班の色</label>
+          <div class="palette-grid" id="bgColorPalette"></div>
+        </div>
+        <div style="display:none;"><div class="palette" id="borderColorPalette"></div></div>
+        <div class="frow" style="margin-top:8px;gap:6px;">
+          <button class="btn btp" style="flex:1" onclick="applyGroupColor()">色を適用</button>
+          <button class="btn bts" onclick="clearGroupColor()">クリア</button>
+          <button class="btn bts" onclick="clearGroupSelection()">選択解除</button>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">グループ一覧</div>
+        <div id="groupListArea"><div class="empty-state"><div class="es-txt">色を設定すると表示されます</div></div></div>
+      </div>
+    </div>
+
+
+    <!-- 条件タブ (Phase 4) -->
+    <div class="spanel" id="panel-cond">
+      <div class="fsec">
+        <div class="ftitle">生徒間の距離条件</div>
+        <div class="infob">2名を選んで「近づける」または「遠ざける」距離を設定します。距離はマンハッタン距離（縦横の席数の合計）で計算します。</div>
+        <div class="fg">
+          <label class="flbl">生徒A</label>
+          <select class="fi" id="condStudentA" onfocus="refreshCondStudentSelects()" ontouchstart="refreshCondStudentSelects()"><option value="">-- 選択 --</option></select>
+        </div>
+        <div class="fg">
+          <label class="flbl">生徒B</label>
+          <select class="fi" id="condStudentB" onfocus="refreshCondStudentSelects()" ontouchstart="refreshCondStudentSelects()"><option value="">-- 選択 --</option></select>
+        </div>
+        <div class="fg">
+          <label class="flbl">条件タイプ</label>
+          <select class="fi" id="condType">
+            <option value="near">○席以内に近づける</option>
+            <option value="far">○席以上遠ざける</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flbl">距離（席数）</label>
+          <div class="frow">
+            <input type="number" class="nui" id="condDist" value="2" min="1" max="20">
+            <span style="font-size:13px;color:var(--tx2);">席</span>
+          </div>
+        </div>
+        <button class="btn btp btn-full" onclick="addCondition()">条件を追加</button>
+      </div>
+
+      <div class="fsec">
+        <div class="ftitle">設定済みの条件 <span id="condCountBadge" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;"></span></div>
+        <div id="condConflictArea"></div>
+        <div id="condListArea"><div class="empty-state"><div class="es-txt">条件はまだありません</div></div></div>
+      </div>
+
+      <div class="fsec">
+        <div class="ftitle">座席の固定指定</div>
+        <div class="infob">生徒ごとに「特定の席」「行（前から）」「列（左から）」「前から◯行目まで」「左から◯列目まで」を指定できます。シャッフル時に優先的に配置されます。</div>
+        <div class="fg">
+          <label class="flbl">生徒を選択</label>
+          <select class="fi" id="pinStudent" onfocus="refreshPinStudentSelect()" ontouchstart="refreshPinStudentSelect()" onchange="syncPinSeatMode()"><option value="">-- 選択 --</option></select>
+        </div>
+        <div class="fg">
+          <label class="flbl">固定タイプ</label>
+          <select class="fi" id="pinType" onchange="updatePinTypeUI()">
+            <option value="seat">特定の座席に固定</option>
+            <option value="row">行（前から）を指定</option>
+            <option value="col">列（左から）を指定</option>
+            <option value="rowMax">前から◯行目までに座る（範囲指定）</option>
+            <option value="colMax">左から◯列目までに座る（範囲指定）</option>
+          </select>
+        </div>
+        <div id="pinSeatOptions">
+          <div class="fg">
+            <label class="flbl">座席</label>
+            <div id="pinSeatPicker" style="font-size:12px;color:var(--tx3);padding:4px 0;">座席グリッドをクリックして選択</div>
+            <input type="hidden" id="pinSeatId">
+          </div>
+          <p class="fhint">上で生徒を選んでから、座席表の席を直接クリックすると固定されます</p>
+        </div>
+        <div id="pinRowOptions" style="display:none;">
+          <div class="fg">
+            <label class="flbl">前から何行目</label>
+            <div class="frow">
+              <input type="number" class="nui" id="pinRowNum" value="1" min="1" max="15">
+              <span style="font-size:13px;color:var(--tx2);">行目</span>
+            </div>
+          </div>
+        </div>
+        <div id="pinColOptions" style="display:none;">
+          <div class="fg">
+            <label class="flbl">左から何列目</label>
+            <div class="frow">
+              <input type="number" class="nui" id="pinColNum" value="1" min="1" max="15">
+              <span style="font-size:13px;color:var(--tx2);">列目</span>
+            </div>
+          </div>
+        </div>
+        <div id="pinRowMaxOptions" style="display:none;">
+          <div class="fg">
+            <label class="flbl">前から何行目まで</label>
+            <div class="frow">
+              <input type="number" class="nui" id="pinRowMaxNum" value="3" min="1" max="15">
+              <span style="font-size:13px;color:var(--tx2);">行目まで</span>
+            </div>
+            <p class="fhint" style="margin-top:6px;">例：3 を指定すると、前から1・2・3行目のどこかに配置されます（目が悪い生徒向け）</p>
+          </div>
+        </div>
+        <div id="pinColMaxOptions" style="display:none;">
+          <div class="fg">
+            <label class="flbl">左から何列目まで</label>
+            <div class="frow">
+              <input type="number" class="nui" id="pinColMaxNum" value="3" min="1" max="15">
+              <span style="font-size:13px;color:var(--tx2);">列目まで</span>
+            </div>
+            <p class="fhint" style="margin-top:6px;">例：3 を指定すると、左から1・2・3列目のどこかに配置されます</p>
+          </div>
+        </div>
+        <button class="btn btp btn-full" style="margin-top:8px;" onclick="addPin()">固定を追加</button>
+      </div>
+
+      <div class="fsec">
+        <div class="ftitle">固定設定一覧 <span id="pinCountBadge" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;"></span></div>
+        <div id="pinListArea"><div class="empty-state"><div class="es-txt">固定設定はまだありません</div></div></div>
+      </div>
+    </div>
+
+
+    <!-- 履歴タブ (Phase 6) -->
+    <div class="spanel" id="panel-history">
+      <div class="fsec">
+        <div class="ftitle">過去の座席表</div>
+        <div class="infob">席替えを実行するたびに自動保存されます。クラス×教室ごとに最大20件保持します。</div>
+        <div class="frow" style="margin-bottom:10px;gap:6px;">
+          <select class="fi" id="histClassFilter" onchange="renderHistoryList()" style="flex:1;">
+            <option value="">すべてのクラス</option>
+          </select>
+          <select class="fi" id="histRoomFilter" onchange="renderHistoryList()" style="flex:1;">
+            <option value="">すべての教室</option>
+          </select>
+        </div>
+        <div id="historyListArea">
+          <div class="empty-state"><div class="es-txt">履歴はまだありません</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定タブ -->
+    <div class="spanel" id="panel-settings">
+      <div class="fsec">
+        <div class="ftitle">効果音</div>
+        <label class="cb-row">
+          <input type="checkbox" id="soundEnabled" checked onchange="saveSoundPref()">
+          🔊 ルーレット効果音 ON/OFF
+        </label>
+        <p class="fhint">ルーレット中のカチカチ音・確定音・完了音を制御します</p>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">クラス管理</div>
+        <div id="classManageList"></div>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">教室管理</div>
+        <div id="roomManageList"></div>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">データのエクスポート／インポート</div>
+        <p class="fhint" style="margin-bottom:8px;">バックアップや他の端末への引き継ぎに使います。クラス・教室・名簿・座席設定・履歴をすべて保存します。</p>
+        <button class="btn btp btn-full" onclick="exportData()" style="margin-bottom:6px;">📤 データをエクスポート（保存）</button>
+        <button class="btn bts btn-full" onclick="document.getElementById('importFile').click()" style="margin-bottom:4px;">📥 データをインポート（読み込み）</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
+        <p class="fhint">※インポートすると現在のデータはすべて上書きされます</p>
+      </div>
+      <div class="fsec">
+        <div class="ftitle">データの消去</div>
+        <p class="fhint" style="margin-bottom:8px;">年度末・引継ぎ時にデータを消去します。ヘッダーの「🗑 データ消去」ボタンと同じメニューが開きます。</p>
+        <button class="btn btd btn-full" onclick="openWipeModal()">🗑 データ消去メニューを開く</button>
+        <p class="fhint" style="margin-top:6px;">履歴のみ／名簿のみ／教室のみ／全データ完全消去 を選んで実行できます。</p>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+<main class="main-area">
+  <div class="toolbar" id="mainToolbar">
+    <span class="tlbl">席替え</span>
+    <button class="btn bts" id="clearSeatingBtn" onclick="clearSeating()">🆕 新しい席替え</button>
+    <button class="btn btp" onclick="shuffleInstant()">⚡ 瞬時に決定</button>
+    <button class="btn bts" onclick="startRoulette('seq')">🎰 一人ずつルーレット</button>
+    <button class="btn bts" onclick="startRoulette('bulk')">🎲 一括ルーレット</button>
+    <div class="tdiv"></div>
+    <button class="btn bts" id="swapModeBtn" onclick="toggleSwapMode()">🔄 入替</button>
+    <div class="tdiv"></div>
+    <span class="tlbl">視点</span>
+    <button class="view-btn active" id="viewBtnStudent" onclick="setView('student')">生徒視点</button>
+    <button class="view-btn" id="viewBtnTeacher" onclick="setView('teacher')">教師視点</button>
+    <div class="tdiv"></div>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer;white-space:nowrap;">
+      <input type="checkbox" id="showNumber" onchange="renderGrid()"> 番号
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer;white-space:nowrap;">
+      <input type="checkbox" id="showYomi" onchange="renderGrid()"> ふりがな
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer;white-space:nowrap;">
+      <input type="checkbox" id="showGender" checked onchange="renderGrid()"> 男女色
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer;white-space:nowrap;">
+      <input type="checkbox" id="showGroupColor" checked onchange="renderGrid()"> 班色
+    </label>
+    <div class="tdiv"></div>
+    <button class="btn bts" onclick="saveAsJpg()" title="JPGで保存">💾 JPG保存</button>
+    <button class="btn bts" onclick="printSeating()" title="印刷">🖨 印刷</button>
+    <div class="tdiv"></div>
+    <span id="assignInfo" style="font-size:12px;color:var(--tx3);"></span>
+  </div>
+
+  <!-- 中断中ルーレットの再開バナー -->
+  <div id="rlResumeBanner" style="display:none;background:#fef3c7;border-bottom:1px solid #fcd34d;padding:8px 14px;align-items:center;gap:10px;color:#92400e;font-size:12px;"></div>
+
+  <!-- 通常グリッドビュー -->
+  <div class="classroom-wrapper" id="normalView">
+    <div class="classroom-container" id="printTarget">
+      <div class="print-header" id="printHeader"></div>
+      <div class="teacher-desk" id="teacherDeskMain">📖 教卓（前）</div>
+      <div class="seat-grid" id="seatGrid"></div>
+      <div class="grid-info" id="gridInfo"></div>
+    </div>
+  </div>
+
+  <!-- ルーレットビュー -->
+  <div class="roulette-wrap" id="rouletteView">
+    <!-- カウントダウンオーバーレイ -->
+    <div id="rlCountdown" style="display:none;position:absolute;inset:0;z-index:50;background:var(--ac2);flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;overflow-y:auto;padding:20px 10px;">
+      <div id="rlCountdownTitle" style="font-size:clamp(18px,4vw,28px);font-weight:700;color:#fff;letter-spacing:.06em;text-align:center;padding:0 20px;flex-shrink:0;"></div>
+      <div id="rlCountdownSub" style="font-size:clamp(13px,2.5vw,16px);color:rgba(255,255,255,.7);text-align:center;min-height:20px;flex-shrink:0;"></div>
+      <div id="rlCountdownNum" style="font-size:clamp(48px,12vw,96px);font-weight:700;color:#fff;line-height:1;min-height:0;text-align:center;transition:transform .15s,opacity .15s;flex-shrink:0;"></div>
+      <div id="rlCountdownNames" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:680px;padding:0 10px;flex-shrink:0;"></div>
+      <button id="rlDecideBtn" onclick="triggerDecide()" style="display:none;margin:16px 0 20px;padding:14px 50px;border-radius:50px;background:#fff;color:var(--ac2);font-size:clamp(16px,3vw,20px);font-weight:700;border:none;cursor:pointer;font-family:inherit;touch-action:manipulation;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:transform .1s,box-shadow .1s;flex-shrink:0;" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform='scale(1)'">ルーレット順を決める</button>
+    </div>
+    <!-- 上部バー（最小高さ） -->
+    <div class="rl-topbar">
+      <div class="rl-topbar-left">
+        <span id="rlTitle" style="font-size:14px;font-weight:700;">ルーレット</span>
+        <span id="rlProgress" class="rl-progress"></span>
+        <span id="rlCurLabel" class="rl-cur-label"></span>
+        <span id="rlDoneLabel" class="rl-done-label" style="display:none;"></span>
+      </div>
+      <div class="rl-topbar-right">
+        <button class="rl-btn start" id="rlStartBtn" onclick="toggleRoulette()">START</button>
+        <button class="btn bts bsm" onclick="exitRoulette()">✕ 終了</button>
+      </div>
+    </div>
+    <!-- メインエリア：グリッド ＋ 右パネル -->
+    <div class="rl-body">
+      <div class="rl-grid-area">
+        <div class="teacher-desk" id="rlTeacherDesk" style="font-size:13px;padding:8px 80px;align-self:center;letter-spacing:.06em;">📖 教卓（前）</div>
+        <div class="seat-grid" id="rlSeatGrid"></div>
+      </div>
+      <div class="rl-right" id="rlRight">
+        <div class="rl-queue" id="rlQueue">
+          <div class="rl-q-header">ルーレット順</div>
+          <div id="rlQueueList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-addClass">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">クラスを追加</div><button class="mclose" onclick="closeModal('addClass')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="flbl">クラス名</label><input type="text" class="fi" id="newClassName" placeholder="例：1年A組"></div>
+    </div>
+    <div class="mfoot"><button class="btn bts" onclick="closeModal('addClass')">キャンセル</button><button class="btn btp" onclick="addClass()">追加</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-addRoom">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">教室を追加</div><button class="mclose" onclick="closeModal('addRoom')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="flbl">教室名</label><input type="text" class="fi" id="newRoomName" placeholder="例：理科室"></div>
+      <div class="frow">
+        <div class="fg" style="flex:1"><label class="flbl">列数</label><input type="number" class="fi" id="newRoomCols" value="6" min="1" max="15"></div>
+        <div class="fg" style="flex:1"><label class="flbl">行数</label><input type="number" class="fi" id="newRoomRows" value="6" min="1" max="15"></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn bts" onclick="closeModal('addRoom')">キャンセル</button><button class="btn btp" onclick="addRoom()">追加</button></div>
+  </div>
+</div>
+
+<!-- 印刷／JPG用 月日入力モーダル -->
+<div class="modal-overlay" id="modal-printDate">
+  <div class="modal" style="width:380px;">
+    <div class="mhdr">
+      <div class="mtitle" id="printDateTitle">印刷する月日を選択</div>
+      <button class="mclose" onclick="closeModal('printDate')">×</button>
+    </div>
+    <div class="mbody">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:10px;line-height:1.6;">
+        座席表の上部に印字する月日を選んでください。<br>
+        席替え当日と異なる日付で印刷できます。
+      </p>
+      <div class="fg">
+        <label class="flbl">月日</label>
+        <div class="frow" style="gap:8px;align-items:center;">
+          <select class="fi" id="printMonthSelect" style="flex:1;"></select>
+          <span style="font-size:13px;color:var(--tx2);">月</span>
+          <select class="fi" id="printDaySelect" style="flex:1;"></select>
+          <span style="font-size:13px;color:var(--tx2);">日</span>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bts" onclick="closeModal('printDate')">キャンセル</button>
+      <button class="btn btp" id="printDateConfirmBtn" onclick="confirmPrintDate()">この日付で実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- データ消去モーダル -->
+<div class="modal-overlay" id="modal-wipe">
+  <div class="modal" style="width:520px;">
+    <div class="mhdr">
+      <div class="mtitle">🗑 データの消去</div>
+      <button class="mclose" onclick="closeWipeModal()">×</button>
+    </div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:12px;line-height:1.6;">
+        消去する範囲を選んでください。<br>
+        各ボタンは押した直後にもう一度確認の表示が出ます。
+      </p>
+
+      <div id="wipe-storageInfo" style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.6;"></div>
+
+      <button class="btn bts btn-full" id="wipeBtn-history" onclick="wipeHandle('history')" style="margin-bottom:6px;text-align:left;justify-content:flex-start;padding:11px 14px;height:auto;white-space:normal;line-height:1.5;">
+        <div>
+          <div style="font-weight:700;font-size:13px;">📜 履歴のみ消去</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px;">過去の席替え結果（履歴）を消去します。名簿・教室・条件はそのまま残ります。</div>
+        </div>
+      </button>
+
+      <button class="btn btw btn-full" id="wipeBtn-roster" onclick="wipeHandle('roster')" style="margin-bottom:6px;text-align:left;justify-content:flex-start;padding:11px 14px;height:auto;white-space:normal;line-height:1.5;">
+        <div>
+          <div style="font-weight:700;font-size:13px;">📋 名簿データを消去（年度替わり用）</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px;">全クラスの<b>生徒名簿・座席配置・条件・固定・履歴・中断中ルーレット</b>を消去します。クラス名・教室レイアウトは残ります。</div>
+        </div>
+      </button>
+
+      <button class="btn btw btn-full" id="wipeBtn-rooms" onclick="wipeHandle('rooms')" style="margin-bottom:6px;text-align:left;justify-content:flex-start;padding:11px 14px;height:auto;white-space:normal;line-height:1.5;">
+        <div>
+          <div style="font-weight:700;font-size:13px;">🏫 教室データを消去</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px;">全教室の<b>レイアウト・座席設定・班色・男女設定・座席固定・配置・履歴</b>を消去し、教室を初期状態（普通教室1つ）に戻します。クラスと名簿は残ります。</div>
+        </div>
+      </button>
+
+      <button class="btn btd btn-full" id="wipeBtn-all" onclick="wipeHandle('all')" style="text-align:left;justify-content:flex-start;padding:11px 14px;height:auto;white-space:normal;line-height:1.5;">
+        <div>
+          <div style="font-weight:700;font-size:13px;">⚠ 全データを完全消去（個人情報の完全削除）</div>
+          <div style="font-size:11px;margin-top:2px;">クラス・教室・名簿・配置・履歴・条件・固定・効果音設定・中断中ルーレットなど、<b>このアプリがブラウザに保存しているすべての情報</b>を消去し、初期状態に戻します。異動・転勤・端末譲渡時用。</div>
+        </div>
+      </button>
+    </div>
+    <div class="mfoot">
+      <button class="btn bts" onclick="closeWipeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-editStudent">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">生徒を編集</div><button class="mclose" onclick="closeModal('editStudent')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="flbl">氏名</label><input type="text" class="fi" id="esName"></div>
+      <div class="fg"><label class="flbl">ふりがな</label><input type="text" class="fi" id="esYomi" placeholder="任意"></div>
+      <div class="fg"><label class="flbl">出席番号</label><input type="number" class="fi" id="esNum"></div>
+      <div class="fg"><label class="flbl">性別</label><select class="fi" id="esGender"><option value="male">男子</option><option value="female">女子</option><option value="other">その他</option></select></div>
+      <input type="hidden" id="esId">
+    </div>
+    <div class="mfoot"><button class="btn btd" onclick="deleteStudent()">削除</button><button class="btn bts" onclick="closeModal('editStudent')">キャンセル</button><button class="btn btp" onclick="saveEditStudent()">保存</button></div>
+  </div>
+</div>
+
+
+<!-- 履歴プレビューモーダル -->
+<div class="modal-overlay" id="modal-histPreview">
+  <div class="modal" style="width:90vw;max-width:1000px;max-height:92vh;">
+    <div class="mhdr">
+      <div class="mtitle" id="histPreviewTitle">座席表プレビュー</div>
+      <button class="mclose" onclick="closeModal('histPreview')">×</button>
+    </div>
+    <div class="mbody" style="padding:16px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div class="teacher-desk" id="histPreviewDesk" style="font-size:12px;padding:6px 36px;">📖 教卓（前）</div>
+      <div id="histPreviewGrid" style="display:grid;gap:6px;"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bts" onclick="closeModal('histPreview')">閉じる</button>
+      <button class="btn btp" id="histPreviewRestoreBtn">↩ この座席表を復元</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const SK = 'sekigae_v2';
+const BORDER_COLORS = ['#c62828','#e65100','#f9a825','#2e7d32','#1565c0','#6a1b9a','#00838f','#c2185b'];
+const BG_COLORS_DARK  = ['#e53935','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#00bcd4','#f06292'];
+const BG_COLORS_LIGHT = ['#ef9a9a','#ffcc80','#fff59d','#a5d6a7','#90caf9','#ce93d8','#80deea','#f8bbd0'];
+const BG_COLORS = [...BG_COLORS_DARK, ...BG_COLORS_LIGHT];
+
+// ============================================================
+// DATA
+// ============================================================
+function mkId(){ return 'id'+Date.now()+Math.random().toString(36).slice(2,7); }
+
+function buildSeats(cols,rows){
+  const s=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++)
+    s.push({id:`s${r}_${c}`,row:r,col:c,enabled:true,allowedGender:'any',borderColor:null,bgColor:null});
+  return s;
+}
+
+function defaultData(){
+  const cid=mkId(),rid=mkId();
+  return{
+    currentClassId:cid,currentRoomId:rid,
+    classes:{[cid]:{id:cid,name:'1年A組',students:[]}},
+    rooms:{[rid]:{id:rid,name:'普通教室'}},
+    layouts:{[`${cid}_${rid}`]:{cols:6,rows:6,seats:buildSeats(6,6)}},
+    assignments:{},history:[]
+  };
+}
+
+let app=null;
+function load(){
+  try{const r=localStorage.getItem(SK);app=r?JSON.parse(r):defaultData();}catch{app=defaultData();}
+  migrateLayouts();
+}
+function save(){localStorage.setItem(SK,JSON.stringify(app));}
+
+// 既存データをクラス×教室別レイアウト構造へ移行
+function migrateLayouts(){
+  if(!app.layouts) app.layouts={};
+  // 教室データに cols/rows/seats が残っている場合、各クラスの初期レイアウトとして展開
+  Object.keys(app.rooms||{}).forEach(rid=>{
+    const r=app.rooms[rid];
+    const hasOld=r && (r.cols!=null || r.rows!=null || Array.isArray(r.seats));
+    if(!hasOld) return;
+    const cols=r.cols||6, rows=r.rows||6;
+    const oldSeats=Array.isArray(r.seats)?r.seats:buildSeats(cols,rows);
+    // 既存の全クラスにレイアウトを複製（これまで全クラスで共有していた状態を保持）
+    Object.keys(app.classes||{}).forEach(cid=>{
+      const k=`${cid}_${rid}`;
+      if(!app.layouts[k]){
+        app.layouts[k]={
+          cols, rows,
+          seats: oldSeats.map(s=>({...s}))
+        };
+      }
+    });
+    // 教室メタデータからレイアウト情報を除去（保持したいのは name のみ）
+    delete r.cols; delete r.rows; delete r.seats;
+  });
+}
+
+function curClass(){return app.classes[app.currentClassId];}
+function akey(){return`${app.currentClassId}_${app.currentRoomId}`;}
+function curAsgn(){if(!app.assignments[akey()])app.assignments[akey()]={};return app.assignments[akey()];}
+
+// 指定クラス×教室のレイアウトを取得（無ければ初期化）
+function getLayout(classId, roomId){
+  if(!app.layouts) app.layouts={};
+  const k=`${classId}_${roomId}`;
+  if(!app.layouts[k]){
+    // 同じ教室で既に別クラスがレイアウトを持っているなら、そのコピーを初期値にする
+    const otherKey=Object.keys(app.layouts).find(kk=>kk.endsWith('_'+roomId));
+    if(otherKey){
+      const src=app.layouts[otherKey];
+      app.layouts[k]={
+        cols:src.cols, rows:src.rows,
+        seats: src.seats.map(s=>({...s}))
+      };
+    } else {
+      app.layouts[k]={cols:6, rows:6, seats:buildSeats(6,6)};
+    }
+  }
+  return app.layouts[k];
+}
+function curLayout(){return getLayout(app.currentClassId, app.currentRoomId);}
+
+// 教室メタデータ（id,name）と現在クラスのレイアウト（cols,rows,seats）を統合した
+// 仮想オブジェクトを返す。cols/rows/seats への代入はレイアウトへ反映される。
+function curRoom(){
+  const r=app.rooms[app.currentRoomId];
+  if(!r) return null;
+  const layout=curLayout();
+  return new Proxy(r,{
+    get(t,p){
+      if(p==='cols'||p==='rows'||p==='seats') return layout[p];
+      return t[p];
+    },
+    set(t,p,v){
+      if(p==='cols'||p==='rows'||p==='seats'){ layout[p]=v; }
+      else { t[p]=v; }
+      return true;
+    },
+    has(t,p){
+      if(p==='cols'||p==='rows'||p==='seats') return true;
+      return p in t;
+    },
+    ownKeys(t){
+      return [...new Set([...Reflect.ownKeys(t),'cols','rows','seats'])];
+    },
+    getOwnPropertyDescriptor(t,p){
+      if(p==='cols'||p==='rows'||p==='seats'){
+        return {enumerable:true, configurable:true, value:layout[p], writable:true};
+      }
+      return Object.getOwnPropertyDescriptor(t,p);
+    }
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('rouletteView').classList.contains('open')) renderRlGrid();
+  else renderGrid();
+});
+window.onload=()=>{
+  load();
+  buildPalettes();
+  refreshHeader();
+  renderStudentList();
+  syncLayoutInputs();
+  renderGrid();
+  renderManageLists();
+  renderGroupList();
+  updateAssignInfo();
+  renderCondList();
+  renderPinList();
+  refreshCondStudentSelects();
+  refreshPinStudentSelect();
+  refreshHistoryFilters();
+  refreshCopyRoomSelect();
+  refreshResumeBanner();
+  // restore sound pref
+  const pref=localStorage.getItem('sekigae_sound');
+  if(pref==='0'){const el=document.getElementById('soundEnabled');if(el)el.checked=false;}
+};
+
+// ============================================================
+// PALETTE BUILD
+// ============================================================
+function buildPalettes(){
+  // borderColorPalette（非表示、従来のflex方式）
+  const bpEl=document.getElementById('borderColorPalette');
+  if(bpEl){
+    const clr=document.createElement('div');
+    clr.className='swatch clear-sw';clr.title='クリア';clr.textContent='✕';
+    clr.onclick=()=>{bpEl.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));clr.classList.add('sel');};
+    bpEl.appendChild(clr);
+    BORDER_COLORS.forEach(c=>{
+      const sw=document.createElement('div');
+      sw.className='swatch';sw.style.background=c;sw.title=c;
+      sw.onclick=()=>{bpEl.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');};
+      bpEl.appendChild(sw);
+    });
+  }
+  // bgColorPalette（グリッド方式：クリアボタン + 濃い色8個 = 1行目、空白 + 淡い色8個 = 2行目）
+  const bgEl=document.getElementById('bgColorPalette');
+  if(bgEl){
+    // 1行目: クリア + 濃い色
+    const clr2=document.createElement('div');
+    clr2.className='swatch clear-sw';clr2.title='クリア';clr2.textContent='✕';
+    clr2.onclick=()=>{bgEl.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));clr2.classList.add('sel');};
+    bgEl.appendChild(clr2);
+    BG_COLORS_DARK.forEach(c=>{
+      const sw=document.createElement('div');
+      sw.className='swatch';sw.style.background=c;sw.title=c;
+      sw.onclick=()=>{bgEl.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');};
+      bgEl.appendChild(sw);
+    });
+    // 2行目: 空白スペーサー + 淡い色
+    const spacer=document.createElement('div');
+    spacer.style.width='22px';spacer.style.height='22px';
+    bgEl.appendChild(spacer);
+    BG_COLORS_LIGHT.forEach(c=>{
+      const sw=document.createElement('div');
+      sw.className='swatch';sw.style.background=c;sw.title=c;
+      sw.onclick=()=>{bgEl.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');};
+      bgEl.appendChild(sw);
+    });
+  }
+}
+
+function getSelectedColor(paletteId){
+  const sel=document.querySelector(`#${paletteId} .swatch.sel`);
+  if(!sel)return undefined;
+  if(sel.classList.contains('clear-sw'))return null;
+  return sel.style.background;
+}
+
+// ============================================================
+// CLASS / ROOM
+// ============================================================
+function refreshHeader(){
+  const cs=document.getElementById('classSelect');
+  cs.innerHTML='';
+  Object.values(app.classes).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id;o.textContent=c.name;if(c.id===app.currentClassId)o.selected=true;
+    cs.appendChild(o);
+  });
+  const rs=document.getElementById('roomSelect');
+  rs.innerHTML='';
+  Object.values(app.rooms).forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r.id;o.textContent=r.name;if(r.id===app.currentRoomId)o.selected=true;
+    rs.appendChild(o);
+  });
+}
+function switchClass(id){app.currentClassId=id;getLayout(id,app.currentRoomId);save();syncLayoutInputs();renderStudentList();renderGrid();updateAssignInfo();renderGroupList();refreshCondStudentSelects();refreshPinStudentSelect();renderCondList();renderPinList();refreshCopyRoomSelect();refreshResumeBanner();}
+function switchRoom(id){app.currentRoomId=id;getLayout(app.currentClassId,id);save();syncLayoutInputs();renderGrid();updateAssignInfo();renderGroupList();refreshCopyRoomSelect();renderCondList();renderPinList();refreshResumeBanner();}
+
+function addClass(){
+  const name=document.getElementById('newClassName').value.trim();
+  if(!name){showToast('クラス名を入力してください');return;}
+  const id=mkId();
+  app.classes[id]={id,name,students:[]};
+  app.currentClassId=id;
+  // 新規クラスにも全教室分のレイアウトを初期化（既存教室の現状をコピー）
+  Object.keys(app.rooms).forEach(rid=>getLayout(id,rid));
+  save();refreshHeader();syncLayoutInputs();renderStudentList();renderGrid();renderManageLists();refreshCopyRoomSelect();closeModal('addClass');showToast(`「${name}」を追加しました`);
+}
+function addRoom(){
+  const name=document.getElementById('newRoomName').value.trim();
+  if(!name){showToast('教室名を入力してください');return;}
+  const cols=parseInt(document.getElementById('newRoomCols').value)||6;
+  const rows=parseInt(document.getElementById('newRoomRows').value)||6;
+  const id=mkId();
+  app.rooms[id]={id,name};
+  // 全クラスについて、この新規教室のレイアウトを初期化
+  Object.keys(app.classes).forEach(cid=>{
+    app.layouts[`${cid}_${id}`]={cols,rows,seats:buildSeats(cols,rows)};
+  });
+  app.currentRoomId=id;
+  save();refreshHeader();syncLayoutInputs();renderGrid();renderManageLists();refreshCopyRoomSelect();closeModal('addRoom');showToast(`「${name}」を追加しました`);
+}
+function deleteClass(id){
+  if(Object.keys(app.classes).length<=1){showToast('最後のクラスは削除できません');return;}
+  // confirm省略（iPad対応）
+  delete app.classes[id];
+  // 当該クラスのレイアウト・配置・条件・固定・履歴も削除
+  if(app.layouts){
+    Object.keys(app.layouts).forEach(k=>{ if(k.startsWith(id+'_')) delete app.layouts[k]; });
+  }
+  Object.keys(app.assignments||{}).forEach(k=>{ if(k.startsWith(id+'_')) delete app.assignments[k]; });
+  Object.keys(app.rooms).forEach(rid=>{
+    const ak=`${id}_${rid}`;
+    ['_cond','_pins','_gmode','_zsplit'].forEach(p=>localStorage.removeItem(ak+p));
+    localStorage.removeItem(`sekigae_hist_${id}_${rid}`);
+    localStorage.removeItem(rlKeyFor(id, rid));
+  });
+  if(app.currentClassId===id)app.currentClassId=Object.keys(app.classes)[0];
+  save();refreshHeader();syncLayoutInputs();renderStudentList();renderGrid();renderManageLists();refreshCopyRoomSelect();refreshResumeBanner();showToast('削除しました');
+}
+function deleteRoom(id){
+  if(Object.keys(app.rooms).length<=1){showToast('最後の教室は削除できません');return;}
+  // confirm省略（iPad対応）
+  delete app.rooms[id];
+  // 当該教室のレイアウト・配置・条件・固定・履歴も削除
+  if(app.layouts){
+    Object.keys(app.layouts).forEach(k=>{ if(k.endsWith('_'+id)) delete app.layouts[k]; });
+  }
+  Object.keys(app.assignments||{}).forEach(k=>{ if(k.endsWith('_'+id)) delete app.assignments[k]; });
+  Object.keys(app.classes).forEach(cid=>{
+    const ak=`${cid}_${id}`;
+    ['_cond','_pins','_gmode','_zsplit'].forEach(p=>localStorage.removeItem(ak+p));
+    localStorage.removeItem(`sekigae_hist_${cid}_${id}`);
+    localStorage.removeItem(rlKeyFor(cid, id));
+  });
+  if(app.currentRoomId===id)app.currentRoomId=Object.keys(app.rooms)[0];
+  save();refreshHeader();syncLayoutInputs();renderGrid();renderManageLists();refreshCopyRoomSelect();refreshResumeBanner();showToast('削除しました');
+}
+function renderManageLists(){
+  ['class','room'].forEach(type=>{
+    const el=document.getElementById(type==='class'?'classManageList':'roomManageList');
+    el.innerHTML='';
+    const items=type==='class'?Object.values(app.classes):Object.values(app.rooms);
+    items.forEach(item=>{
+      const d=document.createElement('div');d.className='nli';
+      let sub;
+      if(type==='class'){
+        sub=`${item.students.length}名`;
+      } else {
+        // 現在クラスのレイアウトを参照
+        const lay=app.layouts?.[`${app.currentClassId}_${item.id}`];
+        sub=lay?`${lay.cols}×${lay.rows}`:'';
+      }
+      d.innerHTML=`<span style="flex:1;font-weight:500">${item.name}</span><span style="font-size:11px;color:var(--tx3)">${sub}</span><button class="btn bsm btd" onclick="delete${type==='class'?'Class':'Room'}('${item.id}')">削除</button>`;
+      el.appendChild(d);
+    });
+  });
+}
+
+// ============================================================
+// ROSTER
+// ============================================================
+
+// ============================================================
+// XLSX IMPORT
+// ============================================================
+function importFromXlsx(input){
+  const file = input.files[0];
+  if(!file){ return; }
+
+  if(typeof XLSX === 'undefined'){
+    showToast('ライブラリの読み込みに失敗しました。ネットワークを確認してください。');
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 最初のシートを使用
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // 2次元配列に変換（header:1 で配列形式）
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      if(rows.length < 2){
+        showToast('データが見つかりません（ヘッダー行と生徒データが入力されているか確認してください）');
+        input.value = ''; return;
+      }
+
+      // ヘッダー行を検出：複数のキーワードが同一行にある行を探す
+      // （ヒント行に「氏名」が含まれる場合の誤認識を防ぐ）
+      let headerRowIdx = -1;
+      for(let ri = 0; ri < Math.min(rows.length, 5); ri++){
+        const cells = rows[ri].map(h => String(h).trim());
+        const score = cells.filter(c =>
+          /^(出席番号|氏名|ふりがな|性別|no|name|yomi|kana|gender)$/i.test(c)
+        ).length;
+        if(score >= 2){ headerRowIdx = ri; break; }
+      }
+      // 見つからなければデフォルト（2行目 = index 1）
+      if(headerRowIdx < 0) headerRowIdx = 1;
+      const header = rows[headerRowIdx].map(h => String(h).trim());
+      // 列名の候補パターン
+      const colIdx = { num: -1, name: -1, yomi: -1, gender: -1 };
+
+      header.forEach((h, i) => {
+        const lh = h.toLowerCase();
+        if(colIdx.num  < 0 && /番号|no|number|出席/.test(lh))  colIdx.num  = i;
+        if(colIdx.name < 0 && /氏名|名前|name|なまえ/.test(lh)) colIdx.name = i;
+        if(colIdx.yomi < 0 && /ふりがな|読み|yomi|kana|ひらがな|よみ/.test(lh)) colIdx.yomi = i;
+        if(colIdx.gender < 0 && /性別|gender|せいべつ/.test(lh)) colIdx.gender = i;
+      });
+
+      // ヘッダーで特定できない場合は列順（出席番号・氏名・ふりがな・性別）で固定
+      if(colIdx.num  < 0) colIdx.num  = 0;
+      if(colIdx.name < 0) colIdx.name = 1;
+      if(colIdx.yomi < 0) colIdx.yomi = 2;
+      if(colIdx.gender < 0) colIdx.gender = 3;
+
+      const students = [];
+      let autoNum = 1;
+
+      // ヘッダー行の次の行からデータ読み込み
+      for(let r = headerRowIdx + 1; r < rows.length; r++){
+        const row = rows[r];
+        const rawName = String(row[colIdx.name] ?? '').trim();
+        if(!rawName) continue; // 氏名が空の行はスキップ
+
+        const rawNum    = String(row[colIdx.num]    ?? '').trim();
+        const rawYomi   = String(row[colIdx.yomi]   ?? '').trim();
+        const rawGender = String(row[colIdx.gender] ?? '').trim();
+
+        const number = rawNum && /^\d+$/.test(rawNum) ? parseInt(rawNum) : autoNum;
+
+        let gender = 'other';
+        const g = rawGender.toLowerCase();
+        if(['男','男子','m','male','♂'].includes(g)) gender = 'male';
+        else if(['女','女子','f','female','♀'].includes(g)) gender = 'female';
+
+        students.push({ id: mkId(), name: rawName, yomi: rawYomi, gender, number });
+        autoNum = number + 1;
+      }
+
+      if(!students.length){
+        showToast('生徒データが見つかりませんでした');
+        input.value = ''; return;
+      }
+
+      // 出席番号順にソート
+      students.sort((a, b) => a.number - b.number);
+      curClass().students = students;
+      save();
+      renderStudentList();
+      renderGrid();
+      updateAssignInfo();
+      refreshCondStudentSelects();
+      refreshPinStudentSelect();
+      input.value = '';
+      showToast(`${students.length}名を読み込みました（${file.name}）`);
+
+    }catch(err){
+      showToast('読み込みに失敗しました: ' + err.message);
+      input.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importRoster(){
+  const text=document.getElementById('rosterInput').value.trim();
+  if(!text){showToast('名簿を入力してください');return;}
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  const students=[];let autoNum=1;
+
+  lines.forEach(line=>{
+    const parts=line.split(/\t|　| {2,}/).map(p=>p.trim()).filter(p=>p);
+    if(!parts.length)return;
+
+    // 列を自動判定: 先頭が数字なら出席番号
+    let idx=0;
+    let number=autoNum;
+    if(parts[idx]&&/^\d+$/.test(parts[idx])){
+      number=parseInt(parts[idx]);idx++;
+    }
+    const name=parts[idx]||'';idx++;
+    if(!name)return;
+
+    // 残りの列でふりがなと性別を判定
+    let yomi='',gender='other';
+    while(idx<parts.length){
+      const p=parts[idx];idx++;
+      const g=p.toLowerCase();
+      if(['男','男子','m','male','♂'].includes(g)){gender='male';}
+      else if(['女','女子','f','female','♀'].includes(g)){gender='female';}
+      else if(!yomi&&/^[ぁ-んァ-ヶーa-zA-Z\s]+$/.test(p)){yomi=p;}
+    }
+    students.push({id:mkId(),name,yomi,gender,number});
+    autoNum=number+1;
+  });
+
+  if(!students.length){showToast('読み込めるデータがありません');return;}
+  // 出席番号順にソート
+  students.sort((a,b)=>a.number-b.number);
+  curClass().students=students;
+  save();renderStudentList();renderGrid();updateAssignInfo();
+  refreshCondStudentSelects();refreshPinStudentSelect();
+  showToast(`${students.length}名を読み込みました`);
+}
+
+function renderStudentList(){
+  const students=curClass()?.students||[];
+  const m=students.filter(s=>s.gender==='male').length;
+  const f=students.filter(s=>s.gender==='female').length;
+  document.getElementById('studentCountBadge').textContent=students.length?`（${students.length}名 男${m} 女${f}）`:'';
+  const area=document.getElementById('studentListArea');
+  if(!students.length){area.innerHTML=`<div class="empty-state"><div class="es-icon">👥</div><div class="es-txt">名簿を読み込んでください</div></div>`;return;}
+  let html=`<ul class="slist">`;
+  students.forEach(s=>{
+    const badge=s.gender==='male'?`<span class="bm">男</span>`:s.gender==='female'?`<span class="bf">女</span>`:`<span class="tag">他</span>`;
+    html+=`<li class="sitem" onclick="openEditStudent('${s.id}')"><span class="snum">${s.number}</span><span class="sname">${s.name}</span>${s.yomi?`<span class="syomi">${s.yomi}</span>`:''} ${badge}</li>`;
+  });
+  html+=`</ul>`;
+  area.innerHTML=html;
+}
+
+function openEditStudent(id){
+  const s=curClass().students.find(x=>x.id===id);if(!s)return;
+  document.getElementById('esId').value=s.id;
+  document.getElementById('esName').value=s.name;
+  document.getElementById('esYomi').value=s.yomi||'';
+  document.getElementById('esNum').value=s.number;
+  document.getElementById('esGender').value=s.gender||'other';
+  openModal('editStudent');
+}
+function saveEditStudent(){
+  const id=document.getElementById('esId').value;
+  const s=curClass().students.find(x=>x.id===id);if(!s)return;
+  s.name=document.getElementById('esName').value.trim()||s.name;
+  s.yomi=document.getElementById('esYomi').value.trim();
+  s.number=parseInt(document.getElementById('esNum').value)||s.number;
+  s.gender=document.getElementById('esGender').value;
+  save();renderStudentList();renderGrid();refreshCondStudentSelects();refreshPinStudentSelect();closeModal('editStudent');showToast('保存しました');
+}
+function deleteStudent(){
+  const id=document.getElementById('esId').value;
+  // confirm省略（iPad対応）
+  curClass().students=curClass().students.filter(x=>x.id!==id);
+  curClass().students.forEach((s,i)=>s.number=i+1);
+  const a=curAsgn();Object.keys(a).forEach(k=>{if(a[k]===id)delete a[k];});
+  save();renderStudentList();renderGrid();refreshCondStudentSelects();refreshPinStudentSelect();closeModal('editStudent');showToast('削除しました');
+}
+
+// ============================================================
+// LAYOUT
+// ============================================================
+let layoutEditMode=false;
+
+function syncLayoutInputs(){
+  const r=curRoom();if(!r)return;
+  document.getElementById('colsInput').value=r.cols;
+  document.getElementById('rowsInput').value=r.rows;
+}
+function applyLayout(){
+  const r=curRoom();
+  r.cols=parseInt(document.getElementById('colsInput').value)||6;
+  r.rows=parseInt(document.getElementById('rowsInput').value)||6;
+  r.seats=buildSeats(r.cols,r.rows);
+  app.assignments[akey()]={};
+  // 座席IDが変わるので中断中のルーレットセッションは無効・破棄
+  clearRlSession();
+  refreshResumeBanner();
+  save();renderGrid();showToast('レイアウトを更新しました');
+}
+function toggleLayoutEdit(){
+  layoutEditMode=!layoutEditMode;
+  const btn=document.getElementById('layoutEditBtn');
+  const hint=document.getElementById('layoutEditHint');
+  if(layoutEditMode){
+    btn.textContent='🖊 座席編集モードOFF';btn.className='btn btp btn-full';hint.style.display='block';
+  } else {
+    btn.textContent='🖊 座席編集モードON';btn.className='btn bts btn-full';hint.style.display='none';
+    save();
+  }
+  renderGrid();
+}
+
+// ============================================================
+// GROUP COLOR
+// ============================================================
+let groupSelected=new Set();
+
+function toggleGroupSeat(seatId){
+  if(groupSelected.has(seatId))groupSelected.delete(seatId);
+  else groupSelected.add(seatId);
+  updateGroupSelectionUI();
+  renderGrid();
+}
+function updateGroupSelectionUI(){
+  document.getElementById('selectedSeatsInfo').textContent=`${groupSelected.size}席選択中`;
+}
+function clearGroupSelection(){groupSelected.clear();updateGroupSelectionUI();renderGrid();}
+
+function applyGroupColor(){
+  if(!groupSelected.size){showToast('座席を選択してください');return;}
+  const color=getSelectedColor('bgColorPalette');
+  if(color===undefined){showToast('色を選択してください');return;}
+  const r=curRoom();
+  groupSelected.forEach(sid=>{
+    const seat=r.seats.find(s=>s.id===sid);
+    if(!seat)return;
+    seat.borderColor=color;
+    seat.bgColor=color;
+  });
+  save();renderGrid();renderGroupList();clearGroupSelection();showToast('グループ色を設定しました');
+}
+function clearGroupColor(){
+  if(!groupSelected.size){showToast('座席を選択してください');return;}
+  const r=curRoom();
+  groupSelected.forEach(sid=>{
+    const seat=r.seats.find(s=>s.id===sid);
+    if(!seat)return;
+    seat.borderColor=null;seat.bgColor=null;
+  });
+  save();renderGrid();renderGroupList();clearGroupSelection();showToast('色をクリアしました');
+}
+
+function renderGroupList(){
+  const r=curRoom();
+  // 班色は「使わない席」も含めて集計（意図的に同じ色を付けたい場合があるため）
+  const colored=r.seats.filter(s=>s.enabled&&(s.borderColor||s.bgColor));
+  // group by bgColor + borderColor の組み合わせ
+  const groups={};
+  colored.forEach(s=>{
+    const key=(s.bgColor||'')+'|'+(s.borderColor||'');
+    if(!groups[key])groups[key]={borderColor:s.borderColor,bgColor:s.bgColor,count:0};
+    groups[key].count++;
+  });
+  const el=document.getElementById('groupListArea');
+  if(!Object.keys(groups).length){el.innerHTML=`<div class="empty-state"><div class="es-txt">色を設定すると表示されます</div></div>`;return;}
+  let html=`<div class="glist">`;
+  Object.entries(groups).forEach(([key,g],i)=>{
+    const dc=g.bgColor||g.borderColor||'var(--bd2)';
+    html+=`<div class="gitem" style="border-color:${dc}">
+      <div class="gdot" style="background:${dc};border-color:${dc}"></div>
+      <span class="gname">グループ${i+1}</span>
+      <span class="gcnt">${g.count}席</span>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+// ============================================================
+// GRID RENDER
+// ============================================================
+function calcSeatSize(){
+  // 使用可能エリアから最適な座席サイズを計算
+  const wrapper=document.getElementById('normalView');
+  if(!wrapper)return{w:88,h:64,gap:0};
+  const room=curRoom();if(!room)return{w:88,h:64,gap:0};
+  const availW=wrapper.clientWidth-40;
+  const availH=wrapper.clientHeight-100; // 教卓・余白分
+  const gap=0;
+  const wrapPad=8; // seat-wrap padding 4px*2
+  const maxW=Math.floor((availW - room.cols*wrapPad)/room.cols);
+  const maxH=Math.floor((availH - room.rows*wrapPad)/room.rows);
+  const w=Math.max(70,Math.min(130,maxW));
+  const h=Math.max(52,Math.min(90,maxH));
+  return{w,h,gap};
+}
+
+// 名前の文字数・座席サイズに応じた最適フォントサイズを返す
+function calcNameFontSize(name, seatW, seatH, hasNum, hasYomi){
+  // 出席番号は絶対配置なので高さを消費しない（左上に重ねる）
+  // ふりがなは名前の上に1行追加（約12px）
+  const yomiH  = hasYomi ? 12 : 0;
+  const padV   = 8;
+  const availH = seatH - yomiH - padV - 4;
+  const availW = seatW - 12;
+  const len    = Math.max(1, name.length);
+  const maxByW = Math.floor(availW / len);
+  const maxByH = Math.floor(availH / 1.1);
+  return Math.max(9, Math.min(48, maxByW, maxByH));
+}
+
+function renderGrid(){
+  const room=curRoom();const cls=curClass();const asgn=curAsgn();
+  const showYomi=document.getElementById('showYomi')?.checked;
+  const showNum=document.getElementById('showNumber')?.checked;
+  const showColor=document.getElementById('showGender')?.checked??true;
+  const showGroup=document.getElementById('showGroupColor')?.checked??true;
+  if(!room)return;
+  const {w,h,gap}=calcSeatSize();
+  document.documentElement.style.setProperty('--seat-w',w+'px');
+  document.documentElement.style.setProperty('--seat-h',h+'px');
+  document.documentElement.style.setProperty('--seat-gap',gap+'px');
+  const nameSize=Math.max(10,Math.min(14,Math.floor(w/7)))+'px';
+  document.documentElement.style.setProperty('--seat-name-size',nameSize);
+  const grid=document.getElementById('seatGrid');
+  const wrapW=w+8; // seat-wrap padding 4px * 2
+  grid.style.gridTemplateColumns=`repeat(${room.cols},${wrapW}px)`;
+  grid.innerHTML='';
+  room.seats.forEach(seat=>{
+    // ラッパーdivで座席を囲む（班色の背景用）
+    const wrap=document.createElement('div');
+    wrap.className='seat-wrap';
+    const hasGroup=showGroup&&!!(seat.bgColor||seat.borderColor);
+    if(hasGroup){
+      wrap.classList.add('has-group');
+      wrap.style.background=seat.bgColor||seat.borderColor;
+    }
+    const div=document.createElement('div');
+    div.className='seat';
+    if(!seat.enabled){
+      div.classList.add('disabled');
+      wrap.appendChild(div);grid.appendChild(wrap);return;
+    }
+    // 使わない席（座席は表示するが生徒は座らない）— 編集モード以外では視覚的に表示
+    if(seat.skipAssign && !layoutEditMode){
+      div.classList.add('skip-assign');
+      div.innerHTML = `<div class="skip-lbl">使わない</div>`;
+      // 班色タブでは「使わない席」もクリックで選択・色付けできるようにする
+      const isGroupTabForSkip = document.getElementById('tab-group')?.classList.contains('active');
+      if(isGroupTabForSkip){
+        if(groupSelected.has(seat.id)) div.classList.add('layout-selected');
+        div.style.cursor = 'pointer';
+        div.onclick = () => toggleGroupSeat(seat.id);
+      }
+      wrap.appendChild(div);grid.appendChild(wrap);return;
+    }
+
+    // ピン座席選択モード：他のモードより最優先
+    if(pinSeatSelectMode){
+      div.onclick=()=>{
+        addPinSeatDirect(seat.id, seat.row, seat.col);
+      };
+      div.classList.add('pin-select-mode');
+      // 男女指定の色を反映
+      if(seat.allowedGender==='male') div.classList.add('male');
+      else if(seat.allowedGender==='female') div.classList.add('female');
+      // 座席の中身を表示（位置情報＋配置済み生徒名＋既存ピン表示）
+      const pinStudentId = asgn[seat.id];
+      const pinStudent = pinStudentId && cls?.students?.find(s=>s.id===pinStudentId);
+      const existingPin = getPins().find(p=>p.type==='seat'&&p.seatId===seat.id);
+      let pinInner = `<div style="font-size:10px;color:var(--tx3);line-height:1.2;pointer-events:none;">${seat.row+1}行${seat.col+1}列</div>`;
+      if(existingPin){
+        const pinnedS = cls?.students?.find(s=>s.id===existingPin.studentId);
+        pinInner += `<div style="font-size:10px;font-weight:700;color:#d97706;pointer-events:none;">${pinnedS?.name||'?'}（固定中）</div>`;
+      } else if(pinStudent){
+        const pinFs = calcNameFontSize(pinStudent.name,w,h,false,false);
+        pinInner += `<div style="font-size:${Math.min(pinFs,13)}px;font-weight:600;color:var(--tx2);pointer-events:none;">${pinStudent.name}</div>`;
+      } else {
+        pinInner += `<div style="font-size:10px;color:var(--tx3);pointer-events:none;">空席</div>`;
+      }
+      div.innerHTML = pinInner;
+      if(existingPin) div.classList.add('pin-selected');
+      wrap.appendChild(div);grid.appendChild(wrap);return;
+    }
+
+    // layout edit mode — 3状態サイクル：通常 → 使わない席 → 無効 → 通常
+    if(layoutEditMode){
+      if(seat.skipAssign){
+        div.classList.add('skip-assign');
+        div.innerHTML=`<div class="skip-lbl">使わない</div><div style="font-size:9px;color:#6b7280;margin-top:2px;">→ 無効へ</div>`;
+        div.onclick=()=>{seat.skipAssign=false; seat.enabled=false; renderGrid();};
+      } else {
+        div.innerHTML=`<div style="font-size:11px;color:var(--tx3);">クリックで</div><div style="font-size:10px;color:var(--tx3);">使わない席に</div>`;
+        div.onclick=()=>{seat.skipAssign=true; renderGrid();};
+      }
+      wrap.appendChild(div);grid.appendChild(wrap);return;
+    }
+
+    // gender edit mode
+    if(genderEditMode){
+      const gMap={any:{bg:'var(--surface)',bc:'var(--bd2)',lbl:'どちらでも'},male:{bg:'var(--mb)',bc:'var(--mbb)',lbl:'男子'},female:{bg:'var(--fb)',bc:'var(--fbb)',lbl:'女子'}};
+      const g=gMap[seat.allowedGender]||gMap.any;
+      div.style.background=g.bg; div.style.borderColor=g.bc;
+      div.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--tx2);">${g.lbl}</div>`;
+      div.onclick=()=>{cycleAllowedGender(seat);renderGrid();};
+      wrap.appendChild(div);grid.appendChild(wrap);return;
+    }
+
+    // group color mode
+    const isInGroupMode=document.getElementById('tab-group').classList.contains('active');
+
+    // グループ色はラッパーdivのbackgroundで表示済み
+
+    const studentId=asgn[seat.id];
+    const student=studentId&&cls?.students?.find(s=>s.id===studentId);
+
+    if(student){
+      // 男女色表示の判定
+      const gEditType = document.getElementById('genderEditType')?.value;
+      const isLayoutTab = document.getElementById('tab-layout')?.classList.contains('active');
+      const isGMode = isLayoutTab && (genderEditMode || gEditType==='col' || gEditType==='alternate');
+      // genderEditMode（クリック設定中）は常に色表示、それ以外はshowColorに従う
+      const shouldShowGenderColor = genderEditMode || (isGMode ? showColor : showColor);
+      if(shouldShowGenderColor){
+        if(isGMode){
+          if(seat.allowedGender==='male')div.classList.add('male');
+          else if(seat.allowedGender==='female')div.classList.add('female');
+        } else if(isInGroupMode && showColor){
+          // 班色タブでもallowedGenderで色分け
+          if(seat.allowedGender==='male') div.classList.add('male');
+          else if(seat.allowedGender==='female') div.classList.add('female');
+          else {
+            if(student.gender==='male')div.classList.add('male');
+            if(student.gender==='female')div.classList.add('female');
+          }
+        } else {
+          if(student.gender==='male')div.classList.add('male');
+          if(student.gender==='female')div.classList.add('female');
+        }
+      }
+      const fs=calcNameFontSize(student.name,w,h,false,showYomi&&!!student.yomi);
+      let inner='';
+      // 出席番号は左上に絶対配置
+      if(showNum)inner+=`<div class="seat-num">${student.number}</div>`;
+      // 固定済みでも通常表示では目印を出さない（生徒に知られないため）
+      // ふりがな+名前を中央に縦並び
+      inner+=`<div class="seat-inner">`;
+      if(showYomi&&student.yomi){
+        const yomiFontSize=Math.max(8,Math.min(11,Math.floor(w/(student.yomi.length*1.1))))+'px';
+        inner+=`<div class="seat-yomi" style="font-size:${yomiFontSize};">${student.yomi}</div>`;
+      }
+      inner+=`<div class="seat-name" style="font-size:${fs}px;">${student.name}</div>`;
+      inner+=`</div>`;
+      div.innerHTML=inner;
+      div.title=`${student.number}. ${student.name}`;
+    } else {
+      // 条件タブがアクティブなら、ピン固定済み座席に生徒名を表示
+      const isCondTab = document.getElementById('tab-cond')?.classList.contains('active');
+      const emptyPin = isCondTab && getPins().find(p=>p.type==='seat'&&p.seatId===seat.id);
+      if(emptyPin){
+        const pinnedStudent = cls?.students?.find(s=>s.id===emptyPin.studentId);
+        if(seat.allowedGender==='male') div.classList.add('male');
+        else if(seat.allowedGender==='female') div.classList.add('female');
+        else { div.style.background='#fffbeb'; div.style.borderColor='#f59e0b'; }
+        const pfs = pinnedStudent ? calcNameFontSize(pinnedStudent.name,w,h,false,false) : 10;
+        div.innerHTML=`<div style="font-size:10px;color:var(--tx3);line-height:1.2;">${seat.row+1}行${seat.col+1}列</div><div style="font-size:${Math.min(pfs,13)}px;font-weight:700;color:#92400e;text-align:center;">${pinnedStudent?.name||'?'}</div>`;
+      } else {
+        // 男女設定モード中（配置タブ）または班色タブ：allowedGender の色を空席にも反映
+        const gEditType2 = document.getElementById('genderEditType')?.value;
+        const isLayoutTab2 = document.getElementById('tab-layout')?.classList.contains('active');
+        const isGenderMode = isLayoutTab2 && (genderEditMode || gEditType2==='col' || gEditType2==='alternate');
+        const shouldShowEmpty = genderEditMode || (isGenderMode && showColor) || (isInGroupMode && showColor);
+        if(shouldShowEmpty && seat.allowedGender !== 'any'){
+          if(seat.allowedGender==='male'){div.classList.add('male');}
+          else if(seat.allowedGender==='female'){div.classList.add('female');}
+          div.innerHTML=`<div class="seat-empty-lbl" style="font-size:10px;">${seat.allowedGender==='male'?'男子':'女子'}</div>`;
+        } else {
+          div.classList.add('empty');
+          div.innerHTML=`<div class="seat-empty-lbl">空席</div>`;
+        }
+      }
+    }
+
+    // group select highlight
+    if(groupSelected.has(seat.id))div.classList.add('layout-selected');
+
+    // swap mode ハイライト
+    if(swapMode && seat.id === swapFirstSeatId) div.classList.add('swap-selected');
+
+    div.onclick=()=>{
+      if(swapMode){ handleSwapClick(seat.id); return; }
+      if(isInGroupMode){toggleGroupSeat(seat.id);return;}
+      if(student)openEditStudent(student.id);
+    };
+    wrap.appendChild(div);grid.appendChild(wrap);
+  });
+
+  // layout edit: click disabled seats to re-enable（無効 → 通常に戻す）
+  if(layoutEditMode){
+    room.seats.forEach((seat,i)=>{
+      if(!seat.enabled){
+        const wrapEl=grid.children[i];
+        const seatEl=wrapEl.querySelector('.seat')||wrapEl;
+        seatEl.innerHTML=`<div style="font-size:10px;color:#aaa;">クリックで</div><div style="font-size:10px;color:#aaa;">通常の席に戻す</div>`;
+        seatEl.style.cursor='pointer';
+        seatEl.onclick=()=>{seat.enabled=true; seat.skipAssign=false; renderGrid();};
+      }
+    });
+  }
+
+  const enabled=room.seats.filter(s=>s.enabled&&!s.skipAssign).length;
+  updateAssignInfo();
+}
+
+function calcGenderStats(){
+  const cls=curClass();
+  const room=curRoom();
+  if(!cls||!room) return null;
+  const students=cls.students||[];
+  const maleStudents=students.filter(s=>s.gender==='male').length;
+  const femaleStudents=students.filter(s=>s.gender==='female').length;
+  const enabledSeats=room.seats.filter(s=>s.enabled&&!s.skipAssign);
+  const maleSeats=enabledSeats.filter(s=>s.allowedGender==='male').length;
+  const femaleSeats=enabledSeats.filter(s=>s.allowedGender==='female').length;
+  const anySeats=enabledSeats.filter(s=>s.allowedGender==='any'||!s.allowedGender).length;
+  const hasGenderSetting = maleSeats>0 || femaleSeats>0;
+  return{maleStudents,femaleStudents,maleSeats,femaleSeats,anySeats,hasGenderSetting};
+}
+
+function checkGenderMatch(){
+  // 男女席指定がある場合に人数が合っているか確認
+  // 戻り値: null（問題なし）or エラーメッセージ
+  const st=calcGenderStats();
+  if(!st||!st.hasGenderSetting) return null;
+  const errors=[];
+  if(st.maleSeats>0 && st.maleSeats!==st.maleStudents){
+    errors.push(`男子：生徒${st.maleStudents}名に対し男子席${st.maleSeats}席`);
+  }
+  if(st.femaleSeats>0 && st.femaleSeats!==st.femaleStudents){
+    errors.push(`女子：生徒${st.femaleStudents}名に対し女子席${st.femaleSeats}席`);
+  }
+  return errors.length ? errors.join('　') : null;
+}
+
+function updateAssignInfo(){
+  const cls=curClass();const asgn=curAsgn();
+  const assigned=Object.keys(asgn).filter(k=>asgn[k]).length;
+  const total=cls?.students?.length||0;
+  document.getElementById('assignInfo').textContent=total?`${assigned}/${total}名配置済み`:'名簿を読み込んでください';
+
+  // gridInfo に男女人数チェックを表示
+  const el=document.getElementById('gridInfo');
+  if(!el) return;
+  const room=curRoom();
+  if(!room) return;
+  const enabled=room.seats.filter(s=>s.enabled&&!s.skipAssign).length;
+  const cols=room.cols, rows=room.rows;
+  let html=`<span>${cols}列×${rows}行 ／ 有効席 ${enabled} ／ 生徒数 ${total}</span>`;
+
+  const st=calcGenderStats();
+  if(st&&st.hasGenderSetting){
+    const mOk = st.maleSeats===0 || st.maleSeats===st.maleStudents;
+    const fOk = st.femaleSeats===0 || st.femaleSeats===st.femaleStudents;
+    const mCls = mOk?'gender-ok':'gender-warn';
+    const fCls = fOk?'gender-ok':'gender-warn';
+    html+=`<span class="${mCls}">男子 ${st.maleStudents}名／男子席 ${st.maleSeats}</span>`;
+    html+=`<span class="${fCls}">女子 ${st.femaleStudents}名／女子席 ${st.femaleSeats}</span>`;
+    if(st.anySeats>0){
+      html+=`<span>どちらでも ${st.anySeats}席</span>`;
+    }
+    if(!mOk||!fOk){
+      html+=`<span class="gender-warn">⚠ 人数と席数が一致しません</span>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+// ============================================================
+// PHASE 4: CONDITIONS & CONSTRAINED SHUFFLE
+// ============================================================
+
+// --- Data helpers ---
+function getConditions(){
+  const k=akey()+'_cond';
+  try{return JSON.parse(localStorage.getItem(k)||'[]');}catch{return [];}
+}
+function saveConditionsData(arr){
+  localStorage.setItem(akey()+'_cond', JSON.stringify(arr));
+}
+function getGenderMode(){
+  // 配置タブの席設定から自動判定：男女指定席があれば manual、なければ free
+  const room = curRoom();
+  if(room){
+    const hasGenderSeat = room.seats.some(s=>s.enabled&&!s.skipAssign&&(s.allowedGender==='male'||s.allowedGender==='female'));
+    if(hasGenderSeat) return 'manual';
+  }
+  return 'free';
+}
+function getZoneSplit(){return localStorage.getItem(akey()+'_zsplit')||'row';}
+
+function saveConditions(){}
+
+// --- Condition UI ---
+function refreshCondStudentSelects(){
+  const students=curClass()?.students||[];
+  ['condStudentA','condStudentB'].forEach(selId=>{
+    const sel=document.getElementById(selId);
+    if(!sel)return;
+    const val=sel.value;
+    sel.innerHTML='<option value="">-- 選択 --</option>';
+    students.forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.id; o.textContent=`${s.number}. ${s.name}`;
+      sel.appendChild(o);
+    });
+    sel.value=val;
+  });
+  renderCondList();
+}
+
+
+// ============================================================
+// CONDITION CONFLICT DETECTION
+// ============================================================
+function detectConditionConflicts(conds){
+  if(!conds||conds.length<2) return [];
+  const students = curClass()?.students||[];
+  const room = curRoom();
+  const conflicts = [];
+
+  const nearConds = conds.filter(c=>c.type==='near');
+  const farConds  = conds.filter(c=>c.type==='far');
+
+  // ── パターン1: 同一ペアへの矛盾条件（near <= d1 かつ far >= d2 で d2 > d1）
+  conds.forEach(c1=>{
+    conds.forEach(c2=>{
+      if(c1.id===c2.id) return;
+      const sameAB=(c1.aId===c2.aId&&c1.bId===c2.bId)||(c1.aId===c2.bId&&c1.bId===c2.aId);
+      if(sameAB&&c1.type==='near'&&c2.type==='far'&&c2.dist>c1.dist){
+        const sA=students.find(s=>s.id===c1.aId)?.name||'?';
+        const sB=students.find(s=>s.id===c1.bId)?.name||'?';
+        const msg=`「${sA}」と「${sB}」に矛盾する条件（${c1.dist}席以内に近づける ＆ ${c2.dist}席以上離す）`;
+        if(!conflicts.includes(msg)) conflicts.push(msg);
+      }
+    });
+  });
+
+  // ── パターン2: near連鎖でfarが不可能になる
+  //   near(A,B,d1)+near(B,C,d2) → dist(A,C)<=d1+d2 なのに far(A,C,d3) で d3>d1+d2
+  const INF=9999;
+  const ids=[...new Set(conds.flatMap(c=>[c.aId,c.bId]))];
+  const upper={};
+  ids.forEach(a=>{upper[a]={};ids.forEach(b=>{upper[a][b]=a===b?0:INF;});});
+  nearConds.forEach(c=>{
+    upper[c.aId][c.bId]=Math.min(upper[c.aId][c.bId],c.dist);
+    upper[c.bId][c.aId]=Math.min(upper[c.bId][c.aId],c.dist);
+  });
+  ids.forEach(k=>ids.forEach(a=>ids.forEach(b=>{
+    const via=(upper[a][k]??INF)+(upper[k][b]??INF);
+    if(via<(upper[a][b]??INF)){upper[a][b]=via;upper[b][a]=via;}
+  })));
+  farConds.forEach(fc=>{
+    const ub=upper[fc.aId]?.[fc.bId]??INF;
+    if(ub<fc.dist&&ub<INF){
+      const sA=students.find(s=>s.id===fc.aId)?.name||'?';
+      const sB=students.find(s=>s.id===fc.bId)?.name||'?';
+      conflicts.push(`「${sA}」と「${sB}」を${fc.dist}席以上離したいが、near条件の連鎖で最大${ub}席しか離せません`);
+    }
+  });
+
+  // ── パターン3: 実際のグリッドで全条件を同時に満たす座席の組み合わせが存在するか確認
+  if(room&&conds.length>=2){
+    const enabledSeats=room.seats.filter(s=>s.enabled&&!s.skipAssign);
+    const condIds=[...new Set(conds.flatMap(c=>[c.aId,c.bId]))];
+    const n=enabledSeats.length;
+    // 条件関係者が2〜4名かつ座席数が現実的な範囲でのみチェック
+    if(condIds.length>=2&&condIds.length<=4&&n>=condIds.length&&n<=49){
+      // condIdの各組み合わせ（n^len通り）を試す
+      const len=condIds.length;
+      let possible=false;
+      const check=(idxArr)=>{
+        if(idxArr.length===len){
+          // 重複チェック
+          if(new Set(idxArr).size<len) return;
+          const assign={};
+          condIds.forEach((id,i)=>{assign[id]=enabledSeats[idxArr[i]];});
+          for(const c of conds){
+            const sa=assign[c.aId];const sb=assign[c.bId];
+            if(!sa||!sb) continue;
+            const d=Math.abs(sa.row-sb.row)+Math.abs(sa.col-sb.col);
+            if(c.type==='near'&&d>c.dist) return;
+            if(c.type==='far'&&d<c.dist) return;
+          }
+          possible=true;
+          return;
+        }
+        for(let i=0;i<n&&!possible;i++) check([...idxArr,i]);
+      };
+      check([]);
+      if(!possible){
+        const names=condIds.map(id=>students.find(s=>s.id===id)?.name||'?');
+        conflicts.push(`「${names.join('」「')}」への条件を同時に満たす座席の組み合わせが現在の教室レイアウトに存在しません（不可能な条件の組み合わせです）`);
+      }
+    }
+  }
+
+  return [...new Set(conflicts)];
+}
+
+function addCondition(){
+  const aId=document.getElementById('condStudentA').value;
+  const bId=document.getElementById('condStudentB').value;
+  const type=document.getElementById('condType').value;
+  const dist=parseInt(document.getElementById('condDist').value)||2;
+  if(!aId||!bId){showToast('2名を選択してください');return;}
+  if(aId===bId){showToast('同じ生徒を選択しています');return;}
+  const conds=getConditions();
+  // duplicate check
+  if(conds.some(c=>(c.aId===aId&&c.bId===bId)||(c.aId===bId&&c.bId===aId))){
+    showToast('この2名の条件はすでに設定されています');return;
+  }
+  const newConds = [...conds, {id:mkId(),aId,bId,type,dist}];
+  const conflicts = detectConditionConflicts(newConds);
+  if(conflicts.length){
+    // 矛盾があっても追加は許可するが警告を表示
+    saveConditionsData(newConds);
+    renderCondList();
+    showToast('⚠ 追加しましたが条件に矛盾の可能性があります');
+    renderCondConflictWarning(conflicts);
+    return;
+  }
+  saveConditionsData(newConds);
+  renderCondList();
+  showToast('条件を追加しました');
+  renderCondConflictWarning([]);
+}
+
+function deleteCondition(id){
+  const conds=getConditions().filter(c=>c.id!==id);
+  saveConditionsData(conds);
+  renderCondList();
+  showToast('条件を削除しました');
+}
+
+function renderCondList(){
+  const conds=getConditions();
+  const students=curClass()?.students||[];
+  const badge=document.getElementById('condCountBadge');
+  if(badge)badge.textContent=conds.length?`（${conds.length}件）`:'';
+  const el=document.getElementById('condListArea');
+  if(!el)return;
+  if(!conds.length){el.innerHTML='<div class="empty-state"><div class="es-txt">条件はまだありません</div></div>';renderCondConflictWarning([]);return;}
+  el.innerHTML=conds.map(c=>{
+    const a=students.find(s=>s.id===c.aId);
+    const b=students.find(s=>s.id===c.bId);
+    if(!a||!b)return '';
+    const icon=c.type==='near'?'🔵':'🔴';
+    const desc=c.type==='near'?`${c.dist}席以内に近づける`:`${c.dist}席以上遠ざける`;
+    return `<div class="cond-item">
+      <span class="cond-icon">${icon}</span>
+      <div class="cond-body">
+        <div class="cond-names">${a.name} ↔ ${b.name}</div>
+        <div class="cond-desc">${desc}</div>
+      </div>
+      <button class="cond-del" onclick="deleteCondition('${c.id}')" title="削除">×</button>
+    </div>`;
+  }).join('');
+  // 矛盾チェックを更新
+  renderCondConflictWarning(detectConditionConflicts(conds));
+}
+
+// --- Distance calculation ---
+function renderCondConflictWarning(conflicts){
+  const el = document.getElementById('condConflictArea');
+  if(!el) return;
+  if(!conflicts || !conflicts.length){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 10px;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px;">⚠ 条件の矛盾の可能性（${conflicts.length}件）</div>
+    ${conflicts.map(msg => `<div style="font-size:11px;color:#78350f;line-height:1.5;">・${msg}</div>`).join('')}
+  </div>`;
+}
+
+function seatPos(seatId){
+  const seat=curRoom().seats.find(s=>s.id===seatId);
+  return seat?{row:seat.row,col:seat.col}:null;
+}
+function manhattan(s1,s2){
+  return Math.abs(s1.row-s2.row)+Math.abs(s1.col-s2.col);
+}
+
+// --- Check if assignment satisfies all conditions ---
+function checkConstraints(assignment, conds, students, seats){
+  // Build seatId -> position map
+  const posMap={};
+  seats.forEach(s=>{ posMap[s.id]={row:s.row,col:s.col}; });
+  // Build studentId -> seatId map
+  const studentSeat={};
+  Object.entries(assignment).forEach(([seatId,studentId])=>{ studentSeat[studentId]=seatId; });
+
+  for(const c of conds){
+    const seatA=studentSeat[c.aId];
+    const seatB=studentSeat[c.bId];
+    if(!seatA||!seatB)continue;
+    const pA=posMap[seatA], pB=posMap[seatB];
+    if(!pA||!pB)continue;
+    const dist=Math.abs(pA.row-pB.row)+Math.abs(pA.col-pB.col);
+    if(c.type==='near'&&dist>c.dist)return false;
+    if(c.type==='far'&&dist<c.dist)return false;
+  }
+  return true;
+}
+
+// --- Gender zone assignment ---
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function buildGenderZoneSeats(seats, students, mode, zoneSplit){
+  const males=students.filter(s=>s.gender==='male');
+  const females=students.filter(s=>s.gender==='female');
+  const others=students.filter(s=>s.gender==='other');
+  const enabled=seats.filter(s=>s.enabled&&!s.skipAssign);
+  const totalSeats=enabled.length;
+
+  if(mode==='alternate'){
+    // 市松模様：(row+col)偶数=男子、奇数=女子
+    const evenSeats=enabled.filter(s=>(s.row+s.col)%2===0);
+    const oddSeats=enabled.filter(s=>(s.row+s.col)%2===1);
+    const assignment={};
+    const shuffledMales=shuffle(males);
+    const shuffledFemales=shuffle(females);
+    const shuffledOthers=shuffle(others);
+    // 余った席にothersを配置
+    let mi=0,fi=0,oi=0;
+    const allStudents=[...shuffledMales,...shuffledFemales,...shuffledOthers];
+    const mSeats=shuffle(evenSeats);const fSeats=shuffle(oddSeats);
+    shuffledMales.forEach((s,i)=>{ if(mSeats[i])assignment[mSeats[i].id]=s.id; });
+    shuffledFemales.forEach((s,i)=>{ if(fSeats[i])assignment[fSeats[i].id]=s.id; });
+    // othersは余り席
+    const usedSeats=new Set(Object.keys(assignment));
+    const remainSeats=shuffle(enabled.filter(s=>!usedSeats.has(s.id)));
+    shuffledOthers.forEach((s,i)=>{ if(remainSeats[i])assignment[remainSeats[i].id]=s.id; });
+    return assignment;
+  }
+
+  if(mode==='zone'){
+    const half=Math.ceil(totalSeats/2);
+    let maleSeats,femaleSeats;
+    if(zoneSplit==='row'){
+      // 行で分割：row小さい方(前)=男子
+      const sorted=[...enabled].sort((a,b)=>a.row-b.row||a.col-b.col);
+      maleSeats=shuffle(sorted.slice(0,half));
+      femaleSeats=shuffle(sorted.slice(half));
+    } else {
+      // 列で分割：col小さい方(左)=男子
+      const sorted=[...enabled].sort((a,b)=>a.col-b.col||a.row-b.row);
+      maleSeats=shuffle(sorted.slice(0,half));
+      femaleSeats=shuffle(sorted.slice(half));
+    }
+    const assignment={};
+    const sm=shuffle(males),sf=shuffle(females),so=shuffle(others);
+    sm.forEach((s,i)=>{ if(maleSeats[i])assignment[maleSeats[i].id]=s.id; });
+    sf.forEach((s,i)=>{ if(femaleSeats[i])assignment[femaleSeats[i].id]=s.id; });
+    // othersは余り
+    const used=new Set(Object.keys(assignment));
+    const rem=shuffle(enabled.filter(s=>!used.has(s.id)));
+    so.forEach((s,i)=>{ if(rem[i])assignment[rem[i].id]=s.id; });
+    return assignment;
+  }
+  // manual mode: 各席のallowedGenderに従って配置
+  if(mode==='manual'){
+    const maleSeats=shuffle(seats.filter(s=>s.enabled&&!s.skipAssign&&s.allowedGender==='male'));
+    const femaleSeats=shuffle(seats.filter(s=>s.enabled&&!s.skipAssign&&s.allowedGender==='female'));
+    const anySeats=shuffle(seats.filter(s=>s.enabled&&!s.skipAssign&&s.allowedGender==='any'));
+    const sm=shuffle([...students].filter(s=>s.gender==='male'));
+    const sf=shuffle([...students].filter(s=>s.gender==='female'));
+    const so=shuffle([...students].filter(s=>s.gender==='other'));
+    const res={};
+    sm.forEach((s,i)=>{ if(maleSeats[i])res[maleSeats[i].id]=s.id; });
+    sf.forEach((s,i)=>{ if(femaleSeats[i])res[femaleSeats[i].id]=s.id; });
+    // あふれた生徒はanySeatsに
+    const placed=new Set(Object.values(res));
+    const unplaced=shuffle(students.filter(s=>!placed.has(s.id)));
+    const usedSeats=new Set(Object.keys(res));
+    const remainSeats=shuffle(seats.filter(s=>s.enabled&&!s.skipAssign&&!usedSeats.has(s.id)));
+    unplaced.forEach((s,i)=>{ if(remainSeats[i])res[remainSeats[i].id]=s.id; });
+    return res;
+  }
+
+  return null; // free mode
+}
+
+// ============================================================
+// SHUFFLE INSTANT (constraint-aware)
+// ============================================================
+function shuffleInstant(){
+  const room=curRoom();const cls=curClass();
+  if(!cls?.students?.length){showToast('名簿が読み込まれていません');return;}
+  const enabled=room.seats.filter(s=>s.enabled&&!s.skipAssign);
+  if(cls.students.length>enabled.length){
+    showToast(`生徒数(${cls.students.length})が有効席数(${enabled.length})を超えています`);return;
+  }
+  const gErr=checkGenderMatch();
+  if(gErr){showToast(`⚠ 席替えできません：${gErr}`);return;}
+  const condConf=detectConditionConflicts(getConditions());
+  if(condConf.length){ showToast(`⚠ 条件に矛盾の可能性（${condConf.length}件）。条件タブを確認してください`); }
+  const conds=getConditions();
+  const mode=getGenderMode();
+  const zsplit=getZoneSplit();
+
+  let assignment=null;
+  let attempts=0;
+  const MAX=800;
+
+  if(mode!=='free'){
+    // 男女配置ルールを適用
+    assignment=buildGenderZoneSeats(room.seats,cls.students,mode,zsplit);
+    // 距離条件チェック（最大試行）
+    if(conds.length&&assignment){
+      let ok=checkConstraints(assignment,conds,cls.students,room.seats);
+      while(!ok&&attempts<MAX){
+        assignment=buildGenderZoneSeats(room.seats,cls.students,mode,zsplit);
+        ok=checkConstraints(assignment,conds,cls.students,room.seats);
+        attempts++;
+      }
+      if(!ok){
+        showToast('距離条件を完全には満たせませんでした（近似解で配置）');
+      }
+    }
+  } else {
+    // 自由モード：距離条件のみ
+    if(conds.length){
+      while(attempts<MAX){
+        const ss=shuffle(cls.students);
+        const se=shuffle([...enabled]);
+        const newA={};
+        ss.forEach((s,i)=>{newA[se[i].id]=s.id;});
+        if(checkConstraints(newA,conds,cls.students,room.seats)){
+          assignment=newA;break;
+        }
+        attempts++;
+      }
+      if(!assignment){
+        // 条件を満たす解なし → 最善の解を使う
+        const ss=shuffle(cls.students);
+        const se=shuffle([...enabled]);
+        assignment={};
+        ss.forEach((s,i)=>{assignment[se[i].id]=s.id;});
+        showToast('距離条件を完全には満たせませんでした（近似解で配置）');
+      }
+    } else {
+      const shuffledStudents=shuffle(cls.students);
+      const shuffledSeats=shuffle([...enabled]);
+      assignment={};
+      shuffledStudents.forEach((s,i)=>{assignment[shuffledSeats[i].id]=s.id;});
+    }
+  }
+
+  if(assignment){
+    // ピン固定を適用
+    assignment=applyPinsToAssignment(assignment,cls.students,room.seats);
+    app.assignments[akey()]=assignment;
+    saveHistory(assignment);
+    save();
+    // 瞬時に決定したので中断中のルーレットセッションは破棄
+    clearRlSession();
+    refreshResumeBanner();
+    renderGridAnimated();
+    const msg=attempts>0?`席替え完了（${attempts}回試行）`:'席替えが完了しました！';
+    showToast(msg);
+  }
+}
+
+function renderGridAnimated(){
+  renderGrid();
+  setTimeout(()=>{
+    document.querySelectorAll('#seatGrid .seat:not(.empty):not(.disabled)').forEach((el,i)=>{
+      el.style.animationDelay=`${i*18}ms`;
+      el.classList.add('animating');
+      el.addEventListener('animationend',()=>el.classList.remove('animating'),{once:true});
+    });
+  },10);
+}
+
+
+// ============================================================
+// ROULETTE COUNTDOWN INTRO (順番ルーレット専用)
+// ============================================================
+let _decideCallback = null; // 「決定！」ボタンのコールバック
+
+function triggerDecide(){
+  if(_decideCallback) _decideCallback();
+}
+
+function showSeqCountdown(students, onComplete){
+  const overlay  = document.getElementById('rlCountdown');
+  const titleEl  = document.getElementById('rlCountdownTitle');
+  const subEl    = document.getElementById('rlCountdownSub');
+  const numEl    = document.getElementById('rlCountdownNum');
+  const namesEl  = document.getElementById('rlCountdownNames');
+  const decideBtn= document.getElementById('rlDecideBtn');
+
+  overlay.style.display = 'flex';
+  numEl.textContent  = '';
+  namesEl.innerHTML  = '';
+  namesEl.style.display = 'flex';
+  decideBtn.style.display = 'none';
+
+  // フェーズ1: 「ルーレット順を決定します」を表示しボタンを出す
+  titleEl.textContent = 'ルーレット順を決定します';
+  subEl.textContent   = 'ボタンを押して順番を決めてください';
+
+  // 全員の名前をランダムに並べて表示
+  const allNames = students.map(s => s.name);
+  namesEl.innerHTML = shuffle([...allNames]).map(n =>
+    `<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:5px 12px;font-size:clamp(11px,2vw,14px);font-weight:700;color:#fff;">${n}</div>`
+  ).join('');
+
+  // ボタンをフワッと表示
+  setTimeout(() => { decideBtn.style.display = 'block'; }, 400);
+
+  // 「決定！」ボタンが押されたときの処理
+  _decideCallback = () => {
+    _decideCallback = null;
+    decideBtn.style.display = 'none';
+    wakeAudio();
+
+    // フェーズ2: 名前カードがパラパラ切り替わる（シャッフル演出）
+    subEl.textContent = '順番を決めています...';
+    let count = 0;
+    const maxCount = 20;
+    const timer = setInterval(() => {
+      count++;
+      // スピードを徐々に落とす
+      namesEl.innerHTML = shuffle([...allNames]).map(n =>
+        `<div style="background:rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;font-size:clamp(11px,2vw,14px);font-weight:700;color:#fff;">${n}</div>`
+      ).join('');
+      playTick();
+      if(count >= maxCount){
+        clearInterval(timer);
+        // フェーズ3: 確定アニメーション
+        setTimeout(() => revealOrder(onComplete), 200);
+      }
+    }, 100);
+  };
+
+  function revealOrder(cb){
+    playDecide();
+    titleEl.textContent = 'ルーレット順　確定！';
+    subEl.textContent   = 'この順番で席を決めます';
+    const orderedNames = rlQueue.map(q => {
+      const s = getStudentById(q.studentId);
+      return s?.name || '?';
+    });
+    namesEl.innerHTML = '';
+    orderedNames.forEach((name, i) => {
+      const card = document.createElement('div');
+      card.style.cssText = `background:rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;font-size:clamp(11px,2vw,14px);font-weight:700;color:#fff;opacity:0;transform:scale(.8);transition:opacity .22s ${i*70}ms,transform .22s ${i*70}ms;`;
+      card.textContent = `${i+1}. ${name}`;
+      namesEl.appendChild(card);
+      setTimeout(() => { card.style.opacity='1'; card.style.transform='scale(1)'; }, 30);
+    });
+    const wait = 400 + orderedNames.length * 70 + 1000;
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      cb();
+    }, wait);
+  }
+}
+
+// ============================================================
+// ROULETTE
+// ============================================================
+let rlMode='seq';
+let rlQueue=[];      // [{studentId, seatId, done}]  — final assignments (pre-decided)
+let rlIndex=0;       // which student is currently being routed
+let rlRunning=false;
+let rlInterval=null;
+let rlAllStudents=[]; // all student names for spinning display
+// For seq: which seat index is currently "lit" (flying around)
+let rlActiveSeatIdx=-1;
+
+// ----- ルーレットセッションの永続化（クラッシュ時に再開できるようにする） -----
+const RL_KEY_PREFIX = 'sekigae_rl_';
+function rlKeyFor(cid, rid){ return RL_KEY_PREFIX + cid + '_' + rid; }
+function rlKey(){ return rlKeyFor(app.currentClassId, app.currentRoomId); }
+
+function saveRlSession(){
+  if(!rlQueue.length) return;
+  try{
+    const data = {
+      mode: rlMode,
+      queue: rlQueue,
+      index: rlIndex,
+      allStudents: rlAllStudents,
+      classId: app.currentClassId,
+      roomId: app.currentRoomId,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(rlKey(), JSON.stringify(data));
+  }catch(e){ /* localStorage 容量超過などは無視 */ }
+}
+
+function loadRlSession(cid, rid){
+  try{
+    const raw = localStorage.getItem(rlKeyFor(cid, rid));
+    return raw ? JSON.parse(raw) : null;
+  }catch{ return null; }
+}
+
+function clearRlSession(cid, rid){
+  const c = cid || app.currentClassId;
+  const r = rid || app.currentRoomId;
+  localStorage.removeItem(rlKeyFor(c, r));
+}
+
+// 現在のクラス×教室に再開可能なルーレットがあるか
+function hasResumableRoulette(){
+  const sess = loadRlSession(app.currentClassId, app.currentRoomId);
+  if(!sess || !Array.isArray(sess.queue) || !sess.queue.length) return false;
+  // 既に全員確定済みなら破棄
+  const asgn = app.assignments?.[akey()] || {};
+  const remaining = sess.queue.filter(q => !(asgn[q.seatId] === q.studentId));
+  if(!remaining.length){ clearRlSession(); return false; }
+  // 名簿/座席との整合性チェック
+  const cls = curClass(); const room = curRoom();
+  if(!cls || !room) return false;
+  const validStudent = id => cls.students.some(s=>s.id===id);
+  const validSeat    = id => room.seats.some(s=>s.id===id && s.enabled && !s.skipAssign);
+  const ok = sess.queue.every(q=>validStudent(q.studentId) && validSeat(q.seatId));
+  if(!ok){ return false; } // 整合性が取れない場合は再開不可（resumeRoulette側で削除導線を出す）
+  return true;
+}
+
+// 上部に再開バナーを表示／非表示
+function refreshResumeBanner(){
+  const bar = document.getElementById('rlResumeBanner');
+  if(!bar) return;
+  const sess = loadRlSession(app.currentClassId, app.currentRoomId);
+  if(!sess || !Array.isArray(sess.queue) || !sess.queue.length){
+    bar.style.display = 'none'; return;
+  }
+  // 完了済みのものは破棄
+  const asgn = app.assignments?.[akey()] || {};
+  const remaining = sess.queue.filter(q => !(asgn[q.seatId] === q.studentId));
+  if(!remaining.length){ clearRlSession(); bar.style.display='none'; return; }
+  // 整合性が崩れていれば「破棄」のみ表示
+  const cls = curClass(); const room = curRoom();
+  const validStudent = id => cls?.students?.some(s=>s.id===id);
+  const validSeat    = id => room?.seats?.some(s=>s.id===id && s.enabled && !s.skipAssign);
+  const ok = sess.queue.every(q=>validStudent(q.studentId) && validSeat(q.seatId));
+
+  const dt = new Date(sess.savedAt||Date.now());
+  const dateStr = dt.toLocaleDateString('ja-JP') + ' ' + dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  const remainCount = remaining.length;
+  const totalCount  = sess.queue.length;
+  const modeLabel = sess.mode==='seq'?'一人ずつルーレット':'一括ルーレット';
+
+  if(ok){
+    bar.innerHTML = `
+      <span style="font-size:18px;flex-shrink:0;">⏸</span>
+      <div style="flex:1;line-height:1.4;">
+        <div style="font-weight:700;">中断中の${modeLabel}があります</div>
+        <div style="font-size:11px;color:#92400e;opacity:.85;">残り ${remainCount}/${totalCount}名 ・ 保存日時 ${dateStr}</div>
+      </div>
+      <button class="btn btp bsm" onclick="resumeRoulette()">▶ 続きから再開</button>
+      <button class="btn bts bsm" id="rlDiscardBtn" onclick="discardRlSession()">破棄</button>
+    `;
+  } else {
+    bar.innerHTML = `
+      <span style="font-size:18px;flex-shrink:0;">⚠</span>
+      <div style="flex:1;line-height:1.4;">
+        <div style="font-weight:700;">中断中のルーレットがありますが再開できません</div>
+        <div style="font-size:11px;color:#92400e;opacity:.85;">名簿または座席が変わっています ・ 保存日時 ${dateStr}</div>
+      </div>
+      <button class="btn bts bsm" id="rlDiscardBtn" onclick="discardRlSession()">破棄</button>
+    `;
+  }
+  bar.style.display = 'flex';
+}
+
+function discardRlSession(){
+  const btn = document.getElementById('rlDiscardBtn');
+  if(btn && !btn.dataset.confirmed){
+    btn.dataset.confirmed = '1';
+    btn.textContent = '✓ もう一度押して破棄';
+    btn.className = 'btn btw bsm';
+    setTimeout(()=>{ if(btn){ btn.dataset.confirmed=''; refreshResumeBanner(); } }, 3000);
+    return;
+  }
+  clearRlSession();
+  refreshResumeBanner();
+  showToast('中断中のルーレットを破棄しました');
+}
+
+function resumeRoulette(){
+  const sess = loadRlSession(app.currentClassId, app.currentRoomId);
+  if(!sess){ showToast('再開できるルーレットがありません'); return; }
+
+  const cls = curClass(); const room = curRoom();
+  if(!cls || !room){ showToast('クラスまたは教室が見つかりません'); return; }
+
+  // 名簿/座席整合性チェック
+  const validStudent = id => cls.students.some(s=>s.id===id);
+  const validSeat    = id => room.seats.some(s=>s.id===id && s.enabled && !s.skipAssign);
+  const valid = sess.queue.every(q=>validStudent(q.studentId) && validSeat(q.seatId));
+  if(!valid){
+    showToast('名簿または座席が変わっているため再開できません。「破棄」してください');
+    refreshResumeBanner();
+    return;
+  }
+
+  // 状態復元
+  rlMode = sess.mode || 'seq';
+  rlAllStudents = (sess.allStudents && sess.allStudents.length) ? sess.allStudents : cls.students.map(s=>s.name);
+  const asgn = app.assignments[akey()] || (app.assignments[akey()]={});
+  // 既に app.assignments に確定している席は done 扱い、その他は未確定
+  rlQueue = sess.queue.map(q => ({
+    studentId: q.studentId,
+    seatId: q.seatId,
+    done: asgn[q.seatId] === q.studentId
+  }));
+  rlIndex = rlQueue.findIndex(q => !q.done);
+  if(rlIndex < 0) rlIndex = rlQueue.length;
+  rlRunning = false; rlActiveSeatIdx = -1;
+  saveRlSession();
+
+  // ルーレット画面を開く
+  document.getElementById('normalView').style.display='none';
+  document.getElementById('rouletteView').classList.add('open');
+  document.getElementById('mainToolbar').style.display='none';
+  document.querySelector('.app-body').classList.add('roulette-mode');
+  document.getElementById('rlDoneLabel').style.display='none';
+  document.getElementById('rlStartBtn').textContent='START';
+  document.getElementById('rlStartBtn').className='rl-btn start';
+
+  if(rlMode==='seq'){
+    document.getElementById('rlTitle').textContent='一人ずつルーレット（再開）';
+    document.getElementById('rlQueue').style.display='block';
+    document.getElementById('rlRight').classList.remove('hidden');
+    if(rlIndex < rlQueue.length){
+      const nextS = getStudentById(rlQueue[rlIndex].studentId);
+      document.getElementById('rlCurLabel').textContent = `次：${nextS?.name||''}`;
+    } else {
+      document.getElementById('rlCurLabel').textContent = '';
+      document.getElementById('rlDoneLabel').style.display='block';
+      document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
+    }
+    renderRlQueue();
+  } else {
+    document.getElementById('rlTitle').textContent='一括ルーレット（再開）';
+    document.getElementById('rlQueue').style.display='none';
+    document.getElementById('rlRight').classList.add('hidden');
+    document.getElementById('rlCurLabel').textContent='全員同時にルーレット';
+  }
+  renderRlGrid();
+  updateRlProgress();
+  showToast('ルーレットを再開しました');
+}
+
+function startRoulette(mode){
+  const room=curRoom();const cls=curClass();
+  if(!cls?.students?.length){showToast('名簿が読み込まれていません');return;}
+  const enabled=room.seats.filter(s=>s.enabled&&!s.skipAssign);
+  if(cls.students.length>enabled.length){showToast(`生徒数が有効席数を超えています`);return;}
+  const gErr=checkGenderMatch();
+  if(gErr){showToast(`⚠ 席替えできません：${gErr}`);return;}
+  const condConf2=detectConditionConflicts(getConditions());
+  if(condConf2.length){ showToast(`⚠ 条件に矛盾の可能性（${condConf2.length}件）。条件タブを確認してください`); }
+
+  rlMode=mode;
+  rlRunning=false;rlIndex=0;rlActiveSeatIdx=-1;
+  rlAllStudents=cls.students.map(s=>s.name);
+
+  // Pre-decide final assignments using constraints
+  const conds=getConditions();
+  const gMode=getGenderMode();
+  const gZsplit=getZoneSplit();
+  let finalAssign=null;
+  let attempts=0;
+  if(gMode!=='free'){
+    finalAssign=buildGenderZoneSeats(room.seats,cls.students,gMode,gZsplit);
+    if(conds.length&&finalAssign){
+      let ok=checkConstraints(finalAssign,conds,cls.students,room.seats);
+      while(!ok&&attempts<5000){finalAssign=buildGenderZoneSeats(room.seats,cls.students,gMode,gZsplit);ok=checkConstraints(finalAssign,conds,cls.students,room.seats);attempts++;}
+    }
+  } else if(conds.length){
+    let tries=0;
+    while(tries<5000){
+      const sh=shuffle(cls.students);const se2=shuffle([...enabled]);const ta={};sh.forEach((s,i)=>{ta[se2[i].id]=s.id;});
+      if(checkConstraints(ta,conds,cls.students,room.seats)){finalAssign=ta;break;}
+      tries++;
+    }
+    if(!finalAssign){const sh=shuffle(cls.students);const se3=shuffle([...enabled]);finalAssign={};sh.forEach((s,i)=>{finalAssign[se3[i].id]=s.id;});}
+  } else {
+    const sh=shuffle(cls.students);const se=shuffle([...enabled]);finalAssign={};sh.forEach((s,i)=>{finalAssign[se[i].id]=s.id;});
+  }
+  // ピン固定を適用
+  finalAssign=applyPinsToAssignment(finalAssign,cls.students,enabled);
+  // Build queue from the finalAssign (randomize order of revelation)
+  const assignPairs=Object.entries(finalAssign).map(([seatId,studentId])=>({studentId,seatId}));
+  const shuffledQueue=shuffle(assignPairs);
+  rlQueue=shuffledQueue.map(p=>({...p,done:false}));
+
+  app.assignments[akey()]={};save();
+  // 開始時点でルーレットセッションを保存（クラッシュ時に再開できるよう）
+  saveRlSession();
+
+  document.getElementById('normalView').style.display='none';
+  document.getElementById('rouletteView').classList.add('open');
+  document.getElementById('mainToolbar').style.display='none';
+  document.querySelector('.app-body').classList.add('roulette-mode');
+  document.getElementById('rlDoneLabel').style.display='none';
+  document.getElementById('rlStartBtn').textContent='START';
+  document.getElementById('rlStartBtn').className='rl-btn start';
+
+  if(mode==='seq'){
+    document.getElementById('rlTitle').textContent='順番ルーレット';
+    document.getElementById('rlQueue').style.display='block';
+    document.getElementById('rlRight').classList.remove('hidden');
+    const nextS=getStudentById(rlQueue[0].studentId);
+    document.getElementById('rlCurLabel').textContent=`最初：${nextS?.name||''}`;
+    renderRlQueue();
+    // カウントダウン演出（順番ルーレットのみ）
+    showSeqCountdown(cls.students, () => {
+      setTimeout(renderRlGrid, 80);
+      updateRlProgress();
+    });
+  } else {
+    document.getElementById('rlTitle').textContent='一括ルーレット';
+    document.getElementById('rlQueue').style.display='none';
+    document.getElementById('rlRight').classList.add('hidden');
+    document.getElementById('rlCurLabel').textContent='全員同時にルーレット';
+  }
+  renderRlGrid();
+  updateRlProgress();
+}
+
+function exitRoulette(){
+  stopRlInterval();
+  document.getElementById('normalView').style.display='flex';
+  document.getElementById('rouletteView').classList.remove('open');
+  document.getElementById('mainToolbar').style.display='flex';
+  document.querySelector('.app-body').classList.remove('roulette-mode');
+  document.getElementById('rlCountdown').style.display='none';
+  document.getElementById('rlCountdownNames').style.display='flex';
+  renderGrid();
+  // 途中で抜けた場合は再開バナーを出す（完了済みなら hasResumableRoulette が false で消える）
+  refreshResumeBanner();
+}
+
+function toggleRoulette(){
+  wakeAudio(); // ユーザー操作の同期タイミングで AudioContext を起動
+  if(rlMode==='seq') toggleSeqRoulette();
+  else toggleBulkRoulette();
+}
+
+// ---- SEQUENTIAL ----
+// 動き：対象生徒の名前が 全席をランダムに飛び回る → STOPで最終座席に着地・確定
+function toggleSeqRoulette(){
+  if(rlIndex>=rlQueue.length){showToast('全員の座席が決まりました');return;}
+  if(rlRunning){
+    // STOP → 名前を最終座席に着地させて確定
+    stopRlInterval();
+    const item=rlQueue[rlIndex];
+    item.done=true;
+    app.assignments[akey()][item.seatId]=item.studentId;
+    save();
+    rlActiveSeatIdx=-1;
+    renderRlGrid();
+    rlIndex++;
+    // 1人決まる度にルーレットセッションを更新（クラッシュ時の再開用）
+    saveRlSession();
+    renderRlQueue();
+    updateRlProgress();
+    if(rlIndex>=rlQueue.length){
+      playFinish();
+      saveHistory(app.assignments[akey()]);
+      save();
+      // 完了したのでセッションを破棄
+      clearRlSession();
+      document.getElementById('rlStartBtn').textContent='完了';
+      document.getElementById('rlStartBtn').className='rl-btn start';
+      document.getElementById('rlDoneLabel').style.display='block';
+      document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
+      document.getElementById('rlCurLabel').textContent='';
+    } else {
+      playDecide();
+      document.getElementById('rlStartBtn').textContent='START';
+      document.getElementById('rlStartBtn').className='rl-btn start';
+      const nextS=getStudentById(rlQueue[rlIndex].studentId);
+      document.getElementById('rlCurLabel').textContent=`次：${nextS?.name||''}`;
+    }
+  } else {
+    // START → 名前が全席を飛び回るアニメ開始
+    const item=rlQueue[rlIndex];
+    const student=getStudentById(item.studentId);
+    document.getElementById('rlCurLabel').textContent=`${student?.name||''} の席を決定中...`;
+    document.getElementById('rlStartBtn').textContent='STOP';
+    document.getElementById('rlStartBtn').className='rl-btn stop';
+    startSeqInterval(student?.name||'');
+  }
+}
+
+function startSeqInterval(studentName){
+  rlRunning=true;
+  const room=curRoom();
+  // 有効なまだ決まっていない席のインデックスリスト
+  const candidates=room.seats.map((s,i)=>({s,i}))
+    .filter(({s})=>s.enabled && !s.skipAssign && !rlQueue.slice(0,rlIndex).some(q=>q.seatId===s.id&&q.done));
+
+  let lastIdx=-1;
+  rlInterval=setInterval(()=>{
+    // ランダムに別の席へジャンプ（直前と同じ席は避ける）
+    let pick;
+    if(candidates.length>1){
+      do { pick=candidates[Math.floor(Math.random()*candidates.length)]; } while(pick.i===lastIdx);
+    } else {
+      pick=candidates[0];
+    }
+    lastIdx=pick.i;
+    rlActiveSeatIdx=pick.i;
+    updateSeqSeatDisplay(studentName);
+    playTick();
+  },90);
+}
+
+function updateSeqSeatDisplay(studentName){
+  const grid=document.getElementById('rlSeatGrid');
+  const room=curRoom();
+  // まず全席をリセット（確定済み以外）
+  room.seats.forEach((seat,i)=>{
+    const el=grid.children[i];
+    if(!el||!seat.enabled||seat.skipAssign)return;
+    const isDone=rlQueue.slice(0,rlIndex).some(q=>q.seatId===seat.id&&q.done);
+    if(isDone)return; // 確定済みは触らない
+    if(i===rlActiveSeatIdx){
+      // ここに名前を表示（ハイライト）
+      const ns=Math.max(10,Math.min(15,Math.floor((parseInt(el.style.width)||80)/6)))+'px';
+      el.style.background='#fef9c3';
+      el.style.borderColor='#f59e0b';
+      el.style.borderStyle='solid';
+      el.style.boxShadow='0 0 0 3px #fde68a';
+      const seqFs=calcNameFontSize(studentName,parseInt(el.style.width)||80,parseInt(el.style.height)||58,false,false);
+      el.innerHTML=`<div style="font-size:${seqFs}px;font-weight:700;color:#92400e;text-align:center;padding:0 3px;white-space:nowrap;overflow:hidden;line-height:1.1;">${studentName}</div>`;
+    } else {
+      // 未確定の空席はデフォルト表示に戻す
+      el.style.background='var(--s2)';
+      if(seat.bgColor||seat.borderColor){el.style.borderColor=seat.bgColor||seat.borderColor;}else{el.style.borderColor='var(--bd)';el.style.borderStyle='dashed';}
+      el.innerHTML=`<div style="font-size:11px;color:var(--tx3);">空席</div>`;
+    }
+  });
+}
+
+function stopRlInterval(){
+  rlRunning=false;
+  if(rlInterval){clearInterval(rlInterval);rlInterval=null;}
+}
+
+// ---- BULK ----
+// 動き：全席でそれぞれランダムな名前が飛び回る → STOPで全員着地
+function toggleBulkRoulette(){
+  if(rlRunning){
+    stopRlInterval();
+    rlQueue.forEach(item=>{
+      item.done=true;
+      app.assignments[akey()][item.seatId]=item.studentId;
+    });
+    rlIndex=rlQueue.length;
+    save();
+    renderRlGrid();
+    updateRlProgress();
+    playFinish();
+    saveHistory(app.assignments[akey()]);
+    save();
+    // 完了したのでセッションを破棄
+    clearRlSession();
+    document.getElementById('rlStartBtn').textContent='完了';
+    document.getElementById('rlStartBtn').className='rl-btn start';
+    document.getElementById('rlDoneLabel').style.display='block';
+    document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
+    document.getElementById('rlCurLabel').textContent='';
+  } else {
+    document.getElementById('rlStartBtn').textContent='STOP';
+    document.getElementById('rlStartBtn').className='rl-btn stop';
+    document.getElementById('rlCurLabel').textContent='ルーレット中...';
+    startBulkInterval();
+  }
+}
+
+function startBulkInterval(){
+  rlRunning=true;
+  const room=curRoom();
+  const offsets={};
+  rlQueue.forEach(item=>{ offsets[item.seatId]=Math.floor(Math.random()*rlAllStudents.length); });
+  let tick=0;
+  rlInterval=setInterval(()=>{
+    tick++;
+    const grid=document.getElementById('rlSeatGrid');
+    rlQueue.forEach(item=>{
+      if(item.done)return;
+      const seatIndex=room.seats.findIndex(s=>s.id===item.seatId);
+      if(seatIndex<0)return;
+      const el=grid.children[seatIndex];
+      if(!el)return;
+      const seat=room.seats[seatIndex];
+      const name=rlAllStudents[(tick+offsets[item.seatId])%rlAllStudents.length];
+      if(seat.bgColor||seat.borderColor){el.style.borderColor=seat.bgColor||seat.borderColor;}
+      el.style.background='#fef9c3';
+      if(!seat.bgColor&&!seat.borderColor)el.style.borderColor='#f59e0b';
+      const bulkFs=calcNameFontSize(name,parseInt(el.style.width)||80,parseInt(el.style.height)||58,false,false);
+      el.innerHTML=`<div style="font-size:${bulkFs}px;font-weight:700;color:#92400e;text-align:center;padding:0 3px;white-space:nowrap;overflow:hidden;line-height:1.1;">${name}</div>`;
+    });
+    if(tick%3===0) playTick(); // 全席同時に鳴ると五月蠅いので間引く
+  },80);
+}
+
+// ---- SHARED ----
+function renderRlQueue(){
+  const list=document.getElementById('rlQueueList');
+  list.innerHTML='';
+  rlQueue.forEach((item,i)=>{
+    const student=getStudentById(item.studentId);
+    const div=document.createElement('div');
+    div.className='rl-q-item'+(i===rlIndex?' current':item.done?' done':'');
+    let icon=i===rlIndex?`<span class="rl-q-arrow">→</span>`:item.done?`<span style="font-size:12px;">✓</span>`:`<span class="rl-q-num">${i+1}</span>`;
+    div.innerHTML=`${icon}<span>${student?.name||'?'}</span>`;
+    list.appendChild(div);
+  });
+  // scroll current into view
+  const cur=list.querySelector('.current');
+  if(cur)cur.scrollIntoView({block:'nearest'});
+}
+
+function calcRlSeatSize(){
+  const room=curRoom();
+  if(!room)return{w:80,h:58,gap:5};
+
+  const body=document.querySelector('.rl-body');
+  if(!body)return{w:80,h:58,gap:5};
+  const bodyW=body.clientWidth;
+  const bodyH=body.clientHeight;
+
+  const rightEl=document.getElementById('rlRight');
+  const rightW=(rightEl&&!rightEl.classList.contains('hidden'))?180:0;
+
+  // グリッドエリアの正味サイズ
+  // 横: 両端padding 8px×2=16px
+  // 縦: 上padding 8px + 教卓(32px) + gap(6px) + 下padding 6px = 52px
+  const areaW=bodyW-rightW-16;
+  const areaH=bodyH-52;
+
+  const gap=5;
+  const cols=room.cols;
+  const rows=room.rows;
+
+  // 幅から決まる最大座席幅
+  const wMax=Math.floor((areaW-(cols-1)*gap)/cols);
+  // 高さから決まる最大座席高さ → 幅に換算（縦横比 height=width×0.70）
+  const hMax=Math.floor((areaH-(rows-1)*gap)/rows);
+  const wFromH=Math.floor(hMax/0.70);
+
+  // 両方の制約を満たす最大値
+  const w=Math.max(52,Math.min(wMax,wFromH));
+  const h=Math.max(36,Math.floor(w*0.70));
+
+  return{w,h,gap};
+}
+
+function renderRlGrid(){
+  const room=curRoom();const cls=curClass();const asgn=curAsgn();
+  const showColor=document.getElementById('showGender')?.checked??true;
+  const grid=document.getElementById('rlSeatGrid');
+  const{w,h,gap}=calcRlSeatSize();
+  const nameSize=Math.max(10,Math.min(16,Math.floor(w/5.5)))+'px';
+  const gridTotalW = room.cols * w + (room.cols - 1) * gap;
+  grid.style.gridTemplateColumns=`repeat(${room.cols},${w}px)`;
+  grid.style.gap=gap+'px';
+  grid.style.alignSelf='flex-start';
+  // 教卓をグリッドと同じ幅に揃える
+  const desk = document.getElementById('rlTeacherDesk');
+  if(desk){
+    desk.style.width = gridTotalW + 'px';
+    desk.style.alignSelf = 'flex-start';
+    desk.style.textAlign = 'center';
+    desk.style.boxSizing = 'border-box';
+  }
+  grid.innerHTML='';
+  room.seats.forEach((seat)=>{
+    const div=document.createElement('div');
+    div.style.cssText=`width:${w}px;height:${h}px;border-radius:6px;border:2px solid var(--bd);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;transition:background .1s,border-color .1s;overflow:hidden;`;
+    if(!seat.enabled){div.style.visibility='hidden';grid.appendChild(div);return;}
+    if(seat.skipAssign){
+      div.style.background='repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px)';
+      div.style.borderColor='#9ca3af';
+      div.style.borderStyle='dashed';
+      div.innerHTML=`<div style="font-size:10px;font-weight:700;color:#6b7280;letter-spacing:.5px;">使わない</div>`;
+      grid.appendChild(div);return;
+    }
+
+    const studentId=asgn[seat.id];
+    const student=studentId&&cls?.students?.find(s=>s.id===studentId);
+
+    if(seat.bgColor||seat.borderColor){
+      div.style.borderColor=seat.bgColor||seat.borderColor;
+    }
+    div.style.background='var(--s2)';
+
+    if(student){
+      if(showColor){
+        if(student.gender==='male'){div.style.background='var(--mb)';}
+        else if(student.gender==='female'){div.style.background='var(--fb)';}
+      }
+      if(!seat.bgColor&&!seat.borderColor){
+        if(student.gender==='male')div.style.borderColor='var(--mbb)';
+        else if(student.gender==='female')div.style.borderColor='var(--fbb)';
+        else div.style.borderColor='var(--bd2)';
+      }
+      const col=student.gender==='male'?'var(--mbt)':student.gender==='female'?'var(--fbt)':'var(--tx)';
+      const rlFs=calcNameFontSize(student.name,w,h,false,false);
+      div.innerHTML=`<div style="font-size:${rlFs}px;font-weight:700;color:${col};text-align:center;padding:0 3px;white-space:nowrap;overflow:hidden;line-height:1.1;">${student.name}</div>`;
+    } else {
+      div.style.borderStyle='dashed';
+      div.innerHTML=`<div style="font-size:11px;color:var(--tx3);">空席</div>`;
+    }
+    grid.appendChild(div);
+  });
+}
+
+
+function previewHistory(classId, roomId, entryId){
+  const hist = loadHistory(classId, roomId);
+  const entry = hist.find(h => h.id === entryId);
+  if(!entry){ showToast('履歴が見つかりません'); return; }
+
+  const snap = entry.snapshot;
+  const dt   = new Date(entry.timestamp);
+  const dateStr = dt.toLocaleDateString('ja-JP') + ' ' + dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  const cls  = app.classes[classId];
+  const room = app.rooms[roomId];
+  const clsName  = cls?.name  || snap?.className || '';
+  const roomName = room?.name || snap?.roomName  || '';
+
+  // タイトル設定
+  document.getElementById('histPreviewTitle').textContent = `${clsName} / ${roomName}　${dateStr}`;
+
+  // 復元ボタンに関数を紐付け
+  const restoreBtn = document.getElementById('histPreviewRestoreBtn');
+  restoreBtn.onclick = () => {
+    closeModal('histPreview');
+    // プレビューからの復元は確認不要で直接実行
+    const h2 = loadHistory(classId, roomId);
+    const e2 = h2.find(h => h.id === entryId);
+    if(!e2){ showToast('履歴が見つかりません'); return; }
+    if(classId !== app.currentClassId || roomId !== app.currentRoomId){
+      app.currentClassId = classId; app.currentRoomId = roomId; refreshHeader();
+    }
+    const sn = e2.snapshot;
+    curClass().students = sn.students;
+    curRoom().cols = sn.cols; curRoom().rows = sn.rows; curRoom().seats = sn.seats;
+    app.assignments[akey()] = e2.assignment;
+    save(); syncLayoutInputs(); renderStudentList(); renderGrid(); switchTab('roster');
+    showToast('座席表を復元しました');
+  };
+
+  // グリッド描画
+  const grid = document.getElementById('histPreviewGrid');
+  const cols = snap.cols || 6;
+  // モーダル幅から座席サイズを計算（最大110px）
+  const modalW = Math.min(window.innerWidth * 0.9, 1000) - 40;
+  const seatW  = Math.max(60, Math.min(110, Math.floor((modalW - (cols-1)*6) / cols)));
+  const seatH  = Math.floor(seatW * 0.72);
+
+  grid.style.gridTemplateColumns = `repeat(${cols}, ${seatW+8}px)`;
+  grid.style.gap = '6px';
+  grid.innerHTML = '';
+
+  const studentMap = {};
+  (snap.students||[]).forEach(s => { studentMap[s.id] = s; });
+  const asgn = entry.assignment || {};
+
+  (snap.seats||[]).forEach(seat => {
+    const wrap = document.createElement('div');
+    const hasGroup = !!(seat.bgColor||seat.borderColor);
+    if(!seat.enabled){
+      wrap.style.cssText = `width:${seatW+8}px;height:${seatH+8}px;visibility:hidden;`;
+      grid.appendChild(wrap); return;
+    }
+    if(seat.skipAssign){
+      wrap.style.cssText = `width:${seatW+8}px;height:${seatH+8}px;display:flex;align-items:center;justify-content:center;`;
+      const inner = document.createElement('div');
+      inner.style.cssText = `width:${seatW}px;height:${seatH}px;border-radius:6px;border:2px dashed #9ca3af;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px);display:flex;align-items:center;justify-content:center;`;
+      inner.innerHTML = `<div style="font-size:10px;font-weight:700;color:#6b7280;letter-spacing:.5px;">使わない</div>`;
+      wrap.appendChild(inner);
+      grid.appendChild(wrap); return;
+    }
+    wrap.style.cssText = `padding:${hasGroup?'4px':'0'};border-radius:8px;${hasGroup?'background:'+( seat.bgColor||seat.borderColor)+';':''}`;
+    const div = document.createElement('div');
+    div.style.cssText = `width:${seatW}px;height:${seatH}px;border-radius:6px;border:2px solid var(--bd2);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;`;
+
+    // グループ色はラッパーbackgroundで表示済み
+
+    const studentId = asgn[seat.id];
+    const s = studentMap[studentId];
+    if(s){
+      if(s.gender==='male'){div.style.background='var(--mb)';}
+      else if(s.gender==='female'){div.style.background='var(--fb)';}
+      else{div.style.background='var(--surface)';}
+      if(!seat.bgColor&&!seat.borderColor){
+        if(s.gender==='male')div.style.borderColor='var(--mbb)';
+        else if(s.gender==='female')div.style.borderColor='var(--fbb)';
+        else div.style.borderColor='var(--bd2)';
+      }
+
+      const nameColor = s.gender==='male'?'var(--mbt)':s.gender==='female'?'var(--fbt)':'var(--tx)';
+      const fs = calcNameFontSize(s.name, seatW, seatH, !!s.number, !!s.yomi);
+
+      let inner = '';
+      if(s.number) inner += `<div style="position:absolute;top:2px;left:4px;font-size:9px;color:var(--tx3);font-weight:500;">${s.number}</div>`;
+      inner += `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:0 3px;">`;
+      if(s.yomi){
+        const yomiFs = Math.max(7, Math.min(10, Math.floor(seatW/(s.yomi.length*1.1))));
+        inner += `<div style="font-size:${yomiFs}px;color:${nameColor};opacity:.7;line-height:1;white-space:nowrap;overflow:hidden;max-width:100%;">${s.yomi}</div>`;
+      }
+      inner += `<div style="font-size:${fs}px;font-weight:700;color:${nameColor};text-align:center;white-space:nowrap;overflow:hidden;max-width:100%;">${s.name}</div>`;
+      inner += '</div>';
+      div.innerHTML = inner;
+    } else {
+      div.style.background='var(--s2)';
+      if(!seat.bgColor&&!seat.borderColor){div.style.borderColor='var(--bd)';div.style.borderStyle='dashed';}
+      div.innerHTML = `<div style="font-size:11px;color:var(--tx3);">空席</div>`;
+    }
+    wrap.appendChild(div);grid.appendChild(wrap);
+  });
+
+  openModal('histPreview');
+}
+
+function updateRlProgress(){
+  const done=rlQueue.filter(q=>q.done).length;
+  document.getElementById('rlProgress').textContent=`${done}/${rlQueue.length}名完了`;
+}
+
+function getStudentById(id){return curClass()?.students?.find(s=>s.id===id);}
+
+// ============================================================
+// TAB
+// ============================================================
+function switchTab(name){
+  ['roster','layout','group','cond','history','settings'].forEach(t=>{
+    document.getElementById(`tab-${t}`).classList.toggle('active',t===name);
+    document.getElementById(`panel-${t}`).classList.toggle('active',t===name);
+  });
+  // 条件タブ以外に切り替えたらピン座席選択モードを解除＋固定表示をクリア
+  if(name!=='cond'){
+    if(pinSeatSelectMode) pinSeatSelectMode = false;
+    renderGrid();
+  }
+  if(name==='group')renderGrid();
+  if(name==='layout'){refreshCopyRoomSelect();genderColState={};alternatePhase=0;onGenderEditTypeChange();}
+  if(name==='cond'){refreshCondStudentSelects();refreshPinStudentSelect();renderPinList();syncPinSeatMode();renderGrid();}
+  if(name==='history'){refreshHistoryFilters();renderHistoryList();}
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(n){
+  document.getElementById(`modal-${n}`).classList.add('open');
+  if(n==='addClass')setTimeout(()=>document.getElementById('newClassName').focus(),50);
+  if(n==='addRoom')setTimeout(()=>document.getElementById('newRoomName').focus(),50);
+}
+function closeModal(n){document.getElementById(`modal-${n}`).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ============================================================
+// SOUND ENGINE (Web Audio API — no external files needed)
+// ============================================================
+let audioCtx=null;
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// ユーザー操作の同期タイミングで AudioContext を起動する
+// setInterval コールバック内では自動再生ポリシーが適用されるため、
+// START ボタン押下時に必ず呼ぶ
+function wakeAudio(){
+  try{
+    const ctx=getAudioCtx();
+    // 無音の短いバッファを再生して suspended → running に遷移させる
+    if(ctx.state==='suspended'){
+      ctx.resume();
+    } else {
+      // 既に running でも一度ダミーノードを通すことで確実に動作させる
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      g.gain.setValueAtTime(0,ctx.currentTime); // 無音
+      osc.connect(g);g.connect(ctx.destination);
+      osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.001);
+    }
+  }catch(e){}
+}
+
+function isSoundOn(){
+  return document.getElementById('soundEnabled')?.checked ?? true;
+}
+
+function saveSoundPref(){
+  localStorage.setItem('sekigae_sound', document.getElementById('soundEnabled').checked ? '1':'0');
+}
+
+// 短いビープ（ルーレット中のカチカチ音）
+function playTick(){
+  if(!isSoundOn())return;
+  try{
+    const ctx=getAudioCtx();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='square';
+    o.frequency.setValueAtTime(880,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(660,ctx.currentTime+0.04);
+    g.gain.setValueAtTime(0.08,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.05);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.05);
+  }catch(e){}
+}
+
+// 確定音（1人決まったとき）— 明るい上昇音
+function playDecide(){
+  if(!isSoundOn())return;
+  try{
+    const ctx=getAudioCtx();
+    const freqs=[523,659,784]; // C5 E5 G5
+    freqs.forEach((f,i)=>{
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='triangle';
+      const t=ctx.currentTime+i*0.08;
+      o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(0.15,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.25);
+    });
+  }catch(e){}
+}
+
+// 全員完了音（ファンファーレ風）
+function playFinish(){
+  if(!isSoundOn())return;
+  try{
+    const ctx=getAudioCtx();
+    // C5 E5 G5 C6 の和音+アルペジオ
+    const notes=[
+      {f:523,t:0},{f:659,t:0.07},{f:784,t:0.14},{f:1047,t:0.21},
+      {f:523,t:0.35},{f:659,t:0.35},{f:784,t:0.35},{f:1047,t:0.35}
+    ];
+    notes.forEach(({f,t})=>{
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='triangle';
+      const st=ctx.currentTime+t;
+      o.frequency.setValueAtTime(f,st);
+      g.gain.setValueAtTime(0.12,st);
+      g.gain.exponentialRampToValueAtTime(0.001,st+0.5);
+      o.start(st);o.stop(st+0.5);
+    });
+  }catch(e){}
+}
+
+
+
+// ============================================================
+// GENDER EDIT MODE (手動席指定)
+// ============================================================
+let genderEditMode = false;
+// 列クリックモード用: 各列の設定 {0:'any', 1:'male', 2:'female', ...}
+let genderColState = {};
+
+// ── モード切り替えUIの表示制御
+function onGenderEditTypeChange(){
+  const t = document.getElementById('genderEditType')?.value;
+  document.getElementById('genderClickOptions').style.display  = t==='click'     ? 'block':'none';
+  document.getElementById('genderColOptions').style.display    = t==='col'       ? 'block':'none';
+  document.getElementById('genderBulkOptions').style.display   = (t==='alternate'||t==='all_any') ? 'block':'none';
+  // 交互モード時のボタンラベル更新
+  const abBtn = document.getElementById('alternateBulkBtn');
+  const abHint = document.getElementById('alternateBulkHint');
+  if(abBtn){
+    if(t==='alternate'){
+      abBtn.textContent='🔄 男女交互で設定（押すたびに反転）';
+      if(abHint) abHint.textContent='ボタンを押すと座席表の色がリアルタイムで変わります。確認しながら調整してください。';
+    } else {
+      abBtn.textContent='リセット実行';
+      if(abHint) abHint.textContent='';
+    }
+  }
+
+  // クリックモード以外ならクリックモードをOFF
+  if(t !== 'click' && genderEditMode){
+    genderEditMode = false;
+    const btn = document.getElementById('genderEditBtn');
+    if(btn){ btn.textContent='🚻 クリック設定モードON'; btn.className='btn bts btn-full'; }
+    renderGrid();
+  }
+
+  // 列クリックモードなら列ボタンを生成
+  if(t === 'col') renderGenderColBtns();
+}
+
+// ── クリック1席ずつ切り替えモード
+function toggleGenderEdit(){
+  genderEditMode = !genderEditMode;
+  const btn = document.getElementById('genderEditBtn');
+  if(genderEditMode){
+    btn.textContent = '🚻 クリック設定モードOFF（保存）';
+    btn.className = 'btn btp btn-full';
+  } else {
+    btn.textContent = '🚻 クリック設定モードON';
+    btn.className = 'btn bts btn-full';
+    save();
+  }
+  renderGrid();
+}
+
+function cycleAllowedGender(seat){
+  const cycle = {any:'male', male:'female', female:'any'};
+  seat.allowedGender = cycle[seat.allowedGender] || 'any';
+  save();
+}
+
+// ── 列クリックモード：列ヘッダーボタンをクリックで切り替え
+function renderGenderColBtns(){
+  const room = curRoom();
+  const el = document.getElementById('genderColBtns');
+  if(!el) return;
+  // 初期化：現在の座席設定から列の状態を推測
+  if(!Object.keys(genderColState).length){
+    for(let c=0; c<room.cols; c++){
+      const colSeats = room.seats.filter(s=>s.enabled && !s.skipAssign && s.col===c);
+      const genders = [...new Set(colSeats.map(s=>s.allowedGender))];
+      genderColState[c] = genders.length===1 ? genders[0] : 'any';
+    }
+  }
+  const gMap = {
+    any:    {label:'どちらでも', bg:'var(--s2)',  border:'var(--bd2)', color:'var(--tx2)'},
+    male:   {label:'男子',       bg:'var(--mb)',  border:'var(--mbb)', color:'var(--mbt)'},
+    female: {label:'女子',       bg:'var(--fb)',  border:'var(--fbb)', color:'var(--fbt)'},
+  };
+  el.innerHTML = '';
+  for(let c=0; c<room.cols; c++){
+    const g = genderColState[c] || 'any';
+    const m = gMap[g];
+    const btn = document.createElement('button');
+    btn.style.cssText = `padding:8px 0;width:52px;border-radius:6px;border:2px solid ${m.border};background:${m.bg};color:${m.color};font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;`;
+    btn.innerHTML = `<div style="font-size:10px;opacity:.7;">第${c+1}列</div><div>${m.label}</div>`;
+    btn.onclick = ()=>{
+      const cycle = {any:'male', male:'female', female:'any'};
+      genderColState[c] = cycle[genderColState[c]||'any'];
+      // 即時プレビュー：座席表にも反映
+      const rm = curRoom();
+      rm.seats.filter(s=>s.enabled && !s.skipAssign && s.col===c)
+        .forEach(s=>{ s.allowedGender = genderColState[c]; });
+      renderGenderColBtns();
+      renderGrid();
+    };
+    el.appendChild(btn);
+  }
+}
+
+function saveGenderColMode(){
+  const room = curRoom();
+  Object.entries(genderColState).forEach(([c, g])=>{
+    room.seats.filter(s=>s.enabled && !s.skipAssign && s.col===parseInt(c))
+      .forEach(s=>{ s.allowedGender = g; });
+  });
+  save();
+  renderGrid();
+  showToast('列ごとの男女設定を保存しました');
+}
+
+// ── 交互・リセット一括設定
+// alternatePhase: 0=偶数→男子, 1=偶数→女子（ボタンを押すたびに反転）
+let alternatePhase = 0;
+
+function applyBulkGender(){
+  const t = document.getElementById('genderEditType')?.value;
+  const room = curRoom();
+  if(t === 'alternate'){
+    const cls=curClass();
+    const students=cls?.students||[];
+    const maleCount=students.filter(s=>s.gender==='male').length;
+    const femaleCount=students.filter(s=>s.gender==='female').length;
+    const enabledSeats=room.seats.filter(s=>s.enabled&&!s.skipAssign);
+    const total=enabledSeats.length;
+
+    // 市松模様で交互に並べ、男子席数・女子席数が名簿と一致するよう調整
+    // まず交互パターンを生成
+    const pattern = enabledSeats.map((s,i)=>{
+      const even = (s.row+s.col)%2===0;
+      return (even ^ alternatePhase) ? 'male' : 'female';
+    });
+    // 現パターンの男子席数
+    const maleInPattern = pattern.filter(g=>g==='male').length;
+    const femaleInPattern = pattern.filter(g=>g==='female').length;
+
+    if(maleCount>0&&femaleCount>0 && maleCount+femaleCount<=total){
+      // 男女人数が既知の場合：人数に合わせて調整
+      // 交互パターンを維持しつつ、余剰分を「どちらでも」に
+      let assignedMale=0, assignedFemale=0;
+      enabledSeats.forEach((s,i)=>{
+        const want = pattern[i];
+        if(want==='male' && assignedMale<maleCount){
+          s.allowedGender='male'; assignedMale++;
+        } else if(want==='female' && assignedFemale<femaleCount){
+          s.allowedGender='female'; assignedFemale++;
+        } else {
+          s.allowedGender='any';
+        }
+      });
+      // 未割り当て分を補充（パターンと逆の性別の余り席に追加）
+      enabledSeats.forEach(s=>{
+        if(s.allowedGender==='any'){
+          if(assignedMale<maleCount){s.allowedGender='male';assignedMale++;}
+          else if(assignedFemale<femaleCount){s.allowedGender='female';assignedFemale++;}
+        }
+      });
+      showToast(`男女交互に設定しました（男子席${maleCount}、女子席${femaleCount}）`);
+    } else {
+      // 名簿なし or 人数不明の場合：単純交互
+      enabledSeats.forEach((s,i)=>{ s.allowedGender=pattern[i]; });
+      showToast('男女交互に設定しました');
+    }
+    alternatePhase = 1 - alternatePhase;
+    save(); renderGrid();
+  } else if(t === 'all_any'){
+    alternatePhase = 0; // リセット時はフェーズも戻す
+    room.seats.forEach(s=>{ if(s.enabled) s.allowedGender='any'; });
+    save(); renderGrid();
+    showToast('全席をどちらでもにリセットしました');
+  }
+}
+
+
+// ============================================================
+// SEAT PIN / FIXED ASSIGNMENT
+// ============================================================
+let pinSeatSelectMode = false;
+
+function getPins(){
+  try{ return JSON.parse(localStorage.getItem(akey()+'_pins')||'[]'); }catch{ return []; }
+}
+function savePinsData(arr){ localStorage.setItem(akey()+'_pins', JSON.stringify(arr)); }
+
+function refreshPinStudentSelect(){
+  const sel = document.getElementById('pinStudent');
+  if(!sel) return;
+  const val = sel.value;
+  const students = curClass()?.students || [];
+  sel.innerHTML = '<option value="">-- 選択 --</option>';
+  students.forEach(s=>{
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = `${s.number}. ${s.name}`;
+    sel.appendChild(o);
+  });
+  sel.value = val;
+}
+
+function updatePinTypeUI(){
+  const t = document.getElementById('pinType')?.value;
+  document.getElementById('pinSeatOptions').style.display   = t==='seat'   ? 'block':'none';
+  document.getElementById('pinRowOptions').style.display    = t==='row'    ? 'block':'none';
+  document.getElementById('pinColOptions').style.display    = t==='col'    ? 'block':'none';
+  document.getElementById('pinRowMaxOptions').style.display = t==='rowMax' ? 'block':'none';
+  document.getElementById('pinColMaxOptions').style.display = t==='colMax' ? 'block':'none';
+  // seat選択＋生徒選択済みなら自動でピン座席選択モードON
+  syncPinSeatMode();
+}
+
+// pinStudentまたはpinTypeが変わったときにピン座席選択モードを自動同期
+function syncPinSeatMode(){
+  const studentId = document.getElementById('pinStudent')?.value;
+  const type = document.getElementById('pinType')?.value;
+  const condTab = document.getElementById('tab-cond')?.classList.contains('active');
+  const shouldBeOn = condTab && !!studentId && type === 'seat';
+  if(shouldBeOn !== pinSeatSelectMode){
+    pinSeatSelectMode = shouldBeOn;
+    renderGrid();
+  }
+}
+
+function togglePinSeatMode(){
+  pinSeatSelectMode = !pinSeatSelectMode;
+  const btn = document.getElementById('pinSeatModeBtn');
+  if(pinSeatSelectMode){
+    btn.textContent = '🎯 座席を選択モードOFF';
+    btn.className = 'btn btp btn-full';
+    showToast('座席表の席をクリックして選択してください');
+  } else {
+    btn.textContent = '🎯 座席を選択モードON';
+    btn.className = 'btn bts btn-full';
+  }
+  renderGrid();
+}
+
+function addPinSeatDirect(seatId, row, col){
+  const studentId = document.getElementById('pinStudent')?.value;
+  if(!studentId){
+    showToast('先にサイドバーで生徒を選択してください');
+    return;
+  }
+
+  const pins = getPins();
+  // 同じ生徒の既存ピンを削除（上書き）
+  const filtered = pins.filter(p => p.studentId !== studentId);
+  // 同じ座席への既存ピンも削除（1座席に1生徒のみ）
+  const filtered2 = filtered.filter(p => !(p.type==='seat' && p.seatId===seatId));
+
+  const pin = {
+    id: mkId(),
+    studentId,
+    type: 'seat',
+    seatId,
+    label: `前から${row+1}行・左から${col+1}列の席`
+  };
+  filtered2.push(pin);
+  savePinsData(filtered2);
+
+  // サイドバーのUI更新
+  const student = curClass()?.students?.find(s=>s.id===studentId);
+  document.getElementById('pinSeatPicker').textContent =
+    `${student?.name||'?'} → 前から${row+1}行・左から${col+1}列`;
+  document.getElementById('pinSeatId').value = seatId;
+
+  // 生徒選択をリセット（連続で別の生徒を固定しやすいように）
+  document.getElementById('pinStudent').value = '';
+
+  renderPinList();
+  renderGrid();
+  showToast(`${student?.name||'生徒'}を前から${row+1}行・左から${col+1}列に固定しました`);
+
+  // 生徒未選択になったのでピン選択モードを自動OFF
+  syncPinSeatMode();
+}
+
+function addPin(){
+  const studentId = document.getElementById('pinStudent')?.value;
+  const type = document.getElementById('pinType')?.value;
+  if(!studentId){ showToast('生徒を選択してください'); return; }
+
+  const pins = getPins();
+  // 同じ生徒の既存ピンを削除（上書き）
+  const filtered = pins.filter(p => p.studentId !== studentId);
+
+  const pin = { id: mkId(), studentId, type };
+
+  if(type === 'seat'){
+    const seatId = document.getElementById('pinSeatId')?.value;
+    if(!seatId){ showToast('座席を選択してください'); return; }
+    pin.seatId = seatId;
+    const seat = curRoom().seats.find(s=>s.id===seatId);
+    pin.label = seat ? `前から${seat.row+1}行・左から${seat.col+1}列の席` : '指定席';
+  } else if(type === 'row'){
+    const row = parseInt(document.getElementById('pinRowNum')?.value)||1;
+    pin.row = row - 1; // 0-indexed
+    pin.label = `前から${row}行目`;
+  } else if(type === 'col'){
+    const col = parseInt(document.getElementById('pinColNum')?.value)||1;
+    pin.col = col - 1; // 0-indexed
+    pin.label = `左から${col}列目`;
+  } else if(type === 'rowMax'){
+    const rowMax = parseInt(document.getElementById('pinRowMaxNum')?.value)||1;
+    pin.rowMax = rowMax - 1; // 0-indexed の上限（以下）
+    pin.label = `前から${rowMax}行目まで`;
+  } else if(type === 'colMax'){
+    const colMax = parseInt(document.getElementById('pinColMaxNum')?.value)||1;
+    pin.colMax = colMax - 1; // 0-indexed の上限（以下）
+    pin.label = `左から${colMax}列目まで`;
+  }
+
+  filtered.push(pin);
+  savePinsData(filtered);
+
+  // UIリセット
+  document.getElementById('pinSeatId').value = '';
+  document.getElementById('pinSeatPicker').textContent = '座席グリッドをクリックして選択';
+  if(pinSeatSelectMode) togglePinSeatMode();
+
+  renderPinList();
+  renderGrid();
+  showToast('固定設定を追加しました');
+}
+
+function deletePin(id){
+  savePinsData(getPins().filter(p=>p.id!==id));
+  renderPinList();
+  renderGrid();
+  showToast('固定設定を削除しました');
+}
+
+function renderPinList(){
+  const pins = getPins();
+  const students = curClass()?.students || [];
+  const badge = document.getElementById('pinCountBadge');
+  if(badge) badge.textContent = pins.length ? `（${pins.length}件）` : '';
+  const el = document.getElementById('pinListArea');
+  if(!el) return;
+  if(!pins.length){
+    el.innerHTML='<div class="empty-state"><div class="es-txt">固定設定はまだありません</div></div>';
+    return;
+  }
+  el.innerHTML = pins.map(p=>{
+    const s = students.find(x=>x.id===p.studentId);
+    if(!s) return '';
+    const icon = p.type==='seat'?'●':p.type==='row'?'↕':p.type==='col'?'↔':p.type==='rowMax'?'▲':p.type==='colMax'?'◀':'●';
+    return `<div class="pin-item">
+      <span class="pin-icon">${icon}</span>
+      <div class="pin-body">
+        <div class="pin-name">${s.name}</div>
+        <div class="pin-desc">${p.label||''}</div>
+      </div>
+      <button class="pin-del" onclick="deletePin('${p.id}')" title="削除">×</button>
+    </div>`;
+  }).join('');
+}
+
+// ピンを考慮した座席割り当てを生成
+function applyPinsToAssignment(assignment, students, seats){
+  const pins = getPins();
+  if(!pins.length) return assignment;
+
+  const result = {...assignment};
+  const enabledSeats = seats.filter(s=>s.enabled&&!s.skipAssign);
+
+  // 座席が指定の性別を許容するか（未設定/'any'なら誰でもOK）
+  function seatAllowsGender(seat, gender){
+    if(!seat) return true;
+    const ag = seat.allowedGender;
+    if(!ag || ag === 'any') return true;
+    return ag === gender;
+  }
+
+  // seatId→studentId / studentId→seatId の逆引きマップ
+  function rebuildMaps(asgn){
+    const s2seat={}, seat2s={};
+    Object.entries(asgn).forEach(([sid,stid])=>{s2seat[stid]=sid; seat2s[sid]=stid;});
+    return{s2seat,seat2s};
+  }
+
+  // 候補プールから「男女条件を侵害しない席」を優先して選ぶ
+  // 1) 空席を最優先  2) 交換してもどちらも男女条件OKな席  3) (フォールバック) その他
+  function pickGenderSafeTarget(pool, student, currentSeatOfPin, seat2s){
+    if(!pool.length) return null;
+    const safeFree = [], safeSwap = [], unsafeSwap = [];
+    const oldSeat = currentSeatOfPin ? enabledSeats.find(x=>x.id===currentSeatOfPin) : null;
+    for(const s of pool){
+      const occupantId = seat2s[s.id];
+      if(occupantId === student.id) return s.id; // 既に正しい席
+      if(!occupantId){ safeFree.push(s); continue; }
+      const occupant = students.find(x=>x.id===occupantId);
+      // 交換時に押し出される側が、ピン生徒の元席に座っても男女条件を満たすか
+      const swapOK = !occupant || !oldSeat || seatAllowsGender(oldSeat, occupant.gender);
+      if(swapOK) safeSwap.push(s); else unsafeSwap.push(s);
+    }
+    const choose = arr => arr[Math.floor(Math.random()*arr.length)].id;
+    if(safeFree.length)  return choose(safeFree);
+    if(safeSwap.length)  return choose(safeSwap);
+    return choose(unsafeSwap); // 最終フォールバック
+  }
+
+  for(const pin of pins){
+    const student = students.find(s=>s.id===pin.studentId);
+    if(!student) continue;
+
+    const {seat2s: seat2sPre, s2seat: s2seatPre} = rebuildMaps(result);
+    const currentSeatOfPin = s2seatPre[pin.studentId];
+
+    let targetSeatId = null;
+
+    if(pin.type==='seat'){
+      // ユーザが明示的に指定した席は性別条件より優先
+      if(enabledSeats.find(s=>s.id===pin.seatId)) targetSeatId = pin.seatId;
+    } else {
+      // row / col / rowMax / colMax は性別条件を尊重して候補を絞る
+      let candidates = [];
+      if(pin.type==='row')         candidates = enabledSeats.filter(s=>s.row===pin.row);
+      else if(pin.type==='col')    candidates = enabledSeats.filter(s=>s.col===pin.col);
+      else if(pin.type==='rowMax') candidates = enabledSeats.filter(s=>s.row<=pin.rowMax);
+      else if(pin.type==='colMax') candidates = enabledSeats.filter(s=>s.col<=pin.colMax);
+      // 座席側がピン生徒の性別を許容するもののみ候補に
+      let genderOK = candidates.filter(s=>seatAllowsGender(s, student.gender));
+      if(!genderOK.length) genderOK = candidates; // 候補が無くなったらフォールバック
+      targetSeatId = pickGenderSafeTarget(genderOK, student, currentSeatOfPin, seat2sPre);
+    }
+
+    if(!targetSeatId) continue;
+
+    // ターゲット席に既に別の生徒がいれば交換
+    const {s2seat, seat2s} = rebuildMaps(result);
+    const currentInTarget = seat2s[targetSeatId]; // ターゲット席にいる生徒ID
+    const currentSeatOfPin2 = s2seat[pin.studentId]; // ピン生徒の現在の席
+
+    if(currentInTarget === pin.studentId) continue; // すでに正しい席
+
+    // 交換
+    if(currentSeatOfPin2) result[currentSeatOfPin2] = currentInTarget || null;
+    if(!currentInTarget && currentSeatOfPin2) delete result[currentSeatOfPin2];
+    result[targetSeatId] = pin.studentId;
+    if(currentInTarget && currentSeatOfPin2) result[currentSeatOfPin2] = currentInTarget;
+  }
+
+  // nullエントリを除去
+  Object.keys(result).forEach(k=>{ if(!result[k]) delete result[k]; });
+  return result;
+}
+
+
+
+// ============================================================
+// COPY ROOM LAYOUT
+// ============================================================
+function refreshCopyRoomSelect(){
+  const sel = document.getElementById('copyRoomSelect');
+  if(!sel) return;
+  const curCid = app.currentClassId;
+  const curRid = app.currentRoomId;
+  sel.innerHTML = '';
+  let hasOther = false;
+  // クラス×教室のすべての組み合わせを列挙（自分自身は除外）
+  Object.values(app.classes).forEach(c=>{
+    Object.values(app.rooms).forEach(r=>{
+      if(c.id===curCid && r.id===curRid) return;
+      const lay = app.layouts?.[`${c.id}_${r.id}`];
+      if(!lay) return; // レイアウト未生成のものは除外
+      const o = document.createElement('option');
+      o.value = `${c.id}_${r.id}`;
+      o.textContent = `${c.name} ／ ${r.name}（${lay.cols}×${lay.rows}）`;
+      sel.appendChild(o);
+      hasOther = true;
+    });
+  });
+  if(!hasOther){
+    const o = document.createElement('option');
+    o.value = '';
+    o.textContent = '（他のクラス×教室がありません）';
+    sel.appendChild(o);
+  }
+}
+
+function copyRoomLayout(){
+  const sel = document.getElementById('copyRoomSelect');
+  const srcKey = sel?.value;
+  if(!srcKey){ showToast('コピー元を選択してください'); return; }
+
+  const src = app.layouts?.[srcKey];
+  if(!src){ showToast('コピー元レイアウトが見つかりません'); return; }
+  const [srcCid, srcRid] = srcKey.split('_');
+  const srcClassName = app.classes[srcCid]?.name || '';
+  const srcRoomName  = app.rooms[srcRid]?.name  || '';
+
+  // 現在のクラス×教室のレイアウトを上書き
+  const dst = curLayout();
+  dst.cols = src.cols;
+  dst.rows = src.rows;
+  dst.seats = src.seats.map(s => ({
+    id: `s${s.row}_${s.col}`,
+    row: s.row,
+    col: s.col,
+    enabled: s.enabled,
+    skipAssign: !!s.skipAssign,
+    allowedGender: s.allowedGender,
+    borderColor: s.borderColor,
+    bgColor: s.bgColor,
+  }));
+
+  // 現在の配置をリセット
+  app.assignments[akey()] = {};
+
+  save();
+  syncLayoutInputs();
+  renderGrid();
+  renderGroupList();
+  showToast(`「${srcClassName} ／ ${srcRoomName}」の座席配置をコピーしました`);
+}
+
+// ============================================================
+// SEAT SWAP MODE（座席の入れ替え）
+// ============================================================
+let swapMode = false;
+let swapFirstSeatId = null;
+
+function toggleSwapMode(){
+  swapMode = !swapMode;
+  swapFirstSeatId = null;
+  const btn = document.getElementById('swapModeBtn');
+  if(swapMode){
+    btn.textContent = '🔄 入替中';
+    btn.className = 'btn btw'; // 警告色で入替中を明示
+    showToast('入替モード：交換したい席を2つタップしてください');
+  } else {
+    btn.textContent = '🔄 入替';
+    btn.className = 'btn bts';
+  }
+  renderGrid();
+}
+
+function handleSwapClick(seatId){
+  const asgn = curAsgn();
+  if(!asgn[seatId] && !swapFirstSeatId){ showToast('生徒がいない席は選択できません'); return; }
+  if(!swapFirstSeatId){
+    // 1席目選択
+    swapFirstSeatId = seatId;
+    renderGrid();
+    showToast('1席目を選択しました。2席目をタップしてください');
+  } else {
+    if(swapFirstSeatId === seatId){
+      // 同じ席をタップ → 選択解除
+      swapFirstSeatId = null;
+      renderGrid();
+      return;
+    }
+    // 2席目選択 → 交換実行
+    const s1 = asgn[swapFirstSeatId];
+    const s2 = asgn[seatId];
+    if(s1) asgn[seatId] = s1; else delete asgn[seatId];
+    if(s2) asgn[swapFirstSeatId] = s2; else delete asgn[swapFirstSeatId];
+    app.assignments[akey()] = asgn;
+    save();
+    swapFirstSeatId = null;
+    renderGrid();
+    showToast('座席を入れ替えました');
+  }
+}
+
+// ============================================================
+// CLEAR SEATING（座席表リセット — 名簿・条件・固定はそのまま）
+// ============================================================
+function clearSeating(){
+  const btn = document.getElementById('clearSeatingBtn');
+  if(!btn) return;
+  // 2段階確認（confirm省略・iPad対応）
+  if(!btn.dataset.confirmed){
+    btn.dataset.confirmed = '1';
+    btn.textContent = '✓ もう一度押して確定';
+    btn.className = 'btn btw';
+    setTimeout(()=>{
+      if(btn){ btn.dataset.confirmed=''; btn.textContent='🆕 新しい席替え'; btn.className='btn bts'; }
+    }, 3000);
+    return;
+  }
+  btn.dataset.confirmed = '';
+  btn.textContent = '🆕 新しい席替え';
+  btn.className = 'btn bts';
+
+  // 現在のクラス×教室の配置のみクリア
+  app.assignments[akey()] = {};
+  save();
+  // 中断中のルーレットセッションも破棄
+  clearRlSession();
+  refreshResumeBanner();
+
+  // 入替モードが有効なら解除
+  if(swapMode) toggleSwapMode();
+
+  renderGrid();
+  updateAssignInfo();
+  showToast('座席表をクリアしました。新しい席替えを始められます');
+}
+
+// ============================================================
+// PHASE 5: VIEW TOGGLE / JPG EXPORT / PRINT
+// ============================================================
+let currentView = 'student'; // 'student' | 'teacher'
+
+function setView(v) {
+  currentView = v;
+  const wrap = document.getElementById('normalView');
+  const btnS = document.getElementById('viewBtnStudent');
+  const btnT = document.getElementById('viewBtnTeacher');
+  if (v === 'teacher') {
+    wrap.classList.add('flipped');
+    btnS.classList.remove('active');
+    btnT.classList.add('active');
+  } else {
+    wrap.classList.remove('flipped');
+    btnT.classList.remove('active');
+    btnS.classList.add('active');
+  }
+  updatePrintHeader();
+}
+
+// 月日のみを「○月○日」形式に整形
+function formatMonthDay(month, day){
+  if(month==null || day==null){
+    const t = new Date();
+    return `${t.getMonth()+1}月${t.getDate()}日`;
+  }
+  return `${month}月${day}日`;
+}
+
+// 印刷ヘッダーには月日のみ表示
+function updatePrintHeader(dateStr) {
+  const hdr = document.getElementById('printHeader');
+  if (!hdr) return;
+  hdr.textContent = dateStr || formatMonthDay();
+}
+
+// ----- 印刷／JPG 用の月日選択モーダル -----
+let _printDateAction = null; // 'print' | 'jpg'
+
+// プルダウンの中身を構築（初回のみ）
+function buildPrintDateSelects(){
+  const ms = document.getElementById('printMonthSelect');
+  const ds = document.getElementById('printDaySelect');
+  if(ms && ms.options.length === 0){
+    for(let m=1;m<=12;m++){
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      ms.appendChild(o);
+    }
+  }
+  if(ds && ds.options.length === 0){
+    for(let d=1;d<=31;d++){
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d;
+      ds.appendChild(o);
+    }
+  }
+}
+
+function openPrintDateDialog(action){
+  _printDateAction = action;
+  // タイトルとボタンラベルを切り替え
+  document.getElementById('printDateTitle').textContent =
+    action === 'print' ? '印刷する月日を選択' : 'JPG保存する月日を選択';
+  document.getElementById('printDateConfirmBtn').textContent =
+    action === 'print' ? '🖨 この日付で印刷' : '💾 この日付でJPG保存';
+  // 月日プルダウンを構築・今日の月日をデフォルト選択
+  buildPrintDateSelects();
+  const today = new Date();
+  document.getElementById('printMonthSelect').value = today.getMonth()+1;
+  document.getElementById('printDaySelect').value = today.getDate();
+  openModal('printDate');
+}
+
+function confirmPrintDate(){
+  const m = parseInt(document.getElementById('printMonthSelect').value, 10);
+  const d = parseInt(document.getElementById('printDaySelect').value, 10);
+  if(!m || !d){ showToast('月日を選択してください'); return; }
+  const dateStr = formatMonthDay(m, d);
+  // ファイル名用：今年の年で組み立て（座席表の表示には出ない）
+  const yyyy = new Date().getFullYear();
+  const isoForFilename = `${yyyy}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  closeModal('printDate');
+  if(_printDateAction === 'print') doPrintSeating(dateStr);
+  else if(_printDateAction === 'jpg') doSaveAsJpg(dateStr, isoForFilename);
+}
+
+// ボタンクリックの入口（既存の onclick は printSeating()/saveAsJpg() を呼ぶ）
+function printSeating(){ openPrintDateDialog('print'); }
+function saveAsJpg(){ openPrintDateDialog('jpg'); }
+
+function doSaveAsJpg(dateStr, isoDate) {
+  const target = document.getElementById('printTarget');
+  if (!target) { showToast('座席表が見つかりません'); return; }
+  if (typeof html2canvas === 'undefined') { showToast('html2canvas が読み込まれていません'); return; }
+
+  // 印刷用に一時的にふりがな・番号を強制ON
+  const yomiCk = document.getElementById('showYomi');
+  const numCk = document.getElementById('showNumber');
+  const origYomi = yomiCk.checked, origNum = numCk.checked;
+  yomiCk.checked = true; numCk.checked = true;
+  renderGrid();
+
+  // ヘッダーを月日のみで表示、座席表下部の情報は一時的に隠す
+  // 月日は右下に絶対配置するので、コンテナの下に余白を確保
+  const hdr = document.getElementById('printHeader');
+  const gInfo = document.getElementById('gridInfo');
+  const origHdrDisplay = hdr.style.display;
+  const origGInfoDisplay = gInfo ? gInfo.style.display : '';
+  const origPadBottom = target.style.paddingBottom;
+  hdr.style.display = 'block';
+  target.style.paddingBottom = '26px';
+  if(gInfo) gInfo.style.display = 'none';
+  updatePrintHeader(dateStr);
+
+  showToast('画像を生成中...');
+  const restore = () => {
+    hdr.style.display = origHdrDisplay;
+    target.style.paddingBottom = origPadBottom;
+    if(gInfo) gInfo.style.display = origGInfoDisplay;
+    yomiCk.checked = origYomi; numCk.checked = origNum;
+    renderGrid();
+  };
+
+  html2canvas(target, {
+    scale: 2,
+    backgroundColor: '#f4f2ee',
+    useCORS: true,
+    logging: false
+  }).then(canvas => {
+    restore();
+    const link = document.createElement('a');
+    const cls = curClass();
+    const room = curRoom();
+    link.download = `座席表_${cls?.name||'クラス'}_${room?.name||'教室'}_${isoDate||'今日'}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+    showToast('JPGを保存しました');
+  }).catch(() => {
+    restore();
+    showToast('画像の生成に失敗しました');
+  });
+}
+
+function doPrintSeating(dateStr) {
+  const yomiCk = document.getElementById('showYomi');
+  const numCk = document.getElementById('showNumber');
+  const origYomi = yomiCk.checked, origNum = numCk.checked;
+  yomiCk.checked = true; numCk.checked = true;
+  renderGrid();
+  const target = document.getElementById('printTarget');
+  const hdr = document.getElementById('printHeader');
+  const origPadBottom = target.style.paddingBottom;
+  hdr.style.display = 'block';
+  target.style.paddingBottom = '26px';
+  updatePrintHeader(dateStr);
+
+  // A4横向き1ページに収まるよう縮尺を計算
+  // A4横の内寸（10mm マージンを除く）≒ 277mm × 190mm @ 96dpi → 約 1047px × 718px
+  const rect = target.getBoundingClientRect();
+  const targetW = Math.max(rect.width, target.scrollWidth);
+  const targetH = Math.max(rect.height, target.scrollHeight);
+  const A4_W_PX = 277 * 3.7795;  // 約1047px
+  const A4_H_PX = 190 * 3.7795;  // 約718px
+  const scale = Math.min(1, A4_W_PX/targetW, A4_H_PX/targetH);
+  document.documentElement.style.setProperty('--print-scale', String(scale));
+  document.body.classList.add('print-mode');
+
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove('print-mode');
+    document.documentElement.style.removeProperty('--print-scale');
+    hdr.style.display = 'none';
+    target.style.paddingBottom = origPadBottom;
+    yomiCk.checked = origYomi; numCk.checked = origNum;
+    renderGrid();
+  }, 800);
+}
+
+
+// ============================================================
+// PHASE 6: HISTORY MANAGEMENT
+// ============================================================
+const HIST_MAX = 20; // クラス×教室ごとの最大保存件数
+
+function histKey(classId, roomId){
+  return `sekigae_hist_${classId}_${roomId}`;
+}
+
+function loadHistory(classId, roomId){
+  try{
+    return JSON.parse(localStorage.getItem(histKey(classId, roomId)) || '[]');
+  }catch{ return []; }
+}
+
+function saveHistoryData(classId, roomId, arr){
+  localStorage.setItem(histKey(classId, roomId), JSON.stringify(arr));
+}
+
+function saveHistory(assignment){
+  const cls = curClass();
+  const room = curRoom();
+  if(!cls || !room || !assignment) return;
+  if(!Object.keys(assignment).length) return;
+
+  const hist = loadHistory(app.currentClassId, app.currentRoomId);
+  const snap = {
+    className: cls.name,
+    roomName: room.name,
+    cols: room.cols,
+    rows: room.rows,
+    students: cls.students.map(s=>({...s})),
+    seats: room.seats.map(s=>({...s}))
+  };
+  const entry = {
+    id: mkId(),
+    classId: app.currentClassId,
+    roomId: app.currentRoomId,
+    timestamp: Date.now(),
+    assignment: {...assignment},
+    snapshot: snap
+  };
+
+  hist.unshift(entry); // 新しいものを先頭に
+  if(hist.length > HIST_MAX) hist.splice(HIST_MAX);
+  saveHistoryData(app.currentClassId, app.currentRoomId, hist);
+}
+
+function restoreHistory(classId, roomId, entryId){
+  const hist = loadHistory(classId, roomId);
+  const entry = hist.find(h => h.id === entryId);
+  if(!entry){ showToast('履歴が見つかりません'); return; }
+
+  // confirmを使わず、ボタンを「確認」状態に変えてもう一度押させる方式
+  const btnId = 'restore_' + entryId;
+  const btn = document.getElementById(btnId);
+  if(btn && !btn.dataset.confirmed){
+    btn.dataset.confirmed = '1';
+    btn.textContent = '✓ もう一度押して確定';
+    btn.className = 'btn btw bsm';
+    setTimeout(()=>{
+      if(btn){ btn.dataset.confirmed=''; btn.textContent='↩ 復元'; btn.className='btn btp bsm'; }
+    }, 3000);
+    return;
+  }
+
+  // クラス・教室を切り替え
+  if(classId !== app.currentClassId || roomId !== app.currentRoomId){
+    app.currentClassId = classId;
+    app.currentRoomId = roomId;
+    refreshHeader();
+  }
+
+  // スナップショットから名簿・座席を復元
+  const snap = entry.snapshot;
+  curClass().students = snap.students;
+  curRoom().cols = snap.cols;
+  curRoom().rows = snap.rows;
+  curRoom().seats = snap.seats;
+  app.assignments[akey()] = entry.assignment;
+  save();
+  syncLayoutInputs();
+  renderStudentList();
+  renderGrid();
+  switchTab('roster');
+  showToast('座席表を復元しました');
+}
+
+function deleteHistoryEntry(classId, roomId, entryId){
+  // confirm はiPadローカルファイルで動作しない場合があるため省略
+  const hist = loadHistory(classId, roomId).filter(h => h.id !== entryId);
+  saveHistoryData(classId, roomId, hist);
+  renderHistoryList();
+  showToast('削除しました');
+}
+
+function clearAllHistory(classId, roomId){
+  // confirm省略（iPad対応）
+  saveHistoryData(classId, roomId, []);
+  renderHistoryList();
+  showToast('全履歴を削除しました');
+}
+
+function refreshHistoryFilters(){
+  const cf = document.getElementById('histClassFilter');
+  const rf = document.getElementById('histRoomFilter');
+  if(!cf || !rf) return;
+  const curCfVal = cf.value, curRfVal = rf.value;
+  cf.innerHTML = '<option value="">すべてのクラス</option>';
+  Object.values(app.classes).forEach(c=>{
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.name;
+    cf.appendChild(o);
+  });
+  rf.innerHTML = '<option value="">すべての教室</option>';
+  Object.values(app.rooms).forEach(r=>{
+    const o = document.createElement('option');
+    o.value = r.id; o.textContent = r.name;
+    rf.appendChild(o);
+  });
+  cf.value = curCfVal;
+  rf.value = curRfVal;
+}
+
+function renderHistoryList(){
+  const el = document.getElementById('historyListArea');
+  if(!el) return;
+
+  const filterClass = document.getElementById('histClassFilter')?.value || '';
+  const filterRoom  = document.getElementById('histRoomFilter')?.value  || '';
+
+  // 全クラス×教室の組み合わせから履歴を収集
+  let allEntries = [];
+  Object.keys(app.classes).forEach(cid=>{
+    if(filterClass && cid !== filterClass) return;
+    Object.keys(app.rooms).forEach(rid=>{
+      if(filterRoom && rid !== filterRoom) return;
+      const hist = loadHistory(cid, rid);
+      hist.forEach(h => allEntries.push({...h, classId: cid, roomId: rid}));
+    });
+  });
+  allEntries.sort((a,b) => b.timestamp - a.timestamp);
+
+  if(!allEntries.length){
+    el.innerHTML = '<div class="empty-state"><div class="es-txt">履歴はまだありません<br>席替えを実行すると自動保存されます</div></div>';
+    return;
+  }
+
+  el.innerHTML = allEntries.map(entry => {
+    const snap = entry.snapshot;
+    const dt = new Date(entry.timestamp);
+    const dateStr = dt.toLocaleDateString('ja-JP') + ' ' + dt.toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'});
+    const cls = app.classes[entry.classId];
+    const room = app.rooms[entry.roomId];
+    const clsName = cls?.name || snap?.className || '不明';
+    const roomName = room?.name || snap?.roomName || '不明';
+    const studentCount = snap?.students?.length || 0;
+
+    return `<div class="hist-item" id="hist-${entry.id}">
+      <div class="hist-header" onclick="toggleHistItem('${entry.id}')">
+        <span class="hist-date">${dateStr}</span>
+        <span class="hist-label">${clsName} / ${roomName}</span>
+        <span class="hist-cls">${studentCount}名</span>
+        <span style="font-size:12px;color:var(--tx3);">▼</span>
+      </div>
+      <div class="hist-preview">
+        ${renderMiniGrid(entry)}
+      </div>
+      <div class="hist-actions">
+        <button class="btn bts bsm" onclick="previewHistory('${entry.classId}','${entry.roomId}','${entry.id}')">🔍 大きく見る</button>
+        <button class="btn btp bsm" id="restore_${entry.id}" onclick="restoreHistory('${entry.classId}','${entry.roomId}','${entry.id}')">↩ 復元</button>
+        <button class="btn btd bsm" onclick="deleteHistoryEntry('${entry.classId}','${entry.roomId}','${entry.id}')">削除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistItem(id){
+  const el = document.getElementById('hist-'+id);
+  if(el) el.classList.toggle('expanded');
+}
+
+function renderMiniGrid(entry){
+  const snap = entry.snapshot;
+  if(!snap) return '';
+  const cols = snap.cols || 6;
+  const rows = snap.rows || 6;
+  const studentMap = {};
+  (snap.students||[]).forEach(s=>{ studentMap[s.id]=s; });
+  // seatId -> studentId
+  const asgn = entry.assignment || {};
+  const seatMap = {};
+  (snap.seats||[]).forEach(s=>{ seatMap[s.id]=s; });
+
+  const seatW = Math.min(40, Math.floor(220/cols));
+  const seatH = Math.max(18, Math.floor(seatW*0.6));
+
+  let html = `<div class="hist-mini-grid" style="grid-template-columns:repeat(${cols},${seatW}px);gap:2px;">`;
+  (snap.seats||[]).forEach(seat=>{
+    if(!seat.enabled){html+=`<div style="width:${seatW}px;height:${seatH}px;"></div>`;return;}
+    if(seat.skipAssign){html+=`<div style="width:${seatW}px;height:${seatH}px;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 3px,#e5e7eb 3px,#e5e7eb 6px);border:1px dashed #9ca3af;border-radius:2px;"></div>`;return;}
+    const studentId = asgn[seat.id];
+    const s = studentMap[studentId];
+    const gClass = s ? (s.gender==='male'?'male':s.gender==='female'?'female':'') : '';
+    const name = s ? s.name.slice(0,3) : '';
+    html+=`<div class="hist-mini-seat ${gClass}" style="width:${seatW}px;height:${seatH}px;">${name}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportData(){
+  try{
+    // メインデータ
+    const mainData = localStorage.getItem(SK);
+    if(!mainData){ showToast('保存されたデータがありません'); return; }
+
+    const parsed = JSON.parse(mainData);
+
+    // 付属データ（条件・履歴・設定）をすべて収集
+    const extra = {};
+    const prefix = ['_cond','_gmode','_zsplit','_pins'];
+
+    // 全クラス×全教室の組み合わせで付属キーを収集
+    Object.keys(parsed.classes||{}).forEach(cid=>{
+      Object.keys(parsed.rooms||{}).forEach(rid=>{
+        const ak = `${cid}_${rid}`;
+        prefix.forEach(p=>{
+          const key = ak + p;
+          const val = localStorage.getItem(key);
+          if(val) extra[key] = val;
+        });
+        // 履歴
+        const hk = `sekigae_hist_${cid}_${rid}`;
+        const hv = localStorage.getItem(hk);
+        if(hv) extra[hk] = hv;
+        // 中断中ルーレットセッション
+        const rk = RL_KEY_PREFIX + ak;
+        const rv = localStorage.getItem(rk);
+        if(rv) extra[rk] = rv;
+      });
+    });
+
+    // 効果音設定
+    const sound = localStorage.getItem('sekigae_sound');
+    if(sound) extra['sekigae_sound'] = sound;
+
+    const exportObj = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      main: mainData,
+      extra
+    };
+
+    const json = JSON.stringify(exportObj, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href     = url;
+    a.download = `席替えアプリ_バックアップ_${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('エクスポートしました');
+  }catch(e){
+    showToast('エクスポートに失敗しました: ' + e.message);
+  }
+}
+
+function importData(input){
+  const file = input.files[0];
+  if(!file){ return; }
+
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const obj = JSON.parse(e.target.result);
+
+      // バージョンチェック
+      if(!obj.main){
+        showToast('形式が正しくありません');
+        input.value='';
+        return;
+      }
+
+// confirm省略（iPad対応）
+
+      // メインデータ書き込み
+      localStorage.setItem(SK, obj.main);
+
+      // 付属データ書き込み
+      if(obj.extra){
+        Object.entries(obj.extra).forEach(([k,v])=>{
+          localStorage.setItem(k, v);
+        });
+      }
+
+      input.value='';
+      showToast('インポートしました。再読み込みします...');
+      setTimeout(()=>location.reload(), 1200);
+    }catch(err){
+      showToast('読み込みに失敗しました: ' + err.message);
+      input.value='';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// MISC — データ消去メニュー
+// ============================================================
+
+// 現在の localStorage 使用状況を文字列で返す
+function describeStorageUsage(){
+  let totalBytes = 0, sekigaeKeys = 0, sekigaeBytes = 0;
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    const v = localStorage.getItem(k) || '';
+    const bytes = (k.length + v.length) * 2; // UTF-16 概算
+    totalBytes += bytes;
+    if(k.startsWith('sekigae_')){ sekigaeKeys++; sekigaeBytes += bytes; }
+  }
+  const fmt = b => b<1024 ? b+'B' : b<1024*1024 ? (b/1024).toFixed(1)+'KB' : (b/1024/1024).toFixed(2)+'MB';
+  let cls = 0, students = 0, rooms = 0, history = 0;
+  try{
+    cls = Object.keys(app.classes||{}).length;
+    students = Object.values(app.classes||{}).reduce((n,c)=>n+(c.students?.length||0),0);
+    rooms = Object.keys(app.rooms||{}).length;
+    Object.keys(app.classes||{}).forEach(cid=>{
+      Object.keys(app.rooms||{}).forEach(rid=>{
+        try{ history += JSON.parse(localStorage.getItem(`sekigae_hist_${cid}_${rid}`)||'[]').length; }catch{}
+      });
+    });
+  }catch{}
+  return `現在の保存内容：クラス${cls}・教室${rooms}・生徒${students}名・席替え履歴${history}件<br>` +
+         `席替えアプリのデータ量：${fmt(sekigaeBytes)}（${sekigaeKeys}項目）`;
+}
+
+function openWipeModal(){
+  // 各ボタンの確認状態をリセット
+  ['history','roster','rooms','all'].forEach(k=>{
+    const b = document.getElementById('wipeBtn-'+k);
+    if(b){ b.dataset.confirmed=''; b.dataset.origLabel=''; }
+  });
+  const info = document.getElementById('wipe-storageInfo');
+  if(info) info.innerHTML = describeStorageUsage();
+  openModal('wipe');
+}
+function closeWipeModal(){ closeModal('wipe'); }
+
+// ボタンを2段階確認モードへ。元のラベルを保存してから「もう一度押して確定」表示に
+function armWipeBtn(btn, originalHTML, restoreClass){
+  btn.dataset.confirmed = '1';
+  btn.dataset.origLabel = originalHTML;
+  btn.innerHTML = '<div style="font-weight:700;font-size:13px;">✓ もう一度押して実行（3秒以内）</div>';
+  setTimeout(()=>{
+    if(btn && btn.dataset.confirmed==='1'){
+      btn.dataset.confirmed='';
+      btn.innerHTML = btn.dataset.origLabel;
+    }
+  }, 3000);
+}
+
+// メインハンドラ：種別に応じた消去を実行（2段階確認付き）
+function wipeHandle(kind){
+  const btn = document.getElementById('wipeBtn-'+kind);
+  if(!btn) return;
+  if(btn.dataset.confirmed !== '1'){
+    armWipeBtn(btn, btn.innerHTML);
+    return;
+  }
+  btn.dataset.confirmed = '';
+  // 確定実行
+  if(kind==='history')      doWipeHistory();
+  else if(kind==='roster')  doWipeRosters();
+  else if(kind==='rooms')   doWipeRooms();
+  else if(kind==='all')     doWipeAll();
+}
+
+// ── 履歴のみ
+function doWipeHistory(){
+  Object.keys(app.classes).forEach(cid=>{
+    Object.keys(app.rooms).forEach(rid=>{
+      localStorage.removeItem(`sekigae_hist_${cid}_${rid}`);
+    });
+  });
+  renderHistoryList();
+  closeWipeModal();
+  showToast('全履歴を消去しました');
+}
+
+// ── 名簿（年度替わり用）
+function doWipeRosters(){
+  Object.values(app.classes).forEach(c=>{ c.students=[]; });
+  app.assignments={};
+  Object.keys(app.classes).forEach(cid=>{
+    Object.keys(app.rooms).forEach(rid=>{
+      const ak=`${cid}_${rid}`;
+      ['_cond','_pins','_gmode','_zsplit'].forEach(p=>localStorage.removeItem(ak+p));
+      localStorage.removeItem(`sekigae_hist_${cid}_${rid}`);
+      localStorage.removeItem(rlKeyFor(cid, rid));
+    });
+  });
+  save();
+  renderStudentList(); renderGrid(); updateAssignInfo();
+  refreshCondStudentSelects(); refreshPinStudentSelect();
+  renderPinList(); renderCondList();
+  renderHistoryList(); refreshResumeBanner();
+  closeWipeModal();
+  showToast('名簿・配置・条件・履歴・中断中ルーレットを消去しました');
+}
+
+// ── 教室データ（レイアウト・座席設定など）を初期化、クラス・名簿は残す
+function doWipeRooms(){
+  // 全クラス・全教室の付属データ（条件・固定・履歴・中断中ルーレット）を消去
+  Object.keys(app.classes).forEach(cid=>{
+    Object.keys(app.rooms).forEach(rid=>{
+      const ak=`${cid}_${rid}`;
+      ['_cond','_pins','_gmode','_zsplit'].forEach(p=>localStorage.removeItem(ak+p));
+      localStorage.removeItem(`sekigae_hist_${cid}_${rid}`);
+      localStorage.removeItem(rlKeyFor(cid, rid));
+    });
+  });
+  // 教室を初期状態に戻す（普通教室1つ）
+  const newRid = mkId();
+  app.rooms = { [newRid]: {id:newRid, name:'普通教室'} };
+  app.currentRoomId = newRid;
+  // レイアウトをすべて消去し、各クラスにデフォルトレイアウトを生成
+  app.layouts = {};
+  Object.keys(app.classes).forEach(cid=>{
+    app.layouts[`${cid}_${newRid}`] = { cols:6, rows:6, seats: buildSeats(6,6) };
+  });
+  // 配置もクリア（座席IDが変わるため）
+  app.assignments = {};
+  save();
+  refreshHeader(); syncLayoutInputs(); renderGrid(); renderManageLists();
+  renderGroupList(); refreshCopyRoomSelect();
+  refreshCondStudentSelects(); refreshPinStudentSelect();
+  renderPinList(); renderCondList();
+  renderHistoryList(); refreshResumeBanner(); updateAssignInfo();
+  closeWipeModal();
+  showToast('教室レイアウト・座席設定・履歴を消去しました（クラス・名簿は保持）');
+}
+
+// ── 全データ完全消去（個人情報を含む全削除）
+function doWipeAll(){
+  // sekigae_ で始まる全キーを根こそぎ削除（防御的）
+  const toRemove = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith('sekigae_')) toRemove.push(k);
+  }
+  toRemove.forEach(k=>localStorage.removeItem(k));
+  // 念のため明示的にも削除
+  localStorage.removeItem(SK);
+  localStorage.removeItem('sekigae_sound');
+  // ページをリロードして初期状態に
+  location.reload();
+}
+
+
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
