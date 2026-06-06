@@ -266,6 +266,36 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
 .classroom-wrapper.flipped .grid-info { transform: rotate(180deg); }
 .classroom-wrapper.flipped .print-header { transform: rotate(180deg); }
 
+/* ===== 印刷デザイン（テーマ） ===== */
+/* シンプル＝装飾なし（従来表示）。装飾テーマは #printTarget に .deco と .theme-* を付与して表現する。
+   男女色・班色は維持し、枠・背景・黒板ヘッダー・教壇ボックスだけをテーマ化する。 */
+.design-sel{ padding:6px 9px;border:1px solid var(--bd2);border-radius:var(--rs);background:var(--s2);color:var(--tx);font-size:12px;font-family:inherit;cursor:pointer; }
+.deco-top, .deco-garland{ display:none; }
+.classroom-container.deco{ padding:22px 26px 26px;border-radius:20px;box-shadow:0 6px 30px rgba(0,0,0,.13);transition:background .2s; }
+.classroom-container.deco .deco-top{ display:flex;align-items:center;gap:12px;align-self:stretch;min-width:320px;margin-bottom:4px; }
+.deco-board{ flex:1;min-width:0;text-align:center;font-size:23px;font-weight:700;letter-spacing:.1em;padding:13px 22px;border-radius:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.deco-clock{ font-size:30px;line-height:1;flex-shrink:0; }
+.classroom-container.deco .deco-garland{ display:block;align-self:stretch;text-align:center;font-size:21px;letter-spacing:7px;margin:2px 0 0;line-height:1.2;min-height:4px; }
+.classroom-container.deco .seat{ border-radius:11px;box-shadow:0 2px 6px rgba(0,0,0,.1); }
+.classroom-container.deco .teacher-desk{ box-shadow:0 2px 10px rgba(0,0,0,.15); }
+/* 教師視点ではコンテナが180°回転するので、装飾も正立するよう打ち消し回転する */
+.classroom-wrapper.flipped .deco-top,.classroom-wrapper.flipped .deco-garland{ transform:rotate(180deg); }
+/* --- 水彩教室（添付画像風） --- */
+.classroom-container.theme-classroom{ background:#e8f1e2; }
+.classroom-container.theme-classroom .seat{ border-color:#5aa0cf; }
+.classroom-container.theme-classroom .teacher-desk{ background:#fff;color:#2c6e9e;border:3px solid #6ab0da; }
+.theme-classroom .deco-board{ background:linear-gradient(165deg,#4f9163,#3d7a50);color:#fff;border:6px solid #8a6240;border-radius:10px;text-shadow:0 1px 3px rgba(0,0,0,.35);box-shadow:inset 0 0 18px rgba(0,0,0,.28); }
+/* --- ポップ（パステル） --- */
+.classroom-container.theme-pop{ background:linear-gradient(160deg,#fff3f9,#fef6e3); }
+.classroom-container.theme-pop .seat{ border-color:#ff9ec6; }
+.classroom-container.theme-pop .teacher-desk{ background:#fff6fb;color:#d6336c;border:3px dashed #ffb0d4; }
+.theme-pop .deco-board{ background:linear-gradient(135deg,#ffd6e6,#ffe9b8);color:#c44d77;border:3px dashed #ff9ec6;border-radius:999px; }
+/* --- シック（落ち着いた） --- */
+.classroom-container.theme-chic{ background:#f1eee8; }
+.classroom-container.theme-chic .seat{ border-color:#b9a07a; }
+.classroom-container.theme-chic .teacher-desk{ background:#2c3a49;color:#f3eee2;border:1px solid #c9a96a; }
+.theme-chic .deco-board{ background:#2c3a49;color:#f3eee2;border:1px solid #c9a96a;border-radius:4px;letter-spacing:.2em;font-weight:600; }
+
 /* ルーレット全画面モード */
 .roulette-mode .sidebar { display:none !important; }
 .roulette-mode .main-area { width:100vw !important; }
@@ -642,6 +672,14 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
       <input type="checkbox" id="showGroupColor" checked onchange="renderGrid()"> 班色
     </label>
     <div class="tdiv"></div>
+    <span class="tlbl">🎨 デザイン</span>
+    <select id="designSelect" class="design-sel" onchange="setDesign(this.value)" title="印刷・JPGのデザインを選びます">
+      <option value="simple">シンプル（標準）</option>
+      <option value="classroom">水彩教室</option>
+      <option value="pop">ポップ</option>
+      <option value="chic">シック</option>
+    </select>
+    <div class="tdiv"></div>
     <button class="btn bts" onclick="saveAsJpg()" title="JPGで保存">💾 JPG保存</button>
     <button class="btn bts" onclick="printSeating()" title="印刷">🖨 印刷</button>
     <div class="tdiv"></div>
@@ -654,6 +692,11 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
   <!-- 通常グリッドビュー -->
   <div class="classroom-wrapper" id="normalView">
     <div class="classroom-container" id="printTarget">
+      <div class="deco-top" id="decoTop" aria-hidden="true">
+        <div class="deco-board"><span id="decoTitle">座席表</span></div>
+        <div class="deco-clock" id="decoClock">🕘</div>
+      </div>
+      <div class="deco-garland" id="decoGarland" aria-hidden="true"></div>
       <div class="print-header" id="printHeader"></div>
       <div class="teacher-desk" id="teacherDeskMain">📖 教卓（前）</div>
       <div class="seat-grid" id="seatGrid"></div>
@@ -747,6 +790,16 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
           <select class="fi" id="printDaySelect" style="flex:1;"></select>
           <span style="font-size:13px;color:var(--tx2);">日</span>
         </div>
+      </div>
+      <div class="fg">
+        <label class="flbl">デザイン</label>
+        <select class="fi" id="printDesignSelect" onchange="setDesign(this.value)">
+          <option value="simple">シンプル（標準）</option>
+          <option value="classroom">水彩教室</option>
+          <option value="pop">ポップ</option>
+          <option value="chic">シック</option>
+        </select>
+        <p class="fhint">印刷・JPGに使うデザインです。選ぶと画面の座席表にも反映されます。</p>
       </div>
     </div>
     <div class="mfoot">
@@ -989,6 +1042,10 @@ window.onload=()=>{
   // restore sound pref
   const pref=localStorage.getItem('sekigae_sound');
   if(pref==='0'){const el=document.getElementById('soundEnabled');if(el)el.checked=false;}
+  // restore print design pref
+  let dpref='simple';
+  try{ dpref=localStorage.getItem('sekigae_design')||'simple'; }catch{}
+  setDesign(dpref);
 };
 
 // ============================================================
@@ -1479,6 +1536,7 @@ function calcNameFontSize(name, seatW, seatH, hasNum, hasYomi){
 
 function renderGrid(){
   const room=curRoom();const cls=curClass();const asgn=curAsgn();
+  updateDecoTitle();
   const showYomi=document.getElementById('showYomi')?.checked;
   const showNum=document.getElementById('showNumber')?.checked;
   const showColor=document.getElementById('showGender')?.checked??true;
@@ -3671,6 +3729,47 @@ function setView(v) {
   updatePrintHeader();
 }
 
+// ----- 印刷デザイン（テーマ） -----
+const DESIGNS = ['simple','classroom','pop','chic'];
+let currentDesign = 'simple';
+// テーマごとの装飾（花飾りの絵柄・時計の表示有無）
+const DESIGN_DECO = {
+  simple:    { garland:'',                       clock:false },
+  classroom: { garland:'🌸 🌼 🌷 🌿 🌷 🌼 🌸',   clock:true  },
+  pop:       { garland:'⭐ 🎈 🌈 💖 🌈 🎈 ⭐',   clock:true  },
+  chic:      { garland:'',                       clock:false },
+};
+
+function setDesign(id){
+  if(!DESIGNS.includes(id)) id = 'simple';
+  currentDesign = id;
+  const target = document.getElementById('printTarget');
+  if(target){
+    target.classList.remove('deco','theme-classroom','theme-pop','theme-chic');
+    if(id !== 'simple') target.classList.add('deco','theme-'+id);
+  }
+  const deco = DESIGN_DECO[id] || DESIGN_DECO.simple;
+  const garland = document.getElementById('decoGarland');
+  if(garland){ garland.textContent = deco.garland; garland.style.display = deco.garland ? '' : 'none'; }
+  const clock = document.getElementById('decoClock');
+  if(clock) clock.style.display = deco.clock ? '' : 'none';
+  updateDecoTitle();
+  // 2か所のデザイン選択UI（ツールバー・印刷ダイアログ）を同期
+  ['designSelect','printDesignSelect'].forEach(elid=>{
+    const el = document.getElementById(elid);
+    if(el && el.value !== id) el.value = id;
+  });
+  try{ localStorage.setItem('sekigae_design', id); }catch{}
+}
+
+// 装飾ヘッダー（黒板）のタイトルを現在のクラス名で更新
+function updateDecoTitle(){
+  const t = document.getElementById('decoTitle');
+  if(!t) return;
+  const cls = curClass();
+  t.textContent = (cls && cls.name) ? `${cls.name}　座席表` : '座席表';
+}
+
 // 月日のみを「○月○日」形式に整形
 function formatMonthDay(month, day){
   if(month==null || day==null){
@@ -3722,6 +3821,9 @@ function openPrintDateDialog(action){
   const today = new Date();
   document.getElementById('printMonthSelect').value = today.getMonth()+1;
   document.getElementById('printDaySelect').value = today.getDate();
+  // 現在のデザインをダイアログにも反映
+  const pds = document.getElementById('printDesignSelect');
+  if(pds) pds.value = currentDesign;
   openModal('printDate');
 }
 
@@ -3777,7 +3879,7 @@ function doSaveAsJpg(dateStr, isoDate) {
 
   html2canvas(target, {
     scale: 2,
-    backgroundColor: '#f4f2ee',
+    backgroundColor: (currentDesign && currentDesign !== 'simple') ? '#ffffff' : '#f4f2ee',
     useCORS: true,
     logging: false
   }).then(canvas => {
