@@ -1,13 +1,13 @@
-"""完全オフライン版（席替えアプリ.html）生成スクリプト
+"""完全オフライン版（席替えアプリ_オフライン版.html）生成スクリプト
 
-index.html が参照している外部部品（SheetJS / html2canvas）をHTMLに直接埋め込み、
-Googleフォントの外部読み込みを外して、インターネット不要の単一ファイル
-「席替えアプリ.html」を作る。人に配付する用。
+席替えアプリ_オンライン版.html が参照している外部部品（SheetJS / html2canvas）を
+HTMLに直接埋め込み、Googleフォントの外部読み込みを外して、インターネット不要の
+単一ファイル「席替えアプリ_オフライン版.html」を作る。人に配付する用。
 
 部品は、同じフォルダにローカルファイルがあればそれを使い、無ければCDNから取得する：
   - xlsx.full.min.js    （SheetJS：Excel読み込み・名簿テンプレート生成）
   - html2canvas.min.js  （JPG保存）
-ローカルに置く場合は、index.html が参照しているのと同じバージョンを置くこと。
+ローカルに置く場合は、席替えアプリ_オンライン版.html が参照しているのと同じバージョンを置くこと。
 """
 import os
 import re
@@ -15,8 +15,8 @@ import sys
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "index.html")
-OUT = os.path.join(HERE, "席替えアプリ.html")
+SRC = os.path.join(HERE, "席替えアプリ_オンライン版.html")
+OUT = os.path.join(HERE, "席替えアプリ_オフライン版.html")
 
 LIBS = [
     ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", "xlsx.full.min.js"),

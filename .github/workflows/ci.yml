@@ -1,6 +1,6 @@
 name: CI
 
-# 単一HTMLアプリ（apps/*/index.html）をヘッドレスブラウザで開き、
+# 単一HTMLアプリ（apps/*/*.html）をヘッドレスブラウザで開き、
 # 読み込み時に JavaScript の実行時エラーが出ないかを確認する。
 on:
   push:
@@ -29,5 +29,5 @@ jobs:
       - name: Chromium を準備
         run: npx playwright install --with-deps chromium
 
-      - name: スモークテスト（apps/*/index.html）
+      - name: スモークテスト（apps/*/*.html）
         run: node scripts/smoke-test-apps.mjs
