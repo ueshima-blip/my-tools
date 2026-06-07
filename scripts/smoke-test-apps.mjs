@@ -17,8 +17,12 @@ const appsDir = join(root, 'apps');
 
 const targets = [];
 for (const name of readdirSync(appsDir).sort()) {
-  const idx = join(appsDir, name, 'index.html');
-  if (existsSync(idx) && statSync(idx).isFile()) targets.push({ name, idx });
+  const dir = join(appsDir, name);
+  if (!statSync(dir).isDirectory()) continue;
+  // 各アプリフォルダ内の .html をすべて対象にする（配付用オフライン版なども含む）
+  for (const f of readdirSync(dir).sort()) {
+    if (f.toLowerCase().endsWith('.html')) targets.push({ name: `${name}/${f}`, idx: join(dir, f) });
+  }
 }
 
 if (targets.length === 0) {
