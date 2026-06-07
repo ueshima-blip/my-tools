@@ -2284,7 +2284,8 @@ function shuffleInstant(){
     clearRlSession();
     refreshResumeBanner();
     renderGridAnimated();
-    const msg=attempts>0?`席替え完了（${attempts}回試行）`:'席替えが完了しました！';
+    let msg=attempts>0?`席替え完了（${attempts}回試行）`:'席替えが完了しました！';
+    if(lastPinUnplaced.length) msg += `（固定を反映できなかった生徒：${lastPinUnplaced.join('、')}／席数をご確認ください）`;
     showToast(msg);
   }
 }
@@ -2619,6 +2620,7 @@ function startRoulette(mode){
   }
   // ピン固定を適用
   finalAssign=applyPinsToAssignment(finalAssign,cls.students,enabled);
+  if(lastPinUnplaced.length) showToast(`固定を反映できなかった生徒：${lastPinUnplaced.join('、')}（席数をご確認ください）`);
   // Build queue from the finalAssign (randomize order of revelation)
   const assignPairs=Object.entries(finalAssign).map(([seatId,studentId])=>({studentId,seatId}));
   const shuffledQueue=shuffle(assignPairs);
@@ -3601,12 +3603,17 @@ function renderPinList(){
 }
 
 // ピンを考慮した座席割り当てを生成
+// 直近の固定適用で、指定どおりに配置できなかった生徒名（席数不足・条件衝突など）
+let lastPinUnplaced = [];
+
 function applyPinsToAssignment(assignment, students, seats){
+  lastPinUnplaced = [];
   const pins = getPins();
   if(!pins.length) return assignment;
 
   const result = {...assignment};
-  const enabledSeats = seats.filter(s=>s.enabled&&!s.skipAssign);
+  const enabledSeats = seats.filter(s=>s.enabled && !s.skipAssign);
+  const seatById = id => enabledSeats.find(s=>s.id===id);
 
   // 座席が指定の性別を許容するか（未設定/'any'なら誰でもOK）
   function seatAllowsGender(seat, gender){
@@ -3615,74 +3622,72 @@ function applyPinsToAssignment(assignment, students, seats){
     if(!ag || ag === 'any') return true;
     return ag === gender;
   }
-
-  // seatId→studentId / studentId→seatId の逆引きマップ
+  // studentId→seatId / seatId→studentId の逆引きマップ
   function rebuildMaps(asgn){
     const s2seat={}, seat2s={};
-    Object.entries(asgn).forEach(([sid,stid])=>{s2seat[stid]=sid; seat2s[sid]=stid;});
-    return{s2seat,seat2s};
+    Object.entries(asgn).forEach(([sid,stid])=>{ if(stid){ s2seat[stid]=sid; seat2s[sid]=stid; } });
+    return {s2seat, seat2s};
   }
 
-  // 候補プールから「男女条件を侵害しない席」を優先して選ぶ
-  // 1) 空席を最優先  2) 交換してもどちらも男女条件OKな席  3) (フォールバック) その他
-  function pickGenderSafeTarget(pool, student, currentSeatOfPin, seat2s){
-    if(!pool.length) return null;
-    const safeFree = [], safeSwap = [], unsafeSwap = [];
-    const oldSeat = currentSeatOfPin ? enabledSeats.find(x=>x.id===currentSeatOfPin) : null;
-    for(const s of pool){
-      const occupantId = seat2s[s.id];
-      if(occupantId === student.id) return s.id; // 既に正しい席
-      if(!occupantId){ safeFree.push(s); continue; }
-      const occupant = students.find(x=>x.id===occupantId);
-      // 交換時に押し出される側が、ピン生徒の元席に座っても男女条件を満たすか
-      const swapOK = !occupant || !oldSeat || seatAllowsGender(oldSeat, occupant.gender);
-      if(swapOK) safeSwap.push(s); else unsafeSwap.push(s);
-    }
-    const choose = arr => arr[Math.floor(Math.random()*arr.length)].id;
-    if(safeFree.length)  return choose(safeFree);
-    if(safeSwap.length)  return choose(safeSwap);
-    return choose(unsafeSwap); // 最終フォールバック
-  }
+  // 具体的な指定から先に確定させる（席 → 行/列 → 範囲）。同種は元の順序を維持。
+  const rank = t => (t==='seat' ? 0 : (t==='row'||t==='col') ? 1 : 2);
+  const ordered = pins
+    .map((p,i)=>({p,i}))
+    .sort((a,b)=> rank(a.p.type)-rank(b.p.type) || a.i-b.i)
+    .map(x=>x.p);
 
-  for(const pin of pins){
+  // 確定済みの固定が座っている席は、後続の固定で動かさない（押し出し防止）
+  const lockedSeatIds = new Set();
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  for(const pin of ordered){
     const student = students.find(s=>s.id===pin.studentId);
     if(!student) continue;
 
-    const {seat2s: seat2sPre, s2seat: s2seatPre} = rebuildMaps(result);
-    const currentSeatOfPin = s2seatPre[pin.studentId];
-
-    let targetSeatId = null;
-
+    // 候補席を作る（ロック済みの席は除外）
+    let candidates;
     if(pin.type==='seat'){
-      // ユーザが明示的に指定した席は性別条件より優先
-      if(enabledSeats.find(s=>s.id===pin.seatId)) targetSeatId = pin.seatId;
+      const s = seatById(pin.seatId);
+      candidates = (s && !lockedSeatIds.has(s.id)) ? [s] : [];
     } else {
-      // row / col / rowMax / colMax は性別条件を尊重して候補を絞る
-      let candidates = [];
-      if(pin.type==='row')         candidates = enabledSeats.filter(s=>s.row===pin.row);
-      else if(pin.type==='col')    candidates = enabledSeats.filter(s=>s.col===pin.col);
-      else if(pin.type==='rowMax') candidates = enabledSeats.filter(s=>s.row<=pin.rowMax);
-      else if(pin.type==='colMax') candidates = enabledSeats.filter(s=>s.col<=pin.colMax);
-      // 座席側がピン生徒の性別を許容するもののみ候補に
-      let genderOK = candidates.filter(s=>seatAllowsGender(s, student.gender));
-      if(!genderOK.length) genderOK = candidates; // 候補が無くなったらフォールバック
-      targetSeatId = pickGenderSafeTarget(genderOK, student, currentSeatOfPin, seat2sPre);
+      let pool = enabledSeats.filter(s=>!lockedSeatIds.has(s.id));
+      if(pin.type==='row')         pool = pool.filter(s=>s.row===pin.row);
+      else if(pin.type==='col')    pool = pool.filter(s=>s.col===pin.col);
+      else if(pin.type==='rowMax') pool = pool.filter(s=>s.row<=pin.rowMax);
+      else if(pin.type==='colMax') pool = pool.filter(s=>s.col<=pin.colMax);
+      else pool = [];
+      candidates = pool;
     }
+    if(!candidates.length){ lastPinUnplaced.push(student.name); continue; }
 
-    if(!targetSeatId) continue;
-
-    // ターゲット席に既に別の生徒がいれば交換
     const {s2seat, seat2s} = rebuildMaps(result);
-    const currentInTarget = seat2s[targetSeatId]; // ターゲット席にいる生徒ID
-    const currentSeatOfPin2 = s2seat[pin.studentId]; // ピン生徒の現在の席
+    const curSeatOfPin = s2seat[pin.studentId]; // この生徒の現在の席
 
-    if(currentInTarget === pin.studentId) continue; // すでに正しい席
+    // すでに候補のどれかに座っていればそのまま（動かさない）
+    let target = candidates.find(s=>s.id===curSeatOfPin);
+    if(!target){
+      // 1) 空席かつ性別OK → 2) 空席 → 3) 入替先(非ロック)かつ性別OK → 4) 入替先(非ロック)
+      const byGender = arr => { const g = arr.filter(s=>seatAllowsGender(s, student.gender)); return g.length ? g : arr; };
+      const free = candidates.filter(s=>!seat2s[s.id]);
+      target = free.length ? pick(byGender(free)) : pick(byGender(candidates));
+    }
+    if(!target){ lastPinUnplaced.push(student.name); continue; }
 
-    // 交換
-    if(currentSeatOfPin2) result[currentSeatOfPin2] = currentInTarget || null;
-    if(!currentInTarget && currentSeatOfPin2) delete result[currentSeatOfPin2];
-    result[targetSeatId] = pin.studentId;
-    if(currentInTarget && currentSeatOfPin2) result[currentSeatOfPin2] = currentInTarget;
+    if(target.id !== curSeatOfPin){
+      // 入替で押し出される生徒（候補からロック席を除いているので、確定済み固定ではない＝安全）
+      const occupantId = seat2s[target.id];
+      if(curSeatOfPin){
+        result[target.id] = pin.studentId;
+        if(occupantId) result[curSeatOfPin] = occupantId; // 元席へ移す
+        else delete result[curSeatOfPin];
+      } else if(!occupantId){
+        result[target.id] = pin.studentId;
+      } else {
+        lastPinUnplaced.push(student.name);
+        continue;
+      }
+    }
+    lockedSeatIds.add(target.id); // この席を確定（以後動かさない）
   }
 
   // nullエントリを除去
