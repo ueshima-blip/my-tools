@@ -1,4 +1,4 @@
-// apps/ 配下の各 index.html をヘッドレス Chromium で開き、
+// apps/ 配下の各アプリの .html をヘッドレス Chromium で開き、
 // 読み込み時に未捕捉の JavaScript 例外（pageerror）が出ないかを確認するスモークテスト。
 //
 // 方針:
@@ -26,7 +26,7 @@ for (const name of readdirSync(appsDir).sort()) {
 }
 
 if (targets.length === 0) {
-  console.error('apps/*/index.html が見つかりません');
+  console.error('apps/*/*.html が見つかりません');
   process.exit(1);
 }
 
