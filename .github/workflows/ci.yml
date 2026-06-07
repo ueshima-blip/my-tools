@@ -1,0 +1,33 @@
+name: CI
+
+# 単一HTMLアプリ（apps/*/index.html）をヘッドレスブラウザで開き、
+# 読み込み時に JavaScript の実行時エラーが出ないかを確認する。
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: アプリ読み込みスモークテスト
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 依存関係をインストール
+        run: npm install
+
+      - name: Chromium を準備
+        run: npx playwright install --with-deps chromium
+
+      - name: スモークテスト（apps/*/index.html）
+        run: node scripts/smoke-test-apps.mjs

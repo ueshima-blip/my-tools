@@ -78,7 +78,8 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
 .tlbl{font-size:12px;color:var(--tx2);font-weight:500;}
 .tdiv{width:1px;height:22px;background:var(--bd2);}
 
-.classroom-wrapper{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+/* safe center: 内容がはみ出すときは中央寄せをやめて先頭寄せにし、見切れ（スクロール不可）を防ぐ */
+.classroom-wrapper{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:safe center;justify-content:safe center;}
 .classroom-container{display:flex;flex-direction:column;align-items:center;gap:12px;}
 .teacher-desk{background:#6b5c3e;color:#f5ede0;font-size:13px;font-weight:700;letter-spacing:.08em;padding:7px 36px;border-radius:var(--rs);box-shadow:var(--sh);}
 .seat-grid{display:grid;gap:var(--seat-gap,8px);}
@@ -167,6 +168,12 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
 
 .rl-cur-label{font-size:13px;color:var(--tx2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rl-done-label{font-size:13px;color:var(--ac);font-weight:700;}
+/* ルーレットの全画面トグル／完了ボタン */
+.rl-fs-btn{padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--tx);white-space:nowrap;}
+.rl-fs-btn:hover{background:var(--bd);}
+.rl-finish-btn{padding:12px 18px;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:#16a34a;color:#fff;white-space:nowrap;box-shadow:0 3px 12px rgba(22,163,74,.45);animation:rlFinishPulse 1.4s ease-in-out infinite;}
+.rl-finish-btn:hover{background:#15803d;}
+@keyframes rlFinishPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
 .rl-progress{font-size:12px;color:var(--tx3);white-space:nowrap;}
 
 /* seat name scroll animation */
@@ -266,6 +273,75 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
 .classroom-wrapper.flipped .grid-info { transform: rotate(180deg); }
 .classroom-wrapper.flipped .print-header { transform: rotate(180deg); }
 
+/* ===== 印刷デザイン（テーマ） ===== */
+/* シンプル＝装飾なし（従来表示）。装飾テーマは #printTarget に .deco と .theme-* を付与して表現する。
+   中学・高校でも使える落ち着いた見た目。男女色・班色は維持し、枠・背景・黒板/ホワイトボード・
+   教卓・座席（机）の形だけをテーマ化する。 */
+.design-sel{ padding:6px 9px;border:1px solid var(--bd2);border-radius:var(--rs);background:var(--s2);color:var(--tx);font-size:12px;font-family:inherit;cursor:pointer; }
+.deco-top{ display:none; }
+.classroom-container.deco{ padding:22px 26px 26px;border-radius:14px;box-shadow:0 4px 22px rgba(0,0,0,.12);transition:background .2s; }
+.classroom-container.deco .deco-top{ display:flex;align-items:center;gap:12px;align-self:stretch;min-width:320px;margin-bottom:6px; }
+.deco-board{ flex:1;min-width:0;text-align:center;font-size:22px;font-weight:700;letter-spacing:.12em;padding:13px 22px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.classroom-container.deco .teacher-desk{ box-shadow:0 2px 10px rgba(0,0,0,.15); }
+/* 教師視点ではコンテナが180°回転するので、装飾も正立するよう打ち消し回転する */
+.classroom-wrapper.flipped .deco-top{ transform:rotate(180deg); }
+
+/* --- 机（モダン）／机（木目）共通：座席を学校机の形にする（空席・無効席は机にしない） --- */
+.classroom-container.theme-desk .seat-grid,
+.classroom-container.theme-wood .seat-grid{ row-gap:16px; }
+.classroom-container.theme-desk .seat:not(.unoccupied):not(.disabled):not(.skip-assign),
+.classroom-container.theme-wood .seat:not(.unoccupied):not(.disabled):not(.skip-assign){
+  border-radius:7px 7px 4px 4px; overflow:visible;
+  border:1.5px solid var(--deskFrame); border-bottom:6px solid var(--deskEdge);
+  box-shadow:0 4px 5px -1px rgba(0,0,0,.18);
+}
+/* 前脚（机の手前の脚）— 生徒のいる席だけ */
+.classroom-container.theme-desk .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::before,
+.classroom-container.theme-desk .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::after,
+.classroom-container.theme-wood .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::before,
+.classroom-container.theme-wood .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::after{
+  content:"";position:absolute;bottom:-6px;width:6px;height:7px;
+  background:var(--deskLeg);border-radius:0 0 2px 2px;
+}
+.classroom-container.theme-desk .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::before,
+.classroom-container.theme-wood .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::before{ left:10px; }
+.classroom-container.theme-desk .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::after,
+.classroom-container.theme-wood .seat:not(.unoccupied):not(.disabled):not(.skip-assign)::after{ right:10px; }
+/* 教卓も大きめの机に */
+.classroom-container.theme-desk .teacher-desk,
+.classroom-container.theme-wood .teacher-desk{
+  border-radius:7px 7px 4px 4px; overflow:visible; position:relative;
+  border:1.5px solid var(--deskFrame); border-bottom:8px solid var(--deskEdge);
+  background:var(--deskTeacherBg); color:var(--deskTeacherTx);
+  box-shadow:0 5px 7px -2px rgba(0,0,0,.22);
+}
+.classroom-container.theme-desk .teacher-desk::before,
+.classroom-container.theme-desk .teacher-desk::after,
+.classroom-container.theme-wood .teacher-desk::before,
+.classroom-container.theme-wood .teacher-desk::after{
+  content:"";position:absolute;bottom:-7px;width:7px;height:8px;
+  background:var(--deskLeg);border-radius:0 0 2px 2px;
+}
+.classroom-container.theme-desk .teacher-desk::before,
+.classroom-container.theme-wood .teacher-desk::before{ left:16px; }
+.classroom-container.theme-desk .teacher-desk::after,
+.classroom-container.theme-wood .teacher-desk::after{ right:16px; }
+
+/* --- 机（モダン）：明るいグレーの教室＋金属フレームの机＋ホワイトボード --- */
+.classroom-container.theme-desk{ background:#e9edf0; --deskFrame:#aab3bc; --deskEdge:#7f8a94; --deskLeg:#6c757d; --deskTeacherBg:#f3f6f8; --deskTeacherTx:#37414b; }
+.theme-desk .deco-board{ background:linear-gradient(#ffffff,#f1f4f6);color:#2b3a47;border:3px solid #cdd4da;border-bottom-width:5px;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.08); }
+
+/* --- 机（木目）：暖かい木の教室＋木製の机＋黒板 --- */
+.classroom-container.theme-wood{ background:#e8d8bd; --deskFrame:#c19a68; --deskEdge:#9a7547; --deskLeg:#7d5d39; --deskTeacherBg:#caa470; --deskTeacherTx:#4a3826; }
+.theme-wood .deco-board{ background:linear-gradient(165deg,#46795a,#3a6349);color:#f3f7f2;border:7px solid #6e5132;border-radius:6px;text-shadow:0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 0 16px rgba(0,0,0,.28); }
+
+/* --- シック：無地で上品なミニマル（机型ではない） --- */
+.classroom-container.theme-slate{ background:#eceef1; }
+.classroom-container.theme-slate .seat{ border-color:#aeb6bf;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.classroom-container.theme-slate .teacher-desk{ background:#323d49;color:#eef2f6;border:1px solid #59605c;border-bottom:3px solid #5b8c87; }
+.theme-slate .deco-board{ background:#323d49;color:#eef2f6;border:1px solid #4a5763;border-bottom:3px solid #5b8c87;border-radius:4px;letter-spacing:.22em;font-weight:600; }
+
+
 /* ルーレット全画面モード */
 .roulette-mode .sidebar { display:none !important; }
 .roulette-mode .main-area { width:100vw !important; }
@@ -330,7 +406,7 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
     <button class="stab" onclick="switchTab('group')" id="tab-group">班色</button>
     <button class="stab" onclick="switchTab('cond')" id="tab-cond">条件</button>
     <button class="stab" onclick="switchTab('history')" id="tab-history">履歴</button>
-    <button class="stab" onclick="switchTab('settings')" id="tab-settings">設定</button>
+    <button class="stab" onclick="switchTab('settings')" id="tab-settings">設定<span id="backupDot" style="display:none;color:#f59e0b;font-size:9px;vertical-align:super;margin-left:1px;" title="バックアップをおすすめします">●</span></button>
   </div>
   <div class="scontent">
 
@@ -346,6 +422,10 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
           📂 Excelファイル（.xlsx）を読み込む
         </button>
         <input type="file" id="xlsxFileInput" accept=".xlsx,.xls" style="display:none;" onchange="importFromXlsx(this)">
+        <button class="btn bts btn-full" onclick="downloadRosterTemplate()" style="margin-bottom:4px;">
+          📄 名簿テンプレート（Excel）をダウンロード
+        </button>
+        <p class="fhint" style="margin-bottom:4px;">空のテンプレートに入力 → 上の「読み込む」で取り込めます。</p>
         <details style="margin-top:4px;">
           <summary style="font-size:12px;color:var(--tx3);cursor:pointer;padding:4px 0;">テキスト貼り付けで読み込む（旧方式）</summary>
           <div style="margin-top:8px;">
@@ -597,12 +677,15 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
         <div id="roomManageList"></div>
       </div>
       <div class="fsec">
-        <div class="ftitle">データのエクスポート／インポート</div>
-        <p class="fhint" style="margin-bottom:8px;">バックアップや他の端末への引き継ぎに使います。クラス・教室・名簿・座席設定・履歴をすべて保存します。</p>
-        <button class="btn btp btn-full" onclick="exportData()" style="margin-bottom:6px;">📤 データをエクスポート（保存）</button>
-        <button class="btn bts btn-full" onclick="document.getElementById('importFile').click()" style="margin-bottom:4px;">📥 データをインポート（読み込み）</button>
-        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
-        <p class="fhint">※インポートすると現在のデータはすべて上書きされます</p>
+        <div class="ftitle">データのバックアップ（外部保存）</div>
+        <p class="fhint" style="margin-bottom:8px;">万が一に備え、ブラウザの外（iCloud Drive・Google Drive・メール・USB など）に定期的に保存してください。名簿・教室・座席設定・班・条件・固定・履歴・デザイン設定まで、すべてを含みます。</p>
+        <div id="backupStatus" class="fhint" style="margin-bottom:6px;color:var(--tx2);"></div>
+        <div id="backupWarn" class="warn-box" style="display:none;margin-bottom:8px;">📌 しばらくバックアップが保存されていません。万が一に備えて保存をおすすめします。</div>
+        <button class="btn btp btn-full" id="shareBackupBtn" onclick="shareBackup()" style="margin-bottom:6px;display:none;">📲 バックアップを共有／送信（外部に保存）</button>
+        <button class="btn btp btn-full" id="exportBtn" onclick="exportData()" style="margin-bottom:6px;">📤 ファイルに書き出す（ダウンロード）</button>
+        <button class="btn bts btn-full" onclick="document.getElementById('importFile').click()" style="margin-bottom:4px;">📥 バックアップから復元（インポート）</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importData(this)">
+        <p class="fhint">※復元すると現在のデータはすべて上書きされます</p>
       </div>
       <div class="fsec">
         <div class="ftitle">データの消去</div>
@@ -642,6 +725,14 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
       <input type="checkbox" id="showGroupColor" checked onchange="renderGrid()"> 班色
     </label>
     <div class="tdiv"></div>
+    <span class="tlbl">🎨 デザイン</span>
+    <select id="designSelect" class="design-sel" onchange="setDesign(this.value)" title="印刷・JPGのデザインを選びます">
+      <option value="simple">シンプル（標準）</option>
+      <option value="desk">机（モダン）</option>
+      <option value="wood">机（木目）</option>
+      <option value="slate">シック</option>
+    </select>
+    <div class="tdiv"></div>
     <button class="btn bts" onclick="saveAsJpg()" title="JPGで保存">💾 JPG保存</button>
     <button class="btn bts" onclick="printSeating()" title="印刷">🖨 印刷</button>
     <div class="tdiv"></div>
@@ -654,6 +745,9 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
   <!-- 通常グリッドビュー -->
   <div class="classroom-wrapper" id="normalView">
     <div class="classroom-container" id="printTarget">
+      <div class="deco-top" id="decoTop" aria-hidden="true">
+        <div class="deco-board"><span id="decoTitle">座席表</span></div>
+      </div>
       <div class="print-header" id="printHeader"></div>
       <div class="teacher-desk" id="teacherDeskMain">📖 教卓（前）</div>
       <div class="seat-grid" id="seatGrid"></div>
@@ -680,6 +774,8 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
         <span id="rlDoneLabel" class="rl-done-label" style="display:none;"></span>
       </div>
       <div class="rl-topbar-right">
+        <button class="rl-finish-btn" id="rlFinishBtn" onclick="exitRoulette()" style="display:none;">✓ 全画面を解除して終了</button>
+        <button class="rl-fs-btn" id="rlFsBtn" onclick="toggleAppFullscreen()">⛶ 全画面</button>
         <button class="rl-btn start" id="rlStartBtn" onclick="toggleRoulette()">START</button>
         <button class="btn bts bsm" onclick="exitRoulette()">✕ 終了</button>
       </div>
@@ -747,6 +843,16 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
           <select class="fi" id="printDaySelect" style="flex:1;"></select>
           <span style="font-size:13px;color:var(--tx2);">日</span>
         </div>
+      </div>
+      <div class="fg">
+        <label class="flbl">デザイン</label>
+        <select class="fi" id="printDesignSelect" onchange="setDesign(this.value)">
+          <option value="simple">シンプル（標準）</option>
+          <option value="desk">机（モダン）</option>
+          <option value="wood">机（木目）</option>
+          <option value="slate">シック</option>
+        </select>
+        <p class="fhint">印刷・JPGに使うデザインです。選ぶと画面の座席表にも反映されます。</p>
       </div>
     </div>
     <div class="mfoot">
@@ -989,6 +1095,13 @@ window.onload=()=>{
   // restore sound pref
   const pref=localStorage.getItem('sekigae_sound');
   if(pref==='0'){const el=document.getElementById('soundEnabled');if(el)el.checked=false;}
+  // restore print design pref
+  let dpref='simple';
+  try{ dpref=localStorage.getItem('sekigae_design')||'simple'; }catch{}
+  setDesign(dpref);
+  // バックアップUIの初期化と催促表示
+  setupBackupUI();
+  updateBackupReminder();
 };
 
 // ============================================================
@@ -1153,6 +1266,31 @@ function renderManageLists(){
 // ============================================================
 // XLSX IMPORT
 // ============================================================
+// 名簿テンプレート（.xlsx）を生成してダウンロード。取り込み時の列（出席番号・氏名・
+// ふりがな・性別）に合わせてあるので、記入してそのまま読み込める。
+function downloadRosterTemplate(){
+  if(typeof XLSX === 'undefined'){
+    showToast('ライブラリの読み込みに失敗しました。ネットワークを確認してください。');
+    return;
+  }
+  const aoa = [
+    ['出席番号','氏名','ふりがな','性別'],
+    [1,'山田 太郎','やまだ たろう','男'],
+    [2,'佐藤 花子','さとう はなこ','女'],
+  ];
+  for(let n=3; n<=40; n++) aoa.push([n,'','','']);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:8},{wch:18},{wch:20},{wch:6}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '名簿');
+  try{
+    XLSX.writeFile(wb, '席替えアプリ_名簿テンプレート.xlsx');
+    showToast('名簿テンプレートをダウンロードしました');
+  }catch(e){
+    showToast('ダウンロードに失敗しました: ' + e.message);
+  }
+}
+
 function importFromXlsx(input){
   const file = input.files[0];
   if(!file){ return; }
@@ -1452,10 +1590,18 @@ function calcSeatSize(){
   const wrapper=document.getElementById('normalView');
   if(!wrapper)return{w:88,h:64,gap:0};
   const room=curRoom();if(!room)return{w:88,h:64,gap:0};
-  const availW=wrapper.clientWidth-40;
-  const availH=wrapper.clientHeight-100; // 教卓・余白分
+  // 装飾テーマ（黒板ヘッダー・余白・机の行間・脚）のぶん、使える領域が小さくなる
+  const target=document.getElementById('printTarget');
+  const deco = !!(target && target.classList.contains('deco'));
+  const deskish = !!(target && (target.classList.contains('theme-desk')||target.classList.contains('theme-wood')));
+  const rowGap = deskish ? 16 : 0;   // 机テーマの行間
+  const legRoom = deskish ? 10 : 0;  // 机の脚のはみ出し
+  const chromeV = deco ? 225 : 100;  // 教卓・情報＋（装飾時は黒板・上下余白）
+  const chromeH = deco ? 60 : 0;     // 装飾時の左右余白
   const gap=0;
   const wrapPad=8; // seat-wrap padding 4px*2
+  const availW=wrapper.clientWidth-40-chromeH;
+  const availH=wrapper.clientHeight-chromeV - rowGap*Math.max(0,room.rows-1) - legRoom;
   const maxW=Math.floor((availW - room.cols*wrapPad)/room.cols);
   const maxH=Math.floor((availH - room.rows*wrapPad)/room.rows);
   const w=Math.max(70,Math.min(130,maxW));
@@ -1479,6 +1625,7 @@ function calcNameFontSize(name, seatW, seatH, hasNum, hasYomi){
 
 function renderGrid(){
   const room=curRoom();const cls=curClass();const asgn=curAsgn();
+  updateDecoTitle();
   const showYomi=document.getElementById('showYomi')?.checked;
   const showNum=document.getElementById('showNumber')?.checked;
   const showColor=document.getElementById('showGender')?.checked??true;
@@ -1622,6 +1769,8 @@ function renderGrid(){
       div.innerHTML=inner;
       div.title=`${student.number}. ${student.name}`;
     } else {
+      // 生徒がいない席（空席）— 机デザインを適用しない目印
+      div.classList.add('unoccupied');
       // 条件タブがアクティブなら、ピン固定済み座席に生徒名を表示
       const isCondTab = document.getElementById('tab-cond')?.classList.contains('active');
       const emptyPin = isCondTab && getPins().find(p=>p.type==='seat'&&p.seatId===seat.id);
@@ -2394,7 +2543,10 @@ function resumeRoulette(){
   rlRunning = false; rlActiveSeatIdx = -1;
   saveRlSession();
 
-  // ルーレット画面を開く
+  // ルーレット画面を開く（自動で全画面表示にする）
+  enterAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='none';
   document.getElementById('rouletteView').classList.add('open');
   document.getElementById('mainToolbar').style.display='none';
@@ -2414,6 +2566,7 @@ function resumeRoulette(){
       document.getElementById('rlCurLabel').textContent = '';
       document.getElementById('rlDoneLabel').style.display='block';
       document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
+      showRlFinish(true);
     }
     renderRlQueue();
   } else {
@@ -2475,6 +2628,10 @@ function startRoulette(mode){
   // 開始時点でルーレットセッションを保存（クラッシュ時に再開できるよう）
   saveRlSession();
 
+  // 自動で全画面表示にする（教室モニター用。ボタン操作の同期タイミングで要求）
+  enterAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='none';
   document.getElementById('rouletteView').classList.add('open');
   document.getElementById('mainToolbar').style.display='none';
@@ -2507,6 +2664,9 @@ function startRoulette(mode){
 
 function exitRoulette(){
   stopRlInterval();
+  exitAppFullscreen();
+  showRlFinish(false);
+  updateFsButton();
   document.getElementById('normalView').style.display='flex';
   document.getElementById('rouletteView').classList.remove('open');
   document.getElementById('mainToolbar').style.display='flex';
@@ -2517,6 +2677,37 @@ function exitRoulette(){
   // 途中で抜けた場合は再開バナーを出す（完了済みなら hasResumableRoulette が false で消える）
   refreshResumeBanner();
 }
+
+// ===== 全画面（フルスクリーン）制御：ルーレットを教室モニターに大きく表示する =====
+function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function isFullscreen(){ return !!fsElement(); }
+function enterAppFullscreen(){
+  if(isFullscreen()) return Promise.resolve();
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(!req) return Promise.resolve(); // 非対応端末は画面内の拡大表示にとどめる
+  try{ const p = req.call(el); return (p && p.catch) ? p.catch(()=>{}) : Promise.resolve(); }
+  catch(e){ return Promise.resolve(); }
+}
+function exitAppFullscreen(){
+  if(!isFullscreen()) return Promise.resolve();
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if(!ex) return Promise.resolve();
+  try{ const p = ex.call(document); return (p && p.catch) ? p.catch(()=>{}) : Promise.resolve(); }
+  catch(e){ return Promise.resolve(); }
+}
+function toggleAppFullscreen(){ isFullscreen() ? exitAppFullscreen() : enterAppFullscreen(); }
+function updateFsButton(){
+  const btn = document.getElementById('rlFsBtn');
+  if(btn) btn.textContent = isFullscreen() ? '⛶ 全画面解除' : '⛶ 全画面';
+}
+// 完了後にワンクリックで全画面解除＋終了できるボタンの表示切替
+function showRlFinish(show){
+  const btn = document.getElementById('rlFinishBtn');
+  if(btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+document.addEventListener('fullscreenchange', updateFsButton);
+document.addEventListener('webkitfullscreenchange', updateFsButton);
 
 function toggleRoulette(){
   wakeAudio(); // ユーザー操作の同期タイミングで AudioContext を起動
@@ -2553,6 +2744,7 @@ function toggleSeqRoulette(){
       document.getElementById('rlDoneLabel').style.display='block';
       document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
       document.getElementById('rlCurLabel').textContent='';
+      showRlFinish(true);
     } else {
       playDecide();
       document.getElementById('rlStartBtn').textContent='START';
@@ -2649,6 +2841,7 @@ function toggleBulkRoulette(){
     document.getElementById('rlDoneLabel').style.display='block';
     document.getElementById('rlDoneLabel').textContent='全員の席が決まりました！';
     document.getElementById('rlCurLabel').textContent='';
+    showRlFinish(true);
   } else {
     document.getElementById('rlStartBtn').textContent='STOP';
     document.getElementById('rlStartBtn').className='rl-btn stop';
@@ -2929,6 +3122,7 @@ function switchTab(name){
   if(name==='layout'){refreshCopyRoomSelect();genderColState={};alternatePhase=0;onGenderEditTypeChange();}
   if(name==='cond'){refreshCondStudentSelects();refreshPinStudentSelect();renderPinList();syncPinSeatMode();renderGrid();}
   if(name==='history'){refreshHistoryFilters();renderHistoryList();}
+  if(name==='settings'){updateBackupReminder();}
 }
 
 // ============================================================
@@ -3671,6 +3865,37 @@ function setView(v) {
   updatePrintHeader();
 }
 
+// ----- 印刷デザイン（テーマ） -----
+// 中学・高校でも使える落ち着いたデザイン。座席を学校机の形にする「机」テーマを中心に用意。
+const DESIGNS = ['simple','desk','wood','slate'];
+let currentDesign = 'simple';
+
+function setDesign(id){
+  if(!DESIGNS.includes(id)) id = 'simple';
+  currentDesign = id;
+  const target = document.getElementById('printTarget');
+  if(target){
+    // テーマ系クラスを一旦リセットしてから付け直す
+    target.className = 'classroom-container';
+    if(id !== 'simple') target.classList.add('deco','theme-'+id);
+  }
+  updateDecoTitle();
+  // 2か所のデザイン選択UI（ツールバー・印刷ダイアログ）を同期
+  ['designSelect','printDesignSelect'].forEach(elid=>{
+    const el = document.getElementById(elid);
+    if(el && el.value !== id) el.value = id;
+  });
+  try{ localStorage.setItem('sekigae_design', id); }catch{}
+}
+
+// 装飾ヘッダー（黒板）のタイトルを現在のクラス名で更新
+function updateDecoTitle(){
+  const t = document.getElementById('decoTitle');
+  if(!t) return;
+  const cls = curClass();
+  t.textContent = (cls && cls.name) ? `${cls.name}　座席表` : '座席表';
+}
+
 // 月日のみを「○月○日」形式に整形
 function formatMonthDay(month, day){
   if(month==null || day==null){
@@ -3722,6 +3947,9 @@ function openPrintDateDialog(action){
   const today = new Date();
   document.getElementById('printMonthSelect').value = today.getMonth()+1;
   document.getElementById('printDaySelect').value = today.getDate();
+  // 現在のデザインをダイアログにも反映
+  const pds = document.getElementById('printDesignSelect');
+  if(pds) pds.value = currentDesign;
   openModal('printDate');
 }
 
@@ -3777,7 +4005,7 @@ function doSaveAsJpg(dateStr, isoDate) {
 
   html2canvas(target, {
     scale: 2,
-    backgroundColor: '#f4f2ee',
+    backgroundColor: (currentDesign && currentDesign !== 'simple') ? '#ffffff' : '#f4f2ee',
     useCORS: true,
     logging: false
   }).then(canvas => {
@@ -4046,61 +4274,146 @@ function renderMiniGrid(entry){
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
+// バックアップ対象データを収集（メイン＋付属の全キー）
+function collectBackupExtra(parsed){
+  const extra = {};
+  const prefix = ['_cond','_gmode','_zsplit','_pins'];
+  // 全クラス×全教室の組み合わせで付属キー（条件・班・履歴・中断ルーレット等）を収集
+  Object.keys(parsed.classes||{}).forEach(cid=>{
+    Object.keys(parsed.rooms||{}).forEach(rid=>{
+      const ak = `${cid}_${rid}`;
+      prefix.forEach(p=>{
+        const key = ak + p;
+        const val = localStorage.getItem(key);
+        if(val) extra[key] = val;
+      });
+      const hk = `sekigae_hist_${cid}_${rid}`;
+      const hv = localStorage.getItem(hk);
+      if(hv) extra[hk] = hv;
+      const rk = RL_KEY_PREFIX + ak;
+      const rv = localStorage.getItem(rk);
+      if(rv) extra[rk] = rv;
+    });
+  });
+  // 取りこぼし防止：sekigae* のキーをすべて含める（効果音・デザイン設定・将来追加分など）
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k || k === SK) continue;
+    if(k === 'sekigae_lastBackup') continue; // バックアップ日時は端末ごとに持つ
+    if(k.indexOf('sekigae') === 0 && !(k in extra)){
+      const v = localStorage.getItem(k);
+      if(v != null) extra[k] = v;
+    }
+  }
+  return extra;
+}
+
+// バックアップ用オブジェクト／ファイル名を生成
+function buildBackupObject(){
+  const mainData = localStorage.getItem(SK);
+  if(!mainData) return null;
+  const parsed = JSON.parse(mainData);
+  return { version: 2, app: 'seat-shuffle', exportedAt: new Date().toISOString(), main: mainData, extra: collectBackupExtra(parsed) };
+}
+function backupFilename(){
+  return `席替えアプリ_バックアップ_${new Date().toISOString().slice(0,10)}.json`;
+}
+
+// 最終バックアップ日時の記録・取得・催促
+function getLastBackup(){
+  const v = localStorage.getItem('sekigae_lastBackup');
+  if(!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function hasAppData(){
+  try{ return Object.values(app.classes||{}).some(c=>(c.students||[]).length>0); }catch{ return false; }
+}
+function recordBackup(){
+  try{ localStorage.setItem('sekigae_lastBackup', new Date().toISOString()); }catch{}
+  updateBackupReminder();
+}
+function updateBackupReminder(){
+  const last = getLastBackup();
+  const hasData = hasAppData();
+  const overdue = hasData && (!last || (Date.now()-last.getTime())/86400000 >= 14);
+  const st = document.getElementById('backupStatus');
+  if(st){
+    if(!last){ st.textContent = hasData ? 'まだ一度もバックアップを保存していません。' : 'バックアップ履歴：なし'; }
+    else{
+      const days = Math.floor((Date.now()-last.getTime())/86400000);
+      const ds = `${last.getFullYear()}/${last.getMonth()+1}/${last.getDate()}`;
+      st.textContent = `最終バックアップ：${ds}（${days<=0?'今日':days+'日前'}）`;
+    }
+  }
+  const warn = document.getElementById('backupWarn');
+  if(warn) warn.style.display = overdue ? '' : 'none';
+  const dot = document.getElementById('backupDot');
+  if(dot) dot.style.display = overdue ? '' : 'none';
+}
+
+// 端末が「ファイルの共有」に対応していれば共有ボタンを優先表示、非対応ならダウンロードを主役にする
+function setupBackupUI(){
+  let canShareFiles = false;
+  try{
+    const f = new File(['{}'], 'test.json', {type:'application/json'});
+    canShareFiles = !!(navigator.canShare && navigator.canShare({files:[f]}));
+  }catch{ canShareFiles = false; }
+  const shareBtn = document.getElementById('shareBackupBtn');
+  const expBtn = document.getElementById('exportBtn');
+  if(shareBtn && expBtn){
+    if(canShareFiles){
+      shareBtn.style.display = '';
+      expBtn.classList.remove('btp'); expBtn.classList.add('bts');
+    } else {
+      shareBtn.style.display = 'none';
+      expBtn.classList.remove('bts'); expBtn.classList.add('btp');
+    }
+  }
+}
+
+// ファイルに書き出す（ダウンロード）
 function exportData(){
   try{
-    // メインデータ
-    const mainData = localStorage.getItem(SK);
-    if(!mainData){ showToast('保存されたデータがありません'); return; }
-
-    const parsed = JSON.parse(mainData);
-
-    // 付属データ（条件・履歴・設定）をすべて収集
-    const extra = {};
-    const prefix = ['_cond','_gmode','_zsplit','_pins'];
-
-    // 全クラス×全教室の組み合わせで付属キーを収集
-    Object.keys(parsed.classes||{}).forEach(cid=>{
-      Object.keys(parsed.rooms||{}).forEach(rid=>{
-        const ak = `${cid}_${rid}`;
-        prefix.forEach(p=>{
-          const key = ak + p;
-          const val = localStorage.getItem(key);
-          if(val) extra[key] = val;
-        });
-        // 履歴
-        const hk = `sekigae_hist_${cid}_${rid}`;
-        const hv = localStorage.getItem(hk);
-        if(hv) extra[hk] = hv;
-        // 中断中ルーレットセッション
-        const rk = RL_KEY_PREFIX + ak;
-        const rv = localStorage.getItem(rk);
-        if(rv) extra[rk] = rv;
-      });
-    });
-
-    // 効果音設定
-    const sound = localStorage.getItem('sekigae_sound');
-    if(sound) extra['sekigae_sound'] = sound;
-
-    const exportObj = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      main: mainData,
-      extra
-    };
-
-    const json = JSON.stringify(exportObj, null, 2);
+    const obj = buildBackupObject();
+    if(!obj){ showToast('保存されたデータがありません'); return; }
+    const json = JSON.stringify(obj, null, 2);
     const blob = new Blob([json], {type:'application/json'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    const date = new Date().toISOString().slice(0,10);
     a.href     = url;
-    a.download = `席替えアプリ_バックアップ_${date}.json`;
+    a.download = backupFilename();
     a.click();
     URL.revokeObjectURL(url);
-    showToast('エクスポートしました');
+    recordBackup();
+    showToast('バックアップを書き出しました');
   }catch(e){
     showToast('エクスポートに失敗しました: ' + e.message);
+  }
+}
+
+// 共有／送信（iCloud Drive・Google Drive・メール等の外部へ）
+async function shareBackup(){
+  try{
+    const obj = buildBackupObject();
+    if(!obj){ showToast('保存されたデータがありません'); return; }
+    const json = JSON.stringify(obj, null, 2);
+    const file = new File([json], backupFilename(), {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        files: [file],
+        title: '席替えアプリ バックアップ',
+        text: '席替えアプリのバックアップです。iCloud Drive・Google Drive・メールなどに保存できます。'
+      });
+      recordBackup();
+      showToast('バックアップを共有しました');
+    } else {
+      showToast('この端末は共有に未対応のため、ファイル保存します');
+      exportData();
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return; // ユーザーがキャンセルした場合は無視
+    showToast('共有に失敗しました: ' + e.message);
   }
 }
 

@@ -1,0 +1,13 @@
+{
+  "name": "my-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "教育用ツール集（単一HTMLアプリ + Excel ツール）",
+  "scripts": {
+    "test": "node scripts/smoke-test-apps.mjs",
+    "pretest": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}
