@@ -1,0 +1,4 @@
+# テスト画像は make_synthetic.py で再生成できるためコミットしない
+*.bmp
+manifest.txt
+test_def.csv

@@ -20,9 +20,11 @@ my-tools/
 │   ├── genetics-sim/        遺伝のモデル実験シミュレーター
 │   ├── ethanol-sim/         エタノール沸騰の実験シミュレーション
 │   ├── seat-shuffle/        席替えアプリ（Excel名簿から自動席替え）
-│   └── submission-tracker/  提出物チェックシステム
+│   ├── submission-tracker/  提出物チェックシステム
+│   └── hogosha-omr/         保護者会調査票の読み取り（スキャンPDF→CSV）
 └── excel/   Excel で作った教材・ツール
-    └── shindo-yotei/        進度予定表システム（鳴海中用・学校共通用）
+    ├── shindo-yotei/        進度予定表システム（鳴海中用・学校共通用）
+    └── hogosha-kai/         保護者会調整ツール（希望日程の自動調整）
 ```
 
 - **1 作品 = 1 フォルダ**。フォルダ名は半角英数（リンクや共有でトラブルが起きにくい）。日本語の正式名称はこの目次で対応づけます。
@@ -37,6 +39,8 @@ my-tools/
 | 席替えアプリ | HTMLアプリ | クラス名簿(Excel)を取り込み、男女配置・班・距離条件などを考慮して瞬時／ルーレットで席替え。印刷・JPG保存・履歴つき。 | [`apps/seat-shuffle/`](apps/seat-shuffle/) |
 | 提出物チェックシステム | HTMLアプリ | クラスの提出物を管理。Excel から生徒を一括登録でき、複数クラス対応。 | [`apps/submission-tracker/`](apps/submission-tracker/) |
 | 進度予定表システム（鳴海中用・学校共通用） | Excel（マクロ） | 中学校教諭用の週単位の進度予定表。鳴海中用と学校共通用の 2 種類。VBA を編集するツール・手順つき。 | [`excel/shindo-yotei/`](excel/shindo-yotei/) |
+| 保護者会調整ツール | Excel（マクロ） | 保護者会（個人面談）の希望を集めて、ボタン一つで全員の日程を自動調整。個別通知票の自動作成・Googleフォーム/Forms/紙スキャンからの取込・PDF出力つき。 | [`excel/hogosha-kai/`](excel/hogosha-kai/) |
+| 調査票読み取り（OMR） | HTMLアプリ | 紙の保護者会調査票をスキャン（PDF/JPG）して自動読み取り、上記Excelツール用のCSVに変換。 | [`apps/hogosha-omr/`](apps/hogosha-omr/) |
 
 ## ▶️ ツールの開き方
 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保護者会 調査票読み取り（OMR）</title>
+<style>
+  :root { --main: #2563b0; --ok: #2e9e44; --warn: #e6a700; --bad: #d04545; }
+  * { box-sizing: border-box; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+         margin: 0; background: #f2f5f9; color: #223; }
+  header { background: var(--main); color: #fff; padding: 14px 20px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: .9; }
+  main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  .step { background: #fff; border-radius: 10px; padding: 14px 18px; margin-bottom: 14px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .step h2 { font-size: 15px; margin: 0 0 8px; color: var(--main); }
+  .step h2 .badge { display: inline-block; background: var(--main); color: #fff;
+          border-radius: 50%; width: 22px; height: 22px; text-align: center;
+          line-height: 22px; font-size: 13px; margin-right: 6px; }
+  .hint { font-size: 12px; color: #667; margin: 6px 0 0; }
+  .filebtn { display: inline-block; background: var(--main); color: #fff; padding: 8px 16px;
+          border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .filebtn.secondary { background: #888; }
+  .filebtn input { display: none; }
+  .status { display: inline-block; margin-left: 10px; font-size: 13px; }
+  .status.ok { color: var(--ok); font-weight: bold; }
+  .status.bad { color: var(--bad); font-weight: bold; }
+  #pages { display: flex; flex-direction: column; gap: 12px; }
+  .page { background: #fff; border-radius: 10px; padding: 12px; display: flex; gap: 14px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.08); flex-wrap: wrap; }
+  .page canvas { border: 1px solid #ccd; border-radius: 4px; cursor: crosshair;
+          max-width: 100%; }
+  .page .info { flex: 1; min-width: 230px; font-size: 13px; }
+  .page .info h3 { margin: 0 0 6px; font-size: 14px; }
+  .page select { font-size: 14px; padding: 3px; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px;
+          color: #fff; margin-left: 6px; vertical-align: 1px; }
+  .tag.ok { background: var(--ok); }
+  .tag.warn { background: var(--warn); }
+  .tag.bad { background: var(--bad); }
+  .marklist { margin: 6px 0; line-height: 1.8; }
+  .chip { display: inline-block; background: #e2efe4; border: 1px solid var(--ok);
+          border-radius: 4px; padding: 0 6px; margin: 1px 2px; font-size: 12px; }
+  .chip.warn { background: #fdf3d5; border-color: var(--warn); }
+  .excl { font-size: 12px; }
+  #exportBtn { background: var(--ok); font-size: 16px; padding: 10px 26px; border: none;
+          color: #fff; border-radius: 8px; cursor: pointer; }
+  #exportBtn:disabled { background: #aaa; cursor: default; }
+  #summary { font-size: 13px; margin-top: 8px; }
+  .dup { color: var(--bad); font-weight: bold; }
+  footer { text-align: center; font-size: 11px; color: #889; padding: 20px; }
+  progress { width: 200px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<header>
+  <h1>保護者会 調査票読み取り（OMR）</h1>
+  <p>スキャンした調査票（PDF/JPG/PNG）からマークを読み取り、Excel取込用CSVを作ります。データはこのパソコンの中だけで処理されます。</p>
+</header>
+<main>
+  <div class="step">
+    <h2><span class="badge">1</span>定義ファイルを読み込む</h2>
+    <label class="filebtn">調査票定義.csv を選択<input type="file" id="defFile" accept=".csv"></label>
+    <span class="status" id="defStatus">未読み込み</span>
+    <p class="hint">Excelの「調査票を印刷」ボタンが、ブック（保護者会調整_ver200.xlsm）と同じフォルダに自動保存したファイルです。</p>
+  </div>
+
+  <div class="step">
+    <h2><span class="badge">2</span>スキャンを読み込む</h2>
+    <label class="filebtn">PDF / 画像を選択（複数可）<input type="file" id="scanFiles" accept=".pdf,.jpg,.jpeg,.png,.bmp,.gif" multiple disabled></label>
+    <span class="status" id="scanStatus"></span>
+    <p class="hint">コピー機でまとめてスキャンしたPDFでも、1枚ずつのJPGでもOK。300dpi以下のグレースケール推奨。</p>
+  </div>
+
+  <div class="step">
+    <h2><span class="badge">3</span>確認して書き出す</h2>
+    <p class="hint">読み取り結果を確認してください。<b>セルをクリックすると ○⇔なし を修正</b>できます。黄色は自信のない読み取りです（必ず確認）。番号の読み取りに失敗したページは、名簿から選んでください。</p>
+    <button id="exportBtn" disabled>CSV を書き出す（Excelの「希望を取り込む」で使用）</button>
+    <div id="summary"></div>
+  </div>
+
+  <div id="pages"></div>
+</main>
+<footer>my-tools / hogosha-omr — すべてブラウザ内で処理（サーバ送信なし）</footer>
+<script src="lib/pdf.min.js"></script>
+<script src="omr.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
