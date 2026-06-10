@@ -1,0 +1,5 @@
+# Windows のバッチファイルは CRLF 改行を保つ（cmd.exe での誤動作を防ぐ）
+*.bat text eol=crlf
+
+# Word マクロのソースは CRLF（VBA エディタの標準）
+*.bas text eol=crlf
