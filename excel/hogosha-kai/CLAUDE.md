@@ -33,10 +33,30 @@ pip install oletools olefile          # 初回のみ（Setup script 推奨）
 # 1. vba/*.bas|cls|frm を編集（UTF-8 のまま）
 python3 scripts/lint_vba.py           # 2. リント（必ず通す）
 python3 scripts/build_vba.py          # 3. ビルド（往復検証つき）
-python3 scripts/test_engine_logic.py  # 4. エンジンを触ったら必ず
+python3 scripts/validate_xlsx.py      # 4. 構造検証（Excel破損の事前検出）
+python3 scripts/test_engine_logic.py  # 5. エンジンを触ったら必ず
 ```
 
 `extract_vba.py` は xlsm 側が正のとき（手動で Excel から変更が入ったとき）だけ使う。
+
+## XML（シート/書式/ボタン）を直したとき = クリーン再構築
+
+`patch_workbook_xml.py` を**既にパッチ済みの ver200 に重ねがけしない**。中間状態に
+重ねると壊れやすい。必ずオリジナルから作り直す:
+
+```bash
+bash scripts/rebuild_all.sh    # cp original → build_vba → patch → lint → validate
+```
+
+- `validate_xlsx.py` は **Excel が「内容に問題」と出す破損を Excel 無しで検出する**。
+  XML を触ったら必ず通すこと。チェック内容: XML整形式 / calcChain が数式の無い
+  セルを指していないか / 孤児共有数式（masterの無いslave）/ rels の Target 実在 /
+  Content_Types の Override 実在 / sharedString index 範囲。
+- **数式を削ったら calcChain.xml は陳腐化する** → `drop_calcchain` が削除（Excel が
+  開いたとき再生成）。共有数式は **master(ref=) を消すなら同 si の slave も全部消す**
+  （片方だけ消すと破損）。`patch_yotei_sheet` は列ごと丸ごと空セル化している。
+- ActiveX/画像など**パートを消したら、それを指す .rels も必ず外す**。
+  `prune_dangling_rels` が全 .rels から実在しない Target を最終掃除する。
 
 ## 重要な設計知識
 

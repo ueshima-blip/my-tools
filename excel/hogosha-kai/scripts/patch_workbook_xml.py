@@ -194,10 +194,18 @@ def patch_kibou_sheet(xml, name_idx):
 
 
 def patch_yotei_sheet(xml):
-    """元_予定表: 「名」列の VLOOKUP(…,3,0) を空文字に。氏列を広げ名列を狭く。"""
+    """元_予定表: 「名」列(F/I/L/O/R)の数式を完全撤去して空セルに。
+
+    1セル氏名では「氏」列(E/H/K/N/Q)の VLOOKUP(…,2,0) がフルネームを返すので、
+    「名」列は不要。共有数式のマスターだけ消すとスレーブが孤児化して破損するため、
+    マスター・スレーブとも丸ごと空セル化する。氏列を広げ名列を狭くする。
+    """
+    def strip(m):
+        return f'<c r="{m.group(1)}"{m.group(2) or ""}/>'
     xml = re.sub(
-        r'(<f t="shared" ref="[A-Z]+\d+:?[A-Z]*\d*" si="\d+">)IF\(ISBLANK\(([A-Z]+\d+)\),"",VLOOKUP\(\2,氏名,3,0\)\)(</f>)',
-        r'\1""\3', xml)
+        r'<c r="([FILOR]\d+)"( s="\d+")?(?: t="[^"]*")?>\s*'
+        r'<f[^>]*?(?:/>|>.*?</f>)\s*(?:<v\s*/>|<v>.*?</v>)?\s*</c>',
+        strip, xml, flags=re.S)
     assert ",氏名,3,0" not in xml
     for first, second in ((5, 6), (8, 9), (11, 12), (14, 15), (17, 18)):
         xml = xml.replace(
@@ -205,6 +213,54 @@ def patch_yotei_sheet(xml):
             f'<col min="{first}" max="{first}" width="12.5" style="4" customWidth="1"/>'
             f'<col min="{second}" max="{second}" width="3.5" style="4" customWidth="1"/>')
     return xml
+
+
+def prune_dangling_rels(files):
+    """すべての .rels から「存在しないパートを指す関係」を除去する。
+
+    ActiveX/EMF を消したのに vmlDrawing*.vml.rels が画像を指したまま、等の
+    取りこぼしを最終段でまとめて掃除する（Excel の破損検出を防ぐ）。
+    外部参照(TargetMode=External)・http は対象外。
+    """
+    from posixpath import normpath, join
+    names = set(files)
+    for rel_name in [n for n in files if n.endswith(".rels")]:
+        base = re.sub(r"_rels/[^/]+$", "", rel_name)
+        xml = files[rel_name].decode("utf-8")
+        changed = False
+
+        def keep(m):
+            nonlocal changed
+            whole, tgt, rest = m.group(0), m.group(1), m.group(2)
+            if "External" in rest or tgt.startswith("http"):
+                return whole
+            resolved = normpath(join(base, tgt)).lstrip("/")
+            if resolved not in names:
+                changed = True
+                return ""
+            return whole
+
+        new = re.sub(r'<Relationship [^>]*Target="([^"]+)"([^>]*)/>', keep, xml)
+        if changed:
+            files[rel_name] = new.encode("utf-8")
+
+
+def drop_calcchain(files):
+    """calcChain.xml を削除（Excel が開いたとき再生成）。
+
+    数式を削った（C列の VLOOKUP など）あとは calcChain に古い参照が残り、
+    Excel が「内容に問題」エラーを出すため、丸ごと取り除くのが最も安全。
+    Content_Types の Override と workbook.xml.rels の関係も外す。
+    """
+    if "xl/calcChain.xml" not in files:
+        return
+    del files["xl/calcChain.xml"]
+    ct = files["[Content_Types].xml"].decode("utf-8")
+    ct = re.sub(r'<Override PartName="/xl/calcChain\.xml"[^>]*/>', "", ct)
+    files["[Content_Types].xml"] = ct.encode("utf-8")
+    rels = files["xl/_rels/workbook.xml.rels"].decode("utf-8")
+    rels = re.sub(r'<Relationship[^>]*Target="calcChain\.xml"[^>]*/>', "", rels)
+    files["xl/_rels/workbook.xml.rels"] = rels.encode("utf-8")
 
 
 def patch_workbook_calc(xml):
@@ -273,6 +329,12 @@ def main():
     files["xl/worksheets/sheet4.xml"] = patch_yotei_sheet(dec("xl/worksheets/sheet4.xml")).encode("utf-8")
     files["xl/styles.xml"] = patch_shrink_time_xfs(dec("xl/styles.xml")).encode("utf-8")
     files["xl/workbook.xml"] = patch_workbook_calc(dec("xl/workbook.xml")).encode("utf-8")
+
+    # 8. 数式を削った影響で calcChain が陳腐化 → 削除（Excel が再生成）
+    drop_calcchain(files)
+
+    # 9. 最終掃除: 存在しないパートを指す関係を全 .rels から除去
+    prune_dangling_rels(files)
 
     tmp = XLSM.with_suffix(".xlsm.tmp")
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
