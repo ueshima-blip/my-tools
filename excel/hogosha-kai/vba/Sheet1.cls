@@ -6,9 +6,8 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Attribute VB_TemplateDerived = False
 Attribute VB_Customizable = True
-Attribute VB_Control = "CommandButton1, 1, 0, MSForms, CommandButton"
-Private Sub CommandButton1_Click()
+Option Explicit
 
-    UserForm1.Show
-
-End Sub
+' Start! シート
+' ver2.0: ボタンは図形に変更（マクロ: BtnSettings / BtnImport /
+'         BtnQuickInput / BtnSurveyPrint は Module1 参照）

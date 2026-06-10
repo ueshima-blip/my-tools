@@ -305,12 +305,13 @@ Public Sub RunChosei()
     Next
 
     '--- 不参加（無印）の生徒を除外 -----------------------------
+    '（希望はあるが全部 ◎ に塞がれている生徒は除外せず、診断対象に残す）
     nSkip = 0
     For s = 1 To ss
         If matchSlot(s) = 0 Then
             anyW = False
             For j = 1 To nSlots
-                If wish(s, j) > 0 And Not blocked(j) Then
+                If wish(s, j) > 0 Then
                     anyW = True
                     Exit For
                 End If

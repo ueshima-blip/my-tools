@@ -6,14 +6,13 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Attribute VB_TemplateDerived = False
 Attribute VB_Customizable = True
+Option Explicit
+
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-
     Application.CellDragAndDrop = True
-
 End Sub
 
 Private Sub Workbook_Open()
-
+    'ドラッグ&ドロップによるデータ破壊を防ぐ（ver1.03 から継承）
     Application.CellDragAndDrop = False
-
 End Sub
