@@ -1,0 +1,60 @@
+{
+  "xlsm_path": "保護者会調整_ver200.xlsm",
+  "modules": [
+    {
+      "name": "Sheet1",
+      "file": "vba/Sheet1.cls",
+      "textoffset": 1569
+    },
+    {
+      "name": "ThisWorkbook",
+      "file": "vba/ThisWorkbook.cls",
+      "textoffset": 1689
+    },
+    {
+      "name": "Sheet2",
+      "file": "vba/Sheet2.cls",
+      "textoffset": 10051
+    },
+    {
+      "name": "Sheet3",
+      "file": "vba/Sheet3.cls",
+      "textoffset": 827
+    },
+    {
+      "name": "UserForm4",
+      "file": "vba/UserForm4.frm",
+      "textoffset": 4603
+    },
+    {
+      "name": "Sheet5",
+      "file": "vba/Sheet5.cls",
+      "textoffset": 1016
+    },
+    {
+      "name": "UserForm1",
+      "file": "vba/UserForm1.frm",
+      "textoffset": 7583
+    },
+    {
+      "name": "Module1",
+      "file": "vba/Module1.bas",
+      "textoffset": 20253
+    },
+    {
+      "name": "UserForm2",
+      "file": "vba/UserForm2.frm",
+      "textoffset": 7910
+    },
+    {
+      "name": "UserForm3",
+      "file": "vba/UserForm3.frm",
+      "textoffset": 11467
+    },
+    {
+      "name": "Module2",
+      "file": "vba/Module2.bas",
+      "textoffset": 3918
+    }
+  ]
+}
