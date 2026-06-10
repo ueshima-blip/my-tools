@@ -50,8 +50,23 @@ Private Sub CommandButton1_Click()
         Exit Sub
     End If
 
-    m = MsgBox("希望入力シートを初期化し、" & Val(ComboBox1.Value) & " 日 × " & kpd & _
-        " コマで設定します。", vbOKCancel)
+    '生徒数に対する過不足を確認画面に表示（40人学級などで一目で分かるように）
+    Dim totalSlots As Long, nStu As Long
+    Dim capMsg As String
+    totalSlots = CLng(Val(ComboBox1.Value)) * kpd
+    nStu = CLng(Val(CStr(Sheets("Start!").Range("生徒数").Value)))
+    capMsg = "希望入力シートを初期化し、" & Val(ComboBox1.Value) & " 日 × " & kpd & _
+        " コマ（合計 " & totalSlots & " コマ）で設定します。"
+    If nStu > 0 Then
+        If totalSlots < nStu Then
+            capMsg = capMsg & vbLf & vbLf & "※注意: 生徒 " & nStu & " 名に対してコマ数が足りません。" & vbLf & _
+                "　日数を増やすか、面談時間・開始/最終時間を見直してください。"
+        Else
+            capMsg = capMsg & vbLf & "（生徒 " & nStu & " 名 ・ 休憩などに使える余裕 " & _
+                (totalSlots - nStu) & " コマ）"
+        End If
+    End If
+    m = MsgBox(capMsg, vbOKCancel)
     If m = vbCancel Then Exit Sub
 
     Application.ScreenUpdating = False
