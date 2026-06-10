@@ -129,6 +129,104 @@ def patch_content_types(xml):
     return xml
 
 
+# ------------------------------------------------------------------
+# 氏名1セル化 + 時刻ヘッダの「縮小して全体を表示」（常時実行・冪等）
+# ------------------------------------------------------------------
+
+# 希望入力シート 2行目（時刻ヘッダ）が使う書式番号。numFmtId=20(h:mm)・中央揃え。
+TIME_HEADER_XFS = (86, 87, 96, 102, 107, 112, 117, 125)
+
+
+def ensure_shared_string(xml, text):
+    """sharedStrings に text の <si> が無ければ追加し、(xml, index) を返す。"""
+    sis = re.findall(r"<si>.*?</si>", xml, flags=re.S)
+    needle = f"<si><t>{text}</t></si>"
+    for i, s in enumerate(sis):
+        if s == needle:
+            return xml, i
+    idx = len(sis)
+    xml = xml.replace("</sst>", needle + "</sst>")
+    def bump(m):
+        return f'count="{int(m.group(1)) + 2}" uniqueCount="{int(m.group(2)) + 1}"'
+    xml = re.sub(r'count="(\d+)" uniqueCount="(\d+)"', bump, xml, count=1)
+    return xml, idx
+
+
+def patch_shrink_time_xfs(xml):
+    """時刻ヘッダの xf に shrinkToFit を追加（#### 対策）。"""
+    m = re.search(r"(<cellXfs count=\"\d+\">)(.*?)(</cellXfs>)", xml, flags=re.S)
+    body = m.group(2)
+    xfs = re.findall(r"<xf [^>]*?/>|<xf [^>]*?>.*?</xf>", body, flags=re.S)
+    for i in TIME_HEADER_XFS:
+        xf = xfs[i]
+        if "shrinkToFit" in xf:
+            continue
+        assert 'numFmtId="20"' in xf, f"xf[{i}] is not a time format"
+        xfs[i] = xf.replace("<alignment ", '<alignment shrinkToFit="1" ', 1)
+    return xml[: m.start(2)] + "".join(xfs) + xml[m.end(2):]
+
+
+def patch_meibo_sheet(xml, name_idx):
+    """名簿: B1=氏名(1セル), C1は空に。B列を広げる。"""
+    xml = re.sub(r'<c r="B1"( s="\d+")? t="s"><v>\d+</v></c>',
+                 f'<c r="B1"\\1 t="s"><v>{name_idx}</v></c>', xml)
+    xml = re.sub(r'<c r="C1"( s="\d+")? t="s"><v>\d+</v></c>', r'<c r="C1"\1/>', xml)
+    if '<col min="2"' not in xml:
+        xml = xml.replace('<col min="4"',
+                          '<col min="2" max="2" width="14.5" customWidth="1"/><col min="4"', 1)
+    return xml
+
+
+def patch_kibou_sheet(xml, name_idx):
+    """希望入力: B2=氏名, C2空, C3:C52 の VLOOKUP(…,3,0) を撤去, B列を広げる。"""
+    xml = re.sub(r'<c r="B2"( s="\d+")? t="s"><v>\d+</v></c>',
+                 f'<c r="B2"\\1 t="s"><v>{name_idx}</v></c>', xml)
+    xml = re.sub(r'<c r="C2"( s="\d+")? t="s"><v>\d+</v></c>', r'<c r="C2"\1/>', xml)
+    for row in range(3, 53):
+        xml = re.sub(
+            r'<c r="C%d"( s="\d+")?[^>]*>.*?</c>' % row,
+            r'<c r="C%d"\1/>' % row, xml, flags=re.S)
+    xml = xml.replace(
+        '<col min="2" max="3" width="6.25" customWidth="1"/>',
+        '<col min="2" max="2" width="12.5" customWidth="1"/>'
+        '<col min="3" max="3" width="2.25" customWidth="1"/>')
+    return xml
+
+
+def patch_yotei_sheet(xml):
+    """元_予定表: 「名」列の VLOOKUP(…,3,0) を空文字に。氏列を広げ名列を狭く。"""
+    xml = re.sub(
+        r'(<f t="shared" ref="[A-Z]+\d+:?[A-Z]*\d*" si="\d+">)IF\(ISBLANK\(([A-Z]+\d+)\),"",VLOOKUP\(\2,氏名,3,0\)\)(</f>)',
+        r'\1""\3', xml)
+    assert ",氏名,3,0" not in xml
+    for first, second in ((5, 6), (8, 9), (11, 12), (14, 15), (17, 18)):
+        xml = xml.replace(
+            f'<col min="{first}" max="{second}" width="8" style="4" customWidth="1"/>',
+            f'<col min="{first}" max="{first}" width="12.5" style="4" customWidth="1"/>'
+            f'<col min="{second}" max="{second}" width="3.5" style="4" customWidth="1"/>')
+    return xml
+
+
+def patch_workbook_calc(xml):
+    """開いたときに全再計算（キャッシュ済みの古い値を一掃）。"""
+    if "fullCalcOnLoad" in xml:
+        return xml
+    if "<calcPr" in xml:
+        return xml.replace("<calcPr ", '<calcPr fullCalcOnLoad="1" ', 1)
+    return xml.replace("</workbook>", '<calcPr fullCalcOnLoad="1"/></workbook>')
+
+
+def patch_meibo_instruction(xml):
+    """Start! の説明文「姓・名に分けて」→ 1セル氏名に合わせて更新。"""
+    sis = re.findall(r"<si>.*?</si>", xml, flags=re.S)
+    old = [s for s in sis if "姓・名に分けて" in s]
+    if not old:
+        return xml
+    new = ("<si><t>クラス生徒の名簿を「出席番号（2桁）」と「氏名（1セル）」の2列で"
+           "貼り付け（最大50名）</t></si>")
+    return xml.replace(old[0], new, 1)
+
+
 def main():
     with zipfile.ZipFile(XLSM) as z:
         files = {n: z.read(n) for n in z.namelist()}
@@ -165,6 +263,16 @@ def main():
     # 4. drawings → shape buttons（レイアウト変更時は再実行すればここだけ更新される）
     files["xl/drawings/drawing1.xml"] = start_buttons().encode("utf-8")
     files["xl/drawings/drawing2.xml"] = kibou_buttons().encode("utf-8")
+
+    # 7. 氏名1セル化 + 時刻ヘッダ表示 + 全再計算（冪等）
+    ss_xml, name_idx = ensure_shared_string(dec("xl/sharedStrings.xml"), "氏名")
+    ss_xml = patch_meibo_instruction(ss_xml)
+    files["xl/sharedStrings.xml"] = ss_xml.encode("utf-8")
+    files["xl/worksheets/sheet2.xml"] = patch_meibo_sheet(dec("xl/worksheets/sheet2.xml"), name_idx).encode("utf-8")
+    files["xl/worksheets/sheet3.xml"] = patch_kibou_sheet(dec("xl/worksheets/sheet3.xml"), name_idx).encode("utf-8")
+    files["xl/worksheets/sheet4.xml"] = patch_yotei_sheet(dec("xl/worksheets/sheet4.xml")).encode("utf-8")
+    files["xl/styles.xml"] = patch_shrink_time_xfs(dec("xl/styles.xml")).encode("utf-8")
+    files["xl/workbook.xml"] = patch_workbook_calc(dec("xl/workbook.xml")).encode("utf-8")
 
     tmp = XLSM.with_suffix(".xlsm.tmp")
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:

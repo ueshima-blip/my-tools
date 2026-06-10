@@ -85,6 +85,12 @@ Private Sub CommandButton1_Click()
         End With
     Next
 
+    '時刻ヘッダ: 秒なし表示 + 列幅に合わせて自動縮小（####防止）
+    With ws.Range(ws.Cells(r0, c0), ws.Cells(r0, c0 + 59))
+        .NumberFormat = "h:mm"
+        .ShrinkToFit = True
+    End With
+
     Range("RowFail").ClearContents
     ws.Range(ws.Cells(r0, STATE_COL), ws.Cells(r0 + 50, STATE_COL)).ClearContents
     ws.Protect

@@ -64,7 +64,7 @@ PROJECT_PUBLIC = {
     "ensuredims", "btnsettings", "btnmenu", "btnimport", "btnquickinput",
     "btnsurveyprint", "sheetcopy", "komareset", "komacheck", "runchosei",
     "stateisconsistent", "repaintfromstate", "makeschedulecore",
-    "makenotifysheet", "exportsheetpdf", "cellcolor", "myprev",
+    "makenotifysheet", "exportsheetpdf", "cellcolor", "myprev", "studentname",
     "module1",
     # Module2 procs
     "importwishes", "makesurveysheets", "quickinput", "module2",

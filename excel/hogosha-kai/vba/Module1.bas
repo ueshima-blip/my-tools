@@ -56,6 +56,20 @@ Private Sub CleanFail()
 End Sub
 
 '--------------------------------------------------------------
+' 名簿から氏名を取得（B列=氏名1セル。旧形式のC列に名があれば連結）
+'--------------------------------------------------------------
+Public Function StudentName(ByVal s As Long) As String
+    Dim b As String, c As String
+    b = Trim(CStr(Sheets("名簿").Cells(1 + s, 2).Value))
+    c = Trim(CStr(Sheets("名簿").Cells(1 + s, 3).Value))
+    If c <> "" Then
+        StudentName = b & "　" & c
+    Else
+        StudentName = b
+    End If
+End Function
+
+'--------------------------------------------------------------
 ' シート上のボタン入口
 '--------------------------------------------------------------
 Public Sub BtnSettings()
@@ -724,7 +738,7 @@ Again:
         bc = 2 + (idx Mod 2) * 5
 
         bn = CStr(Val(CStr(Sheets("名簿").Cells(1 + s, 1).Value)))
-        nm = CStr(Sheets("名簿").Cells(1 + s, 2).Value) & "　" & CStr(Sheets("名簿").Cells(1 + s, 3).Value)
+        nm = StudentName(s)
 
         ws.Rows(br).RowHeight = 20
         ws.Rows(br + 1).RowHeight = 6

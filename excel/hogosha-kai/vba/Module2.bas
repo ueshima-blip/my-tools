@@ -759,8 +759,7 @@ Public Sub MakeSurveySheets()
         top = 1 + (s - 1) * pageRows
         num = CLng(Val(CStr(Sheets("名簿").Cells(1 + s, 1).Value)))
         If num < 1 Or num > 99 Then num = s
-        nm = CStr(Sheets("名簿").Cells(1 + s, 2).Value) & "　" & _
-             CStr(Sheets("名簿").Cells(1 + s, 3).Value)
+        nm = StudentName(s)
 
         '上マーカー
         ws.Rows(top).RowHeight = 16
@@ -939,8 +938,7 @@ Private Sub WriteOmrDef(ws As Worksheet, slotLabel() As String, _
 
     For s = 1 To ss
         txt = txt & "student," & CStr(Val(CStr(Sheets("名簿").Cells(1 + s, 1).Value))) & "," & _
-            CStr(Sheets("名簿").Cells(1 + s, 2).Value) & " " & _
-            CStr(Sheets("名簿").Cells(1 + s, 3).Value) & vbCrLf
+            StudentName(s) & vbCrLf
     Next
 
     p = ThisWorkbook.Path
@@ -1018,8 +1016,7 @@ Public Sub QuickInput()
             On Error Resume Next
             ws.Cells(r0 + s, 1).Select
             On Error GoTo 0
-            ans = InputBox(Val(ans) & "番 " & _
-                CStr(Sheets("名簿").Cells(1 + s, 2).Value) & " さんの希望を入力:" & vbLf & _
+            ans = InputBox(Val(ans) & "番 " & StudentName(s) & " さんの希望を入力:" & vbLf & _
                 "  例: 1-3 1-5 2-10 （日-コマ番号をスペース区切り）" & vbLf & _
                 "  ◎1-3 で優先、△2-4 で第2希望、c で行クリア" & vbLf & vbLf & guide, _
                 "クイック入力")
