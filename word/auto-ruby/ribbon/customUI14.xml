@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Wordのリボンに「ルビ振り」タブと4つのボタンを追加する定義です。
+  AutoRuby.dotm に「Office RibbonX Editor」で取り込んで使います
+  （手順は ../README.md の「リボンにボタンを出す（任意）」を参照）。
+
+  imageMso（アイコン）は好みで変更できます。表示されなくても
+  ボタンの文字（label）は出るので、動作には影響しません。
+-->
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="tabAutoRuby" label="ルビ振り" insertAfterMso="TabHome">
+        <group id="grpAutoRubyAll" label="文書全体">
+          <button id="btnRubiAll"
+                  label="全文にルビ"
+                  size="large"
+                  imageMso="PhoneticGuide"
+                  onAction="Ribbon_MakeRubiAll"
+                  screentip="文書全体の漢字すべてにルビを振ります"/>
+          <button id="btnFirstRubiAll"
+                  label="全文にルビ（初出のみ）"
+                  size="large"
+                  imageMso="PhoneticGuide"
+                  onAction="Ribbon_MakeFirstRubiAll"
+                  screentip="同じ漢字は最初の1回だけルビを振ります"/>
+        </group>
+        <group id="grpAutoRubySel" label="選択した範囲だけ">
+          <button id="btnRubiPartial"
+                  label="選択範囲にルビ"
+                  size="large"
+                  imageMso="PhoneticGuide"
+                  onAction="Ribbon_MakeRubiPartial"
+                  screentip="マウスで選んだ範囲の漢字すべてにルビを振ります"/>
+          <button id="btnFirstRubiPartial"
+                  label="選択範囲にルビ（初出のみ）"
+                  size="large"
+                  imageMso="PhoneticGuide"
+                  onAction="Ribbon_MakeFirstRubiPartial"
+                  screentip="選んだ範囲で、同じ漢字は最初の1回だけルビを振ります"/>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
