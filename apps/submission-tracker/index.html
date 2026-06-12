@@ -25,6 +25,7 @@ nav button:hover{background:#f5f5f5}
 #summaryFilterList{display:flex;flex-direction:column;gap:6px}
 .filter-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;color:#333;cursor:pointer}
 .filter-chip .fc-date{color:#888;font-size:12px}
+.print-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .page{display:none;padding:20px;max-width:960px;margin:0 auto}
 .page.active{display:block}
 .card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:20px;margin-bottom:16px}
@@ -72,7 +73,6 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
 .modal h3{margin-bottom:16px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 #printArea{display:none}
-@page{size:A4 portrait;margin:14mm}
 @media print{
  body>*:not(#printArea){display:none!important}
  #printArea{display:block!important}
@@ -87,6 +87,17 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
  .print-list td:nth-child(2){text-align:left}
  .print-sum{font-size:12px;margin-top:12px;font-weight:600}
  .print-legend{font-size:11px;color:#333;margin-top:4px}
+ .print-grid{font-size:11px}
+ .print-grid .pdate{font-weight:400;font-size:9px;color:#555}
+ .print-list .ptot{font-weight:700}
+ .notice-page{page-break-after:always}
+ .notice-page:last-child{page-break-after:auto}
+ .notice-date{text-align:right;font-size:12px;margin-bottom:6px}
+ .notice-page h1{font-size:18px;text-align:center;margin:0 0 14px}
+ .notice-to{font-size:15px;font-weight:700;margin:0 0 12px;border-bottom:2px solid #000;padding-bottom:6px}
+ .notice-lead{font-size:13px;margin:0 0 12px;line-height:1.6}
+ .notice-foot{font-size:12px;margin-top:16px}
+ .notice-sign{font-size:12px;margin-top:24px;text-align:right}
 }
 </style>
 </head>
@@ -189,6 +200,11 @@ th{background:#f8f9fa;font-weight:600;position:sticky;top:0;z-index:1}
 </div>
 <div class="filter-note" id="summaryFilterNote"></div>
 <div id="summaryFilterList"></div>
+<div class="print-actions">
+<button class="btn btn-secondary" onclick="printSummary()">🖨 集計表を印刷（A4横）</button>
+<button class="btn btn-secondary" onclick="printNotices()">🖨 未提出のお知らせを印刷（B5縦）</button>
+</div>
+<p class="filter-note" style="margin:8px 0 0">上で選んだ提出物が印刷の対象です。「お知らせ」は ✕未提出・△未記入 がある生徒だけ、1人1枚（B5縦）で出力します。</p>
 </div>
 <div class="card">
 <h2>全体集計</h2>
@@ -754,6 +770,72 @@ const table='<table class="print-list"><thead><tr><th class="c" style="width:16%
 const sum='<p class="print-sum">提出 ◯ '+counts.submitted+'　／　未提出 ✕ '+counts.not_submitted+'　／　未記入 △ '+counts.blank+'　／　未チェック ー '+counts.none+'　／　合計 '+c.students.length+'名</p>';
 const legend='<p class="print-legend">ー＝未チェック　◯＝提出済み　✕＝未提出　△＝一部・未記入</p>';
 document.getElementById('printArea').innerHTML='<div class="print-doc"><h1>提出物チェック一覧</h1>'+meta+table+sum+legend+'</div>';
+setPrintPage('size:A4 portrait;margin:14mm');
+window.print();
+}
+
+/* ======== 印刷（集計表 A4横 / 未提出お知らせ B5縦） ======== */
+function setPrintPage(spec){
+let el=document.getElementById('pageStyle');
+if(!el){el=document.createElement('style');el.id='pageStyle';document.head.appendChild(el);}
+el.textContent='@page{'+spec+'}';
+}
+function visibleAssignments(c){return c.assignments.filter(a=>summaryShow[a.id]!==false);}
+function todayYmd(){const t=new Date();return t.getFullYear()+'/'+String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0');}
+function printSummary(){
+const c=cur();
+if(!c){alert('クラスがありません');return;}
+if(!c.students.length){alert('生徒が登録されていません');return;}
+const vis=visibleAssignments(c);
+if(!vis.length){alert('印刷する提出物を選んでください（集計の上のチェック）');return;}
+let head='<tr><th class="c" style="width:48px">番号</th><th>名前</th>';
+vis.forEach(a=>{head+='<th class="c">'+esc(a.name)+(a.date?'<br><span class="pdate">'+a.date+'</span>':'')+'</th>';});
+head+='<th class="c">提出率</th></tr>';
+let body='';
+c.students.forEach(s=>{
+let row='<tr><td class="c">'+s.num+'</td><td>'+esc(s.name)+'</td>';
+let sub=0;
+vis.forEach(a=>{const st=(c.records[a.id]||{})[s.num]||'none';row+='<td class="c">'+STATUS_LABEL[st]+'</td>';if(st==='submitted')sub++;});
+row+='<td class="c">'+Math.round(sub/vis.length*100)+'%</td></tr>';
+body+=row;
+});
+let foot='<tr class="ptot"><td class="c" colspan="2">提出数</td>';
+vis.forEach(a=>{const rec=c.records[a.id]||{};let cnt=0;c.students.forEach(s=>{if(rec[s.num]==='submitted')cnt++;});foot+='<td class="c">'+cnt+'/'+c.students.length+'</td>';});
+foot+='<td></td></tr>';
+const meta='<table class="print-meta"><tr><td>クラス</td><td>'+esc(c.name)+'</td></tr><tr><td>印刷日</td><td>'+todayYmd()+'</td></tr><tr><td>対象</td><td>提出物 '+vis.length+' 件</td></tr></table>';
+const legend='<p class="print-legend">ー＝未チェック　◯＝提出済み　✕＝未提出　△＝未記入</p>';
+document.getElementById('printArea').innerHTML='<div class="print-doc"><h1>提出状況一覧（集計）</h1>'+meta+'<table class="print-list print-grid"><thead>'+head+'</thead><tbody>'+body+foot+'</tbody></table>'+legend+'</div>';
+setPrintPage('size:A4 landscape;margin:10mm');
+window.print();
+}
+function printNotices(){
+const c=cur();
+if(!c){alert('クラスがありません');return;}
+if(!c.students.length){alert('生徒が登録されていません');return;}
+const vis=visibleAssignments(c);
+if(!vis.length){alert('対象の提出物を選んでください（集計の上のチェック）');return;}
+const MISS={not_submitted:'未提出',blank:'未記入'};
+const ymd=todayYmd();
+let pages='',n=0;
+c.students.forEach(s=>{
+const miss=vis.filter(a=>{const st=(c.records[a.id]||{})[s.num]||'none';return st==='not_submitted'||st==='blank';});
+if(!miss.length)return;
+n++;
+let rows='';
+miss.forEach(a=>{const st=(c.records[a.id]||{})[s.num];rows+='<tr><td>'+esc(a.name)+'</td><td class="c">'+(a.date||'—')+'</td><td class="c">'+STATUS_LABEL[st]+' '+MISS[st]+'</td></tr>';});
+pages+='<div class="notice-page">'
++'<div class="notice-date">'+ymd+'</div>'
++'<h1>提出物 未提出のお知らせ</h1>'
++'<p class="notice-to">'+esc(c.name)+'　'+s.num+'番　'+esc(s.name)+'　さん</p>'
++'<p class="notice-lead">下記の提出物が、まだ提出されていません。内容を確認して、できるだけ早く提出してください。</p>'
++'<table class="print-list"><thead><tr><th>提出物</th><th class="c" style="width:30%">提出期限</th><th class="c" style="width:22%">状態</th></tr></thead><tbody>'+rows+'</tbody></table>'
++'<p class="notice-foot">提出したら先生に出して、確認を受けてください。</p>'
++'<div class="notice-sign">担任：＿＿＿＿＿＿＿＿</div>'
++'</div>';
+});
+if(!n){alert('未提出（✕・△）の生徒はいません。');return;}
+document.getElementById('printArea').innerHTML=pages;
+setPrintPage('size:B5 portrait;margin:14mm');
 window.print();
 }
 
