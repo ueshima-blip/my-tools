@@ -285,8 +285,8 @@ button{font-family:inherit}
     <hr>
     <h3 style="font-size:14px">デスクトップに常駐させる</h3>
     <ul>
-      <li>Edge/Chrome の「…」→ <b>アプリ</b> →「このサイトをアプリとしてインストール」で専用ウィンドウに</li>
-      <li><b>PowerToys</b>（無料・公式）の <code>Win+Ctrl+T</code> で<b>常に最前面</b>に固定＝ウィジェット化</li>
+      <li><b>かんたん（おすすめ）</b>：<code>タスクボード起動.bat</code> で枠なし小窓にして、<b>PowerToys</b>（無料・公式）の <code>Win+Ctrl+T</code> で<b>常に最前面</b>に固定＝ウィジェット化</li>
+      <li><b>アプリとして入れる場合</b>：<code>https</code>（GitHub Pages）で開くと Edge/Chrome の「アプリとしてインストール」が選べます。<b>ローカルファイル（file://）では選べません</b></li>
       <li>詳しくは同フォルダの <code>README.md</code></li>
     </ul>
   </div>
@@ -567,6 +567,13 @@ button{font-family:inherit}
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
   load();tick();render();setInterval(tick,1000*15);
+
+  /* ---------- オフライン対応（https/localhost のときだけ。file:// では何もしない） ---------- */
+  try{
+    if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+      window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+    }
+  }catch(e){}
 })();
 </script>
 </body>
