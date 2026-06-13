@@ -1,0 +1,14 @@
+{
+  "name": "タスクボード",
+  "short_name": "タスク",
+  "description": "本日／今週のタスクを自動振り分けで表示する、デスク常駐のタスク管理ウィジェット",
+  "lang": "ja",
+  "display": "standalone",
+  "background_color": "#0b0e1c",
+  "theme_color": "#0b0e1c",
+  "start_url": "./index.html",
+  "scope": "./",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
