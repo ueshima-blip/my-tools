@@ -37,7 +37,7 @@ my-tools/
 | エタノール沸騰シミュレーション | HTMLアプリ | エタノールが沸騰する温度を調べる理科の実験シミュレーション。タッチ操作対応。 | [`apps/ethanol-sim/`](apps/ethanol-sim/) |
 | 席替えアプリ | HTMLアプリ | クラス名簿(Excel)を取り込み、男女配置・班・距離条件などを考慮して瞬時／ルーレットで席替え。印刷・JPG保存・履歴つき。 | [`apps/seat-shuffle/`](apps/seat-shuffle/) |
 | 提出物チェックシステム | HTMLアプリ | クラスの提出物を管理。Excel から生徒を一括登録でき、複数クラス対応。 | [`apps/submission-tracker/`](apps/submission-tracker/) |
-| タスクボード | HTMLアプリ（PC・常駐） | 仕事用のデスクタスク管理。本日／今週のタスクをチェックで消化。3デザイン切替・締切/優先・目隠し・ワンクリック起動bat つき。 | [`apps/task-board/`](apps/task-board/) |
+| タスクボード | HTMLアプリ（PC・常駐） | 仕事用のデスクタスク管理ウィジェット（縦型コンパクト）。締切・作業日・作業週を設定すると本日／今週へ自動振り分け表示。3デザイン切替・目隠し・PWA常駐・ワンクリック起動bat つき。 | [`apps/task-board/`](apps/task-board/) |
 | 進度予定表システム（鳴海中用・学校共通用） | Excel（マクロ） | 中学校教諭用の週単位の進度予定表。鳴海中用と学校共通用の 2 種類。VBA を編集するツール・手順つき。 | [`excel/shindo-yotei/`](excel/shindo-yotei/) |
 
 ## ▶️ ツールの開き方

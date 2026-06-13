@@ -33,7 +33,7 @@ if not defined BROWSER if exist "%ProgramFiles(x86)%\Google\Chrome\Application\c
 if not defined BROWSER if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "BROWSER=%LocalAppData%\Google\Chrome\Application\chrome.exe"
 
 if defined BROWSER (
-  start "" "%BROWSER%" --app="%APPURL%" --user-data-dir="%PROFILE%" --no-first-run --no-default-browser-check --window-size=1100,720
+  start "" "%BROWSER%" --app="%APPURL%" --user-data-dir="%PROFILE%" --no-first-run --no-default-browser-check --window-size=410,700
   exit /b 0
 )
 

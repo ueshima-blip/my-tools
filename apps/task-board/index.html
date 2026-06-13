@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0b0e1c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>タスクボード</title>
 <style>
 /* ============================================================
-   タスクボード — 仕事用デスクタスク管理（単一HTML・オフライン）
-   テーマは CSS変数で切替（neon / glass / mono）
+   タスクボード — 仕事用デスクタスク（コンパクト縦型・3テーマ・自動振り分け）
    ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -16,82 +18,66 @@
   --mono:ui-monospace,"Consolas","SFMono-Regular",monospace;
 }
 html,body{height:100%}
-body{
-  font-family:var(--jp);color:var(--text);
-  display:flex;align-items:center;justify-content:center;
-  padding:18px;-webkit-font-smoothing:antialiased;
-  background:var(--bg-base);background-image:var(--bg-img);background-attachment:fixed;
-  transition:background .3s;
-}
+body{font-family:var(--jp);color:var(--text);display:flex;align-items:center;justify-content:center;padding:12px;
+  -webkit-font-smoothing:antialiased;background:var(--bg-base);background-image:var(--bg-img);background-attachment:fixed;transition:background .3s}
 button{font-family:inherit}
-.app{
-  width:min(1080px,100%);height:min(680px,calc(100vh - 36px));
-  border-radius:20px;display:flex;flex-direction:column;overflow:hidden;position:relative;
-  background:var(--app-bg);border:1px solid var(--app-border);box-shadow:var(--app-shadow);
-  color:var(--text);
-  backdrop-filter:var(--app-blur);-webkit-backdrop-filter:var(--app-blur);
-}
-/* neon だけ薄いグリッドを重ねる */
+.app{width:384px;max-width:100%;height:min(660px,calc(100vh - 24px));border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative;
+  background:var(--app-bg);border:1px solid var(--app-border);box-shadow:var(--app-shadow);color:var(--text);
+  backdrop-filter:var(--app-blur);-webkit-backdrop-filter:var(--app-blur)}
 .app::before{content:var(--grid-show,none);position:absolute;inset:0;pointer-events:none;opacity:.5;
   background-image:linear-gradient(rgba(120,170,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(120,170,255,.05) 1px,transparent 1px);
-  background-size:34px 34px;-webkit-mask-image:radial-gradient(circle at 50% 25%,#000,transparent 80%);}
+  background-size:30px 30px;-webkit-mask-image:radial-gradient(circle at 50% 20%,#000,transparent 80%)}
 
-/* ---------- トップバー ---------- */
-.topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;position:relative;z-index:2}
-.brand{display:flex;align-items:center;gap:10px}
-.brand .dot{width:11px;height:11px;border-radius:50%;background:var(--brand-dot);box-shadow:var(--brand-dot-glow)}
-.brand .names{display:flex;flex-direction:column;line-height:1.18}
-.brand .jp{font-size:16px;font-weight:800;letter-spacing:.04em;color:var(--brand-jp);font-family:var(--brand-font,var(--jp));text-shadow:var(--brand-glow)}
-.brand .en{font-family:var(--mono);font-size:10px;letter-spacing:.28em;font-weight:600;color:var(--brand-en)}
+/* ---------- ヘッダー ---------- */
+.topbar{display:flex;align-items:center;gap:8px;padding:11px 13px;position:relative;z-index:2}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--brand-dot);box-shadow:var(--brand-dot-glow);flex:none}
+.brand{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.brand .jp{font-size:14px;font-weight:800;letter-spacing:.03em;color:var(--brand-jp);font-family:var(--brand-font,var(--jp));text-shadow:var(--brand-glow);white-space:nowrap}
+.brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em}
 .spacer{flex:1}
-/* テーマ切替（セグメント） */
-.themeseg{display:flex;gap:3px;padding:3px;border-radius:11px;background:var(--seg-bg);border:1px solid var(--seg-border)}
-.themeseg button{border:none;background:none;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:5px;transition:.15s}
-.themeseg button .sw{width:11px;height:11px;border-radius:50%;border:1px solid rgba(128,128,128,.4)}
-.themeseg button[aria-pressed="true"]{background:var(--seg-active-bg);color:var(--seg-active-fg);box-shadow:var(--seg-active-shadow)}
-.tool{width:34px;height:34px;border-radius:10px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);cursor:pointer;display:grid;place-items:center;font-size:15px;transition:.15s}
-.tool:hover{filter:brightness(1.12)}
-.dateblock{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;min-width:96px}
-.dateblock .d{font-weight:700;font-size:13px;letter-spacing:.04em;color:var(--text)}
-.dateblock .t{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.hidehint{font-size:11px;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:var(--hint-bg);color:var(--hint-fg);border:1px solid var(--hint-border);cursor:pointer}
-.hidehint kbd{font-family:var(--mono);font-size:10px;padding:2px 5px;border-radius:5px;background:var(--kbd-bg);color:var(--kbd-fg)}
+.tool{width:30px;height:30px;border-radius:9px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);cursor:pointer;display:grid;place-items:center;font-size:14px;transition:.15s;flex:none}
+.tool:hover{filter:brightness(1.14)}
 
-/* ---------- ボード ---------- */
-.board{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 20px 12px;min-height:0;position:relative;z-index:2}
-.col{display:flex;flex-direction:column;border-radius:16px;padding:14px 14px 12px;min-height:0;background:var(--col-bg);border:1px solid var(--col-border)}
-.colhead{display:flex;align-items:center;gap:9px;margin-bottom:11px;padding-bottom:var(--colhead-pb,0);border-bottom:var(--colhead-bd,none)}
-.colhead .tag{font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:3px 8px;border-radius:6px;font-weight:700}
+/* 追加ボタン */
+.addmain{margin:0 13px 8px;padding:10px;border-radius:11px;border:1px dashed var(--addrow-border);background:var(--addrow-bg);color:var(--accent-text);
+  font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s}
+.addmain:hover{filter:brightness(1.1)}
+.addmain .p{font-size:16px}
+
+/* ---------- ボード（縦2段） ---------- */
+.board{flex:1;display:flex;flex-direction:column;gap:9px;padding:0 13px 9px;min-height:0;position:relative;z-index:2}
+.col{flex:1;display:flex;flex-direction:column;border-radius:14px;padding:11px 11px 9px;min-height:0;background:var(--col-bg);border:1px solid var(--col-border)}
+.colhead{display:flex;align-items:center;gap:8px;margin-bottom:9px;padding-bottom:var(--colhead-pb,0);border-bottom:var(--colhead-bd,none)}
+.colhead .tag{font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:3px 7px;border-radius:6px;font-weight:700}
 .col-today .tag{background:var(--tag-today-bg);color:var(--tag-today-fg);box-shadow:var(--tag-today-glow)}
 .col-week  .tag{background:var(--tag-week-bg);color:var(--tag-week-fg);box-shadow:var(--tag-week-glow)}
-.colhead h2{font-size:15px;font-weight:800;letter-spacing:.03em;color:var(--head-fg);font-family:var(--head-font,var(--jp))}
-.count{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted)}
+.colhead h2{font-size:14px;font-weight:800;letter-spacing:.02em;color:var(--head-fg);font-family:var(--head-font,var(--jp));white-space:nowrap}
+.later{font-size:10px;color:var(--muted);background:var(--chip-bg);padding:2px 7px;border-radius:999px}
+.count{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted)}
 
-.list{list-style:none;display:flex;flex-direction:column;gap:8px;overflow:auto;flex:1;padding-right:4px;min-height:40px}
-.list::-webkit-scrollbar{width:7px}
-.list::-webkit-scrollbar-thumb{border-radius:4px;background:var(--scroll-thumb)}
-.empty{display:flex;align-items:center;justify-content:center;height:100%;min-height:60px;color:var(--muted);font-size:12.5px;text-align:center;opacity:.8;border:1px dashed var(--addrow-border);border-radius:12px}
+.list{list-style:none;display:flex;flex-direction:column;gap:7px;overflow:auto;flex:1;padding-right:3px;min-height:30px}
+.list::-webkit-scrollbar{width:6px}
+.list::-webkit-scrollbar-thumb{border-radius:3px;background:var(--scroll-thumb)}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;min-height:46px;color:var(--muted);font-size:12px;text-align:center;opacity:.85;border:1px dashed var(--addrow-border);border-radius:10px;padding:8px}
 
-.task{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border-radius:12px;position:relative;
+.task{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:11px;position:relative;
   background:var(--task-bg);border:1px solid var(--task-border);transition:background .15s,border-color .15s,opacity .25s,transform .2s}
 .task:hover{background:var(--task-hover);border-color:var(--task-hover-bd)}
-.task.dragover{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
-.task.removing{opacity:0;transform:translateX(14px)}
-.grip{flex:none;width:12px;align-self:stretch;cursor:grab;color:var(--muted);opacity:0;display:grid;place-items:center;font-size:13px;line-height:1;letter-spacing:-2px}
-.task:hover .grip{opacity:.5}
-.check{flex:none;width:22px;height:22px;border-radius:var(--check-radius,7px);cursor:pointer;display:grid;place-items:center;margin-top:1px;
+.task.removing{opacity:0;transform:translateX(12px)}
+.check{flex:none;width:20px;height:20px;border-radius:var(--check-radius,6px);cursor:pointer;display:grid;place-items:center;margin-top:1px;
   border:1.7px solid var(--check-border);background:var(--check-bg);transition:.15s}
-.check svg{width:13px;height:13px;opacity:0;transition:.15s;stroke:var(--check-mark)}
+.check svg{width:12px;height:12px;opacity:0;transition:.15s;stroke:var(--check-mark)}
 .body{flex:1;min-width:0}
-.title{font-size:14px;font-weight:600;line-height:1.4;color:var(--title-fg);word-break:break-word}
-.title-input{font-family:var(--jp);font-size:14px;font-weight:600;width:100%;border:none;outline:none;background:var(--edit-bg);color:var(--title-fg);border-bottom:1.5px solid var(--accent);padding:1px 2px}
-.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.02em;background:var(--chip-bg);color:var(--chip-fg)}
+.title{font-size:13px;font-weight:600;line-height:1.4;color:var(--title-fg);word-break:break-word}
+.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.02em;background:var(--chip-bg);color:var(--chip-fg);white-space:nowrap}
 .chip.prio{background:var(--chip-prio-bg);color:var(--chip-prio-fg);box-shadow:var(--chip-prio-glow)}
-.chip.due{font-family:var(--mono);background:var(--chip-due-bg);color:var(--chip-due-fg)}
-.rowbtns{flex:none;display:flex;gap:2px;opacity:0;transition:.15s}
+.chip.sched{font-family:var(--mono);background:var(--chip-due-bg);color:var(--chip-due-fg)}
+.chip.dl{font-family:var(--mono)}
+.chip.urgent{background:var(--chip-urgent-bg,rgba(255,90,90,.16));color:var(--chip-urgent-fg,#ff5a5a)}
+.rowbtns{flex:none;display:flex;gap:1px;opacity:0;transition:.15s}
 .task:hover .rowbtns{opacity:1}
-.rowbtns button{border:none;background:none;cursor:pointer;font-size:13px;color:var(--muted);width:24px;height:24px;border-radius:7px;display:grid;place-items:center;line-height:1}
+.rowbtns button{border:none;background:none;cursor:pointer;font-size:12px;color:var(--muted);width:22px;height:22px;border-radius:6px;display:grid;place-items:center;line-height:1}
 .rowbtns button:hover{background:var(--task-hover);color:var(--title-fg)}
 .rowbtns .star.on{color:var(--star-on);opacity:1}
 
@@ -100,188 +86,154 @@ button{font-family:inherit}
 .task.done .check{background:var(--check-done-bg);border-color:var(--check-done-bg);box-shadow:var(--check-done-glow)}
 .task.done .check svg{opacity:1}
 
-/* 完了の折りたたみ */
-.donebar{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.donebar{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11px;color:var(--muted)}
 .donebar[hidden]{display:none}
-.donebar button{border:none;background:none;color:inherit;cursor:pointer;font-size:11.5px;text-decoration:underline;opacity:.85}
+.donebar button{border:none;background:none;color:inherit;cursor:pointer;font-size:11px;text-decoration:underline;opacity:.85}
 .donebar button:hover{opacity:1}
 .donebar .sp{flex:1}
 
-.addrow{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 12px;border-radius:11px;background:var(--addrow-bg);border:1px dashed var(--addrow-border)}
-.addrow .plus{font-size:16px;font-weight:700;line-height:1;color:var(--accent)}
-.addrow input{flex:1;border:none;background:none;outline:none;font-family:var(--jp);font-size:13px;color:var(--title-fg)}
-.addrow input::placeholder{color:var(--muted)}
+.quickadd{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--addrow-bg);border:1px dashed var(--addrow-border)}
+.quickadd::before{content:"＋";color:var(--accent);font-weight:700;font-size:14px}
+.quickadd input{flex:1;border:none;background:none;outline:none;font-family:var(--jp);font-size:12.5px;color:var(--title-fg)}
+.quickadd input::placeholder{color:var(--muted)}
 
 /* ---------- ステータスバー ---------- */
-.statusbar{display:flex;align-items:center;gap:14px;padding:11px 20px;position:relative;z-index:2;border-top:var(--status-bd,none)}
-.progresswrap{flex:1;height:7px;border-radius:999px;overflow:hidden;background:var(--prog-track)}
+.statusbar{display:flex;align-items:center;gap:10px;padding:9px 13px;position:relative;z-index:2;border-top:var(--status-bd,none)}
+.progresswrap{flex:1;height:6px;border-radius:999px;overflow:hidden;background:var(--prog-track)}
 .progress{height:100%;border-radius:999px;width:0;background:var(--progress);box-shadow:var(--progress-glow);transition:width .35s}
-.statusbar .pct{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent-text);min-width:38px}
-.statusbar .note{font-size:11px;color:var(--muted)}
+.statusbar .pct{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent-text);min-width:34px}
 
-/* ---------- 目隠しカバー ---------- */
-.cover{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  background:var(--cover-bg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer}
+/* ---------- 目隠し ---------- */
+.cover{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:var(--cover-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);cursor:pointer}
 .app.covered .cover{display:flex}
-.cover .ctime{font-family:var(--mono);font-size:64px;font-weight:700;color:var(--cover-fg);letter-spacing:.04em;text-shadow:var(--brand-glow)}
-.cover .cdate{font-size:15px;color:var(--cover-fg);opacity:.8}
-.cover .chint{font-size:12px;color:var(--cover-fg);opacity:.55;margin-top:8px}
+.cover .ctime{font-family:var(--mono);font-size:48px;font-weight:700;color:var(--cover-fg);letter-spacing:.04em;text-shadow:var(--brand-glow)}
+.cover .cdate{font-size:13px;color:var(--cover-fg);opacity:.8}
+.cover .chint{font-size:11px;color:var(--cover-fg);opacity:.55;margin-top:6px}
 
-/* ---------- モーダル（バックアップ/ヘルプ） ---------- */
-.modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(4,6,14,.55);padding:20px}
+/* ---------- モーダル ---------- */
+.modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(4,6,14,.55);padding:16px}
 .modal.open{display:flex}
-.sheet{width:min(440px,100%);max-height:86vh;overflow:auto;border-radius:16px;padding:22px;background:var(--sheet-bg);border:1px solid var(--app-border);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.5)}
-.sheet h3{font-size:16px;margin-bottom:6px;color:var(--head-fg)}
-.sheet p,.sheet li{font-size:13px;line-height:1.7;color:var(--muted)}
+.sheet{width:min(380px,100%);max-height:92vh;overflow:auto;border-radius:16px;padding:20px;background:var(--sheet-bg);border:1px solid var(--app-border);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.sheet h3{font-size:15px;margin-bottom:4px;color:var(--head-fg)}
+.sheet p,.sheet li{font-size:12.5px;line-height:1.7;color:var(--muted)}
 .sheet ul{margin:6px 0 6px 18px}
-.sheet code{font-family:var(--mono);background:var(--chip-bg);color:var(--chip-fg);padding:1px 6px;border-radius:5px;font-size:12px}
-.sheet .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-.btn{padding:9px 14px;border-radius:10px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);cursor:pointer;font-size:13px;font-weight:700}
-.btn.primary{background:var(--accent);color:var(--accent-on);border-color:transparent}
+.sheet code{font-family:var(--mono);background:var(--chip-bg);color:var(--chip-fg);padding:1px 5px;border-radius:5px;font-size:11.5px}
 .sheet .close{float:right;border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
-.sheet hr{border:none;border-top:1px solid var(--col-border);margin:16px 0}
+.sheet hr{border:none;border-top:1px solid var(--col-border);margin:14px 0}
+.row{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.btn{padding:9px 13px;border-radius:10px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);cursor:pointer;font-size:12.5px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-on);border-color:transparent}
+.btn.full{flex:1}
+/* フォーム */
+.fld{display:block;margin-top:13px}
+.fld>span{display:block;font-size:12px;font-weight:700;color:var(--head-fg);margin-bottom:6px}
+.fld input[type=text],.fld input[type=date]{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--col-border);background:var(--task-bg);color:var(--title-fg);font-family:var(--jp);font-size:13px;outline:none}
+.fld input:focus{border-color:var(--accent)}
+.qrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.qrow input[type=date]{flex:1;min-width:130px}
+.seg2{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:7px 11px;border-radius:8px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);font-size:12px;font-weight:700;cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--accent);color:var(--accent-on);border-color:transparent}
+.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--head-fg);font-weight:700;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+.hintline{display:block;color:var(--muted);font-size:11px;margin-top:6px}
 
 /* ---------- トースト ---------- */
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:50;
-  padding:10px 18px;border-radius:11px;background:var(--toast-bg);color:var(--toast-fg);font-size:13px;font-weight:600;
-  box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:.25s;display:flex;align-items:center;gap:12px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);z-index:50;padding:9px 16px;border-radius:11px;
+  background:var(--toast-bg);color:var(--toast-fg);font-size:12.5px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:.25s;display:flex;align-items:center;gap:11px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast button{border:none;background:var(--accent);color:var(--accent-on);border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.toast button{border:none;background:var(--accent);color:var(--accent-on);border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:700;cursor:pointer}
 
-/* ============================================================
-   テーマ：ダーク×ネオン
-   ============================================================ */
+/* ===== テーマ：NEON ===== */
 [data-theme="neon"]{
-  --bg-base:#05060d;
-  --bg-img:radial-gradient(900px 500px at 12% -8%,rgba(0,229,255,.16),transparent 60%),radial-gradient(820px 480px at 95% 110%,rgba(255,61,240,.16),transparent 60%);
-  --app-bg:linear-gradient(160deg,#0b0e1c,#090a14);--app-border:rgba(120,170,255,.14);
-  --app-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);--app-blur:none;
-  --grid-show:"";
-  --text:#dfe6ff;--muted:#7f8bb5;
-  --brand-dot:#00e5ff;--brand-dot-glow:0 0 14px #00e5ff;--brand-jp:#fff;--brand-en:#6df4ff;--brand-glow:0 0 18px rgba(0,229,255,.35);
-  --seg-bg:rgba(140,170,255,.06);--seg-border:rgba(140,170,255,.12);--seg-active-bg:rgba(0,229,255,.16);--seg-active-fg:#bff4ff;--seg-active-shadow:0 0 14px rgba(0,229,255,.25);
+  --bg-base:#05060d;--bg-img:radial-gradient(900px 500px at 12% -8%,rgba(0,229,255,.16),transparent 60%),radial-gradient(820px 480px at 95% 110%,rgba(255,61,240,.16),transparent 60%);
+  --app-bg:linear-gradient(160deg,#0b0e1c,#090a14);--app-border:rgba(120,170,255,.14);--app-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);--app-blur:none;--grid-show:"";
+  --text:#dfe6ff;--muted:#7f8bb5;--brand-dot:#00e5ff;--brand-dot-glow:0 0 14px #00e5ff;--brand-jp:#fff;--brand-en:#6df4ff;--brand-glow:0 0 18px rgba(0,229,255,.35);
   --btn-bg:rgba(120,170,255,.08);--btn-border:rgba(140,170,255,.14);--btn-fg:#a9b8e6;
-  --hint-bg:rgba(0,229,255,.08);--hint-fg:#7fdfff;--hint-border:rgba(0,229,255,.2);--kbd-bg:rgba(0,229,255,.16);--kbd-fg:#bff4ff;
   --col-bg:rgba(140,170,255,.04);--col-border:rgba(140,170,255,.08);
   --tag-today-bg:rgba(0,229,255,.14);--tag-today-fg:#5ef0ff;--tag-today-glow:0 0 16px rgba(0,229,255,.25);
   --tag-week-bg:rgba(255,61,240,.14);--tag-week-fg:#ff8df3;--tag-week-glow:0 0 16px rgba(255,61,240,.22);
-  --head-fg:#fff;
-  --task-bg:rgba(255,255,255,.025);--task-border:rgba(140,170,255,.08);--task-hover:rgba(0,229,255,.05);--task-hover-bd:rgba(0,229,255,.25);
+  --head-fg:#fff;--task-bg:rgba(255,255,255,.025);--task-border:rgba(140,170,255,.08);--task-hover:rgba(0,229,255,.05);--task-hover-bd:rgba(0,229,255,.25);
   --check-border:rgba(0,229,255,.5);--check-bg:rgba(0,229,255,.04);--check-mark:#04121a;--check-done-bg:#00e5ff;--check-done-glow:0 0 16px rgba(0,229,255,.6);
-  --title-fg:#e7ecff;--edit-bg:transparent;
-  --chip-bg:rgba(140,170,255,.1);--chip-fg:#aab8e8;--chip-prio-bg:rgba(255,61,240,.16);--chip-prio-fg:#ff9bf2;--chip-prio-glow:0 0 12px rgba(255,61,240,.25);
-  --chip-due-bg:rgba(0,229,255,.12);--chip-due-fg:#73ecff;--star-on:#ffd24a;
-  --addrow-bg:rgba(140,170,255,.04);--addrow-border:rgba(140,170,255,.2);
-  --accent:#00e5ff;--accent-on:#04121a;--accent-text:#5ef0ff;
-  --prog-track:rgba(140,170,255,.1);--progress:linear-gradient(90deg,#00e5ff,#ff3df0);--progress-glow:0 0 14px rgba(0,229,255,.6);
-  --scroll-thumb:rgba(140,170,255,.25);
-  --cover-bg:rgba(5,6,13,.82);--cover-fg:#cfe9ff;
-  --sheet-bg:#0c1020;--toast-bg:#121734;--toast-fg:#dfe6ff;--status-bd:none;
+  --title-fg:#e7ecff;--chip-bg:rgba(140,170,255,.1);--chip-fg:#aab8e8;--chip-prio-bg:rgba(255,61,240,.16);--chip-prio-fg:#ff9bf2;--chip-prio-glow:0 0 12px rgba(255,61,240,.25);
+  --chip-due-bg:rgba(0,229,255,.12);--chip-due-fg:#73ecff;--chip-urgent-bg:rgba(255,90,90,.18);--chip-urgent-fg:#ff7a7a;--star-on:#ffd24a;
+  --addrow-bg:rgba(140,170,255,.04);--addrow-border:rgba(140,170,255,.2);--accent:#00e5ff;--accent-on:#04121a;--accent-text:#5ef0ff;
+  --prog-track:rgba(140,170,255,.1);--progress:linear-gradient(90deg,#00e5ff,#ff3df0);--progress-glow:0 0 14px rgba(0,229,255,.6);--scroll-thumb:rgba(140,170,255,.25);
+  --cover-bg:rgba(5,6,13,.82);--cover-fg:#cfe9ff;--sheet-bg:#0c1020;--toast-bg:#121734;--toast-fg:#dfe6ff;--status-bd:none;
 }
-/* ============================================================
-   テーマ：グラスモーフィズム
-   ============================================================ */
+[data-theme="neon"] input{color-scheme:dark}
+/* ===== テーマ：GLASS ===== */
 [data-theme="glass"]{
-  --bg-base:#5b6cf0;
-  --bg-img:radial-gradient(700px 600px at 8% 8%,#7b8cff,transparent 60%),radial-gradient(700px 600px at 92% 12%,#ff8fc8,transparent 55%),radial-gradient(800px 700px at 80% 100%,#41d6c3,transparent 55%),radial-gradient(700px 600px at 15% 95%,#9b6bff,transparent 55%),linear-gradient(135deg,#6a78ff,#b06bff);
-  --app-bg:rgba(255,255,255,.16);--app-border:rgba(255,255,255,.4);
-  --app-shadow:0 30px 70px rgba(40,20,90,.35),inset 0 1px 0 rgba(255,255,255,.5);--app-blur:blur(26px) saturate(160%);
-  --grid-show:none;
-  --text:#21243a;--muted:#5a5f7e;
-  --brand-dot:#fff;--brand-dot-glow:0 0 0 4px rgba(255,255,255,.35);--brand-jp:#fff;--brand-en:rgba(255,255,255,.85);--brand-glow:0 1px 8px rgba(40,20,90,.25);
-  --seg-bg:rgba(255,255,255,.25);--seg-border:rgba(255,255,255,.4);--seg-active-bg:#fff;--seg-active-fg:#4453c8;--seg-active-shadow:0 4px 12px rgba(40,20,90,.18);
+  --bg-base:#5b6cf0;--bg-img:radial-gradient(700px 600px at 8% 8%,#7b8cff,transparent 60%),radial-gradient(700px 600px at 92% 12%,#ff8fc8,transparent 55%),radial-gradient(800px 700px at 80% 100%,#41d6c3,transparent 55%),radial-gradient(700px 600px at 15% 95%,#9b6bff,transparent 55%),linear-gradient(135deg,#6a78ff,#b06bff);
+  --app-bg:rgba(255,255,255,.16);--app-border:rgba(255,255,255,.4);--app-shadow:0 24px 60px rgba(40,20,90,.35),inset 0 1px 0 rgba(255,255,255,.5);--app-blur:blur(26px) saturate(160%);--grid-show:none;
+  --text:#21243a;--muted:#5a5f7e;--brand-dot:#fff;--brand-dot-glow:0 0 0 4px rgba(255,255,255,.35);--brand-jp:#fff;--brand-en:rgba(255,255,255,.85);--brand-glow:0 1px 8px rgba(40,20,90,.25);
   --btn-bg:rgba(255,255,255,.25);--btn-border:rgba(255,255,255,.45);--btn-fg:#fff;
-  --hint-bg:rgba(255,255,255,.25);--hint-fg:#fff;--hint-border:rgba(255,255,255,.4);--kbd-bg:rgba(255,255,255,.4);--kbd-fg:#fff;
   --col-bg:rgba(255,255,255,.42);--col-border:rgba(255,255,255,.6);
-  --tag-today-bg:rgba(91,108,240,.92);--tag-today-fg:#fff;--tag-today-glow:none;
-  --tag-week-bg:rgba(255,110,170,.92);--tag-week-fg:#fff;--tag-week-glow:none;
-  --head-fg:#23263c;
-  --task-bg:rgba(255,255,255,.58);--task-border:rgba(255,255,255,.7);--task-hover:rgba(255,255,255,.82);--task-hover-bd:#fff;
+  --tag-today-bg:rgba(91,108,240,.92);--tag-today-fg:#fff;--tag-today-glow:none;--tag-week-bg:rgba(255,110,170,.92);--tag-week-fg:#fff;--tag-week-glow:none;
+  --head-fg:#23263c;--task-bg:rgba(255,255,255,.58);--task-border:rgba(255,255,255,.7);--task-hover:rgba(255,255,255,.82);--task-hover-bd:#fff;
   --check-border:#8a90c0;--check-bg:rgba(255,255,255,.6);--check-mark:#fff;--check-done-bg:#5b6cf0;--check-done-glow:none;
-  --title-fg:#23263c;--edit-bg:transparent;
-  --chip-bg:rgba(91,108,240,.16);--chip-fg:#4453c8;--chip-prio-bg:rgba(255,90,140,.2);--chip-prio-fg:#d83a72;--chip-prio-glow:none;
-  --chip-due-bg:rgba(40,170,150,.2);--chip-due-fg:#13806e;--star-on:#f5a623;
-  --addrow-bg:rgba(255,255,255,.32);--addrow-border:rgba(255,255,255,.75);
-  --accent:#5b6cf0;--accent-on:#fff;--accent-text:#fff;
-  --prog-track:rgba(255,255,255,.4);--progress:linear-gradient(90deg,#fff,#ffd9ec);--progress-glow:none;
-  --scroll-thumb:rgba(255,255,255,.6);
-  --cover-bg:rgba(91,108,240,.45);--cover-fg:#fff;
-  --sheet-bg:rgba(255,255,255,.9);--toast-bg:#3a3f66;--toast-fg:#fff;--status-bd:none;
+  --title-fg:#23263c;--chip-bg:rgba(91,108,240,.16);--chip-fg:#4453c8;--chip-prio-bg:rgba(255,90,140,.2);--chip-prio-fg:#d83a72;--chip-prio-glow:none;
+  --chip-due-bg:rgba(40,170,150,.2);--chip-due-fg:#13806e;--chip-urgent-bg:rgba(255,90,110,.22);--chip-urgent-fg:#d8324f;--star-on:#f5a623;
+  --addrow-bg:rgba(255,255,255,.32);--addrow-border:rgba(255,255,255,.75);--accent:#5b6cf0;--accent-on:#fff;--accent-text:#fff;
+  --prog-track:rgba(255,255,255,.4);--progress:linear-gradient(90deg,#fff,#ffd9ec);--progress-glow:none;--scroll-thumb:rgba(255,255,255,.6);
+  --cover-bg:rgba(91,108,240,.45);--cover-fg:#fff;--sheet-bg:rgba(255,255,255,.92);--toast-bg:#3a3f66;--toast-fg:#fff;--status-bd:none;
 }
+[data-theme="glass"] input{color-scheme:light}
 [data-theme="glass"] .sheet{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-/* ============================================================
-   テーマ：ミニマル・モノ
-   ============================================================ */
+/* ===== テーマ：MONO ===== */
 [data-theme="mono"]{
-  --bg-base:#e9e9e6;--bg-img:none;
-  --app-bg:#fbfbf9;--app-border:#e2e2dc;--app-shadow:0 24px 60px rgba(20,20,20,.12);--app-blur:none;--grid-show:none;
-  --text:#16161a;--muted:#9a9a92;
-  --brand-dot:#16161a;--brand-dot-glow:none;--brand-jp:#16161a;--brand-en:#9a9a92;--brand-glow:none;
+  --bg-base:#e9e9e6;--bg-img:none;--app-bg:#fbfbf9;--app-border:#e2e2dc;--app-shadow:0 20px 50px rgba(20,20,20,.12);--app-blur:none;--grid-show:none;
+  --text:#16161a;--muted:#9a9a92;--brand-dot:#16161a;--brand-dot-glow:none;--brand-jp:#16161a;--brand-en:#9a9a92;--brand-glow:none;
   --brand-font:"Yu Mincho","Hiragino Mincho ProN",serif;--head-font:"Yu Mincho","Hiragino Mincho ProN",serif;
-  --seg-bg:#f1f1ec;--seg-border:#e2e2dc;--seg-active-bg:#16161a;--seg-active-fg:#fbfbf9;--seg-active-shadow:none;
-  --btn-bg:#f1f1ec;--btn-border:#e2e2dc;--btn-fg:#55554e;
-  --hint-bg:#f1f1ec;--hint-fg:#55554e;--hint-border:#e2e2dc;--kbd-bg:#fff;--kbd-fg:#16161a;
-  --col-bg:transparent;--col-border:transparent;
+  --btn-bg:#f1f1ec;--btn-border:#e2e2dc;--btn-fg:#55554e;--col-bg:transparent;--col-border:#ececE6;
   --tag-today-bg:#16161a;--tag-today-fg:#fbfbf9;--tag-today-glow:none;--tag-week-bg:#16161a;--tag-week-fg:#fbfbf9;--tag-week-glow:none;
-  --head-fg:#16161a;--colhead-pb:10px;--colhead-bd:2px solid #16161a;
-  --task-bg:transparent;--task-border:transparent;--task-hover:#f5f5f1;--task-hover-bd:transparent;
+  --head-fg:#16161a;--colhead-pb:9px;--colhead-bd:2px solid #16161a;
+  --task-bg:#fff;--task-border:#ededE7;--task-hover:#f5f5f1;--task-hover-bd:#e2e2dc;
   --check-border:#16161a;--check-bg:#fff;--check-mark:#fff;--check-done-bg:#16161a;--check-done-glow:none;--check-radius:50%;
-  --title-fg:#16161a;--edit-bg:#fff;
-  --chip-bg:#f1f1ec;--chip-fg:#55554e;--chip-prio-bg:#16161a;--chip-prio-fg:#fbfbf9;--chip-prio-glow:none;
-  --chip-due-bg:#f1f1ec;--chip-due-fg:#55554e;--star-on:#b8860b;
-  --addrow-bg:transparent;--addrow-border:#d5d5ce;
-  --accent:#16161a;--accent-on:#fbfbf9;--accent-text:#16161a;
+  --title-fg:#16161a;--chip-bg:#f1f1ec;--chip-fg:#55554e;--chip-prio-bg:#16161a;--chip-prio-fg:#fbfbf9;--chip-prio-glow:none;
+  --chip-due-bg:#f1f1ec;--chip-due-fg:#55554e;--chip-urgent-bg:#fbeaea;--chip-urgent-fg:#c0392b;--star-on:#b8860b;
+  --addrow-bg:#fafaf7;--addrow-border:#d5d5ce;--accent:#16161a;--accent-on:#fbfbf9;--accent-text:#16161a;
   --prog-track:#e6e6e0;--progress:#16161a;--progress-glow:none;--scroll-thumb:#d5d5ce;
-  --cover-bg:rgba(251,251,249,.9);--cover-fg:#16161a;
-  --sheet-bg:#fbfbf9;--toast-bg:#16161a;--toast-fg:#fbfbf9;--status-bd:1px solid #ececE6;
+  --cover-bg:rgba(251,251,249,.9);--cover-fg:#16161a;--sheet-bg:#fbfbf9;--toast-bg:#16161a;--toast-fg:#fbfbf9;--status-bd:1px solid #ececE6;
 }
-[data-theme="mono"] .col+.col{border-left:1px solid #ececE6}
-[data-theme="mono"] .task{border-bottom:1px solid #ededE7;border-radius:0}
-[data-theme="mono"] .col{padding:0 10px}
+[data-theme="mono"] input{color-scheme:light}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <header class="topbar">
-    <div class="brand">
-      <span class="dot"></span>
-      <span class="names"><span class="jp">タスクボード</span><span class="en">TASK&nbsp;BOARD</span></span>
-    </div>
+    <span class="dot"></span>
+    <div class="brand"><span class="jp">タスクボード</span><span class="sub" id="dateStr">—</span></div>
     <span class="spacer"></span>
-    <div class="themeseg" id="themeseg" role="group" aria-label="デザイン切替">
-      <button data-set="neon"  aria-pressed="false" title="ダーク×ネオン"><span class="sw" style="background:#00e5ff"></span>NEON</button>
-      <button data-set="glass" aria-pressed="false" title="グラス"><span class="sw" style="background:linear-gradient(135deg,#7b8cff,#ff8fc8)"></span>GLASS</button>
-      <button data-set="mono"  aria-pressed="false" title="ミニマル"><span class="sw" style="background:#16161a"></span>MONO</button>
-    </div>
-    <div class="hidehint" id="coverBtn" title="クリックで目隠し（Escでも切替）"><kbd>Esc</kbd> 目隠し</div>
-    <div class="dateblock"><span class="d" id="dateStr">—</span><span class="t" id="timeStr">—</span></div>
-    <button class="tool" id="backupBtn" title="バックアップ / 読み込み">⤓</button>
-    <button class="tool" id="helpBtn" title="使い方">？</button>
+    <button class="tool" id="themeBtn" title="デザイン切替（NEON/GLASS/MONO）">◐</button>
+    <button class="tool" id="coverBtn" title="目隠し（Escでも切替）">◑</button>
+    <button class="tool" id="menuBtn" title="メニュー">⋯</button>
   </header>
+
+  <button class="addmain" id="addMainBtn"><span class="p">＋</span> タスクを追加</button>
 
   <main class="board">
     <section class="col col-today" data-list="today">
       <div class="colhead"><span class="tag">TODAY</span><h2>本日のタスク</h2><span class="count" id="count-today">0 / 0</span></div>
       <ul class="list" id="list-today"></ul>
       <div class="donebar" id="donebar-today" hidden><span id="donelabel-today"></span><button data-act="toggledone" data-list="today">表示</button><span class="sp"></span><button data-act="cleardone" data-list="today">完了を消す</button></div>
-      <div class="addrow"><span class="plus">＋</span><input id="add-today" placeholder="本日のタスクを追加…（例：小テスト印刷 @1限 ! ）"></div>
+      <div class="quickadd"><input id="q-today" placeholder="本日にサッと追加（!で優先）"></div>
     </section>
 
     <section class="col col-week" data-list="week">
-      <div class="colhead"><span class="tag">THIS WEEK</span><h2>今週中のタスク</h2><span class="count" id="count-week">0 / 0</span></div>
+      <div class="colhead"><span class="tag">THIS WEEK</span><h2>今週中のタスク</h2><span class="later" id="later-week" hidden></span><span class="count" id="count-week">0 / 0</span></div>
       <ul class="list" id="list-week"></ul>
       <div class="donebar" id="donebar-week" hidden><span id="donelabel-week"></span><button data-act="toggledone" data-list="week">表示</button><span class="sp"></span><button data-act="cleardone" data-list="week">完了を消す</button></div>
-      <div class="addrow"><span class="plus">＋</span><input id="add-week" placeholder="今週のタスクを追加…（例：中間テスト作問 @金 ! ）"></div>
+      <div class="quickadd"><input id="q-week" placeholder="今週にサッと追加（!で優先）"></div>
     </section>
   </main>
 
   <footer class="statusbar">
     <span class="pct" id="pct">0%</span>
     <div class="progresswrap"><div class="progress" id="progress"></div></div>
-    <span class="note" id="note">チェックで完了 ・ ダブルクリックで編集 ・ ☆で優先</span>
   </footer>
 
-  <!-- 目隠し -->
   <div class="cover" id="cover" title="クリックで解除">
     <div class="ctime" id="coverTime">—</div>
     <div class="cdate" id="coverDate">—</div>
@@ -289,39 +241,53 @@ button{font-family:inherit}
   </div>
 </div>
 
-<!-- バックアップ -->
-<div class="modal" id="backupModal">
+<!-- 追加・編集フォーム -->
+<div class="modal" id="formModal">
   <div class="sheet">
     <button class="close" data-close>×</button>
-    <h3>バックアップ</h3>
-    <p>タスクはこの端末のブラウザ内に保存されます。別の端末へ移すときや、念のための保存に使ってください。</p>
-    <div class="row">
-      <button class="btn primary" id="exportBtn">この内容を書き出す（.json）</button>
-      <button class="btn" id="importBtn">ファイルから読み込む</button>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <h3 id="formTitle">タスクを追加</h3>
+    <label class="fld"><span>タスク名</span><input id="f-title" type="text" placeholder="例：中間テスト作問" autocomplete="off"></label>
+    <div class="fld"><span>締め切り（任意）</span>
+      <div class="qrow"><input id="f-deadline" type="date"><button class="pill" data-q="dl-clear" type="button">なし</button></div>
     </div>
+    <div class="fld"><span>作業する日（任意・この日が来たら「本日」に出ます）</span>
+      <div class="qrow"><input id="f-workdate" type="date"><button class="pill" data-q="wd-today" type="button">今日</button><button class="pill" data-q="wd-tomo" type="button">明日</button><button class="pill" data-q="wd-clear" type="button">なし</button></div>
+    </div>
+    <div class="fld"><span>作業する週</span>
+      <div class="seg2" id="f-week"><button class="pill" data-w="this" type="button">今週</button><button class="pill" data-w="next" type="button">来週</button><button class="pill" data-w="none" type="button">指定なし</button></div>
+      <small class="hintline">「作業する日」を入れた場合は、その日が優先されます。</small>
+    </div>
+    <label class="chk"><input id="f-prio" type="checkbox"> 優先（先頭に表示）</label>
+    <div class="row"><button class="btn primary full" id="f-save">保存</button><button class="btn" data-close>キャンセル</button></div>
   </div>
 </div>
 
-<!-- ヘルプ -->
-<div class="modal" id="helpModal">
+<!-- メニュー -->
+<div class="modal" id="menuModal">
   <div class="sheet">
     <button class="close" data-close>×</button>
-    <h3>使い方</h3>
+    <h3>メニュー</h3>
+    <p><b>バックアップ</b>（端末の引っ越し・保険に）</p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="exportBtn">書き出す（.json）</button>
+      <button class="btn" id="importBtn">読み込む</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <hr>
+    <h3 style="font-size:14px">使い方</h3>
     <ul>
-      <li><b>追加</b>：下の入力欄に書いて <code>Enter</code></li>
-      <li><b>締切タグ</b>：末尾に <code>@金</code> や <code>@15:00</code> → 締切チップ</li>
-      <li><b>優先</b>：末尾に <code>!</code>、または ☆ ボタン</li>
-      <li><b>完了</b>：丸／四角をクリック → 下の「完了」へ。<code>完了を消す</code>で削除</li>
-      <li><b>編集</b>：文字を<b>ダブルクリック</b></li>
-      <li><b>移動</b>：⇄ で「本日↔今週」を入れ替え</li>
-      <li><b>並べ替え</b>：ドラッグで上下入れ替え</li>
+      <li><b>追加</b>：「＋ タスクを追加」で締め切り・作業日・作業週を設定</li>
+      <li><b>自動表示</b>：作業日が今日なら「本日」、作業週が今週なら「今週」に自動表示。日が来れば自動で繰り上がります</li>
+      <li><b>完了</b>：丸をクリック → 「完了」へ。<code>完了を消す</code>で削除（元に戻せます）</li>
+      <li><b>編集</b>：タスクの ✎ ／ <b>優先</b>：☆ ／ <b>削除</b>：✕</li>
+      <li><b>目隠し</b>：右上 ◑ または <code>Esc</code>（授業前に中身を時計表示へ）</li>
     </ul>
     <hr>
-    <h3 style="font-size:14px">授業前にサッと隠す</h3>
+    <h3 style="font-size:14px">デスクトップに常駐させる</h3>
     <ul>
-      <li>右上 <code>Esc 目隠し</code> ボタン（または <code>Esc</code> キー）で中身を時計表示に。もう一度押すと戻ります。</li>
-      <li>ウィンドウごと消すなら <code>Win</code>+<code>D</code>（デスクトップ表示）が一番速いです。</li>
+      <li>Edge/Chrome の「…」→ <b>アプリ</b> →「このサイトをアプリとしてインストール」で専用ウィンドウに</li>
+      <li><b>PowerToys</b>（無料・公式）の <code>Win+Ctrl+T</code> で<b>常に最前面</b>に固定＝ウィジェット化</li>
+      <li>詳しくは同フォルダの <code>README.md</code></li>
     </ul>
   </div>
 </div>
@@ -331,203 +297,226 @@ button{font-family:inherit}
 <script>
 "use strict";
 (function(){
-  /* ---------- 保存（file:// でも落ちないよう try/catch） ---------- */
-  var SKEY='taskboard.v1', TKEY='taskboard.theme';
-  var mem={}; // localStorage が使えない環境のフォールバック
+  /* ---------- 保存（file:// でも落ちない） ---------- */
+  var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
 
+  /* ---------- 日付ユーティリティ（ローカル時刻） ---------- */
+  function pad(n){return (n<10?'0':'')+n;}
+  function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  function parseYmd(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+  function todayStr(){return ymd(new Date());}
+  function addDaysStr(s,n){var d=parseYmd(s);d.setDate(d.getDate()+n);return ymd(d);}
+  function mondayOf(s){var d=parseYmd(s),w=d.getDay();d.setDate(d.getDate()+(w===0?-6:1-w));return ymd(d);}
+  var WD=['日','月','火','水','木','金','土'];
+  function wdShort(s){return WD[parseYmd(s).getDay()];}
+  function fmtMD(s){var d=parseYmd(s);return (d.getMonth()+1)+'/'+d.getDate();}
+
   /* ---------- 状態 ---------- */
-  var state;
+  var state, editingId=null;
   function defaultState(){
-    var now=Date.now();
+    var t=todayStr(), mon=mondayOf(t);
     return {tasks:[
-      {id:uid(),list:'today',title:'チェックすると完了になります',due:'',prio:false,done:false,t:now+5},
-      {id:uid(),list:'today',title:'文字をダブルクリックで編集',due:'',prio:false,done:false,t:now+4},
-      {id:uid(),list:'week', title:'中間テスト作問',due:'金',prio:true,done:false,t:now+3},
-      {id:uid(),list:'week', title:'末尾に @金 で締切、! で優先',due:'',prio:false,done:false,t:now+2}
+      {id:uid(),title:'「＋ タスクを追加」から登録できます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+3},
+      {id:uid(),title:'作業日が今日のものは自動でここに出ます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+2},
+      {id:uid(),title:'中間テスト作問',deadline:addDaysStr(t,3),workDate:'',workWeek:mon,prio:true,done:false,t:Date.now()+1},
+      {id:uid(),title:'作業週が今週のものはこちらに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
     ], showDone:{today:false,week:false}};
   }
   function load(){
     var raw=lsGet(SKEY);
-    if(raw){try{var d=JSON.parse(raw); if(d&&Array.isArray(d.tasks)){state=d; if(!state.showDone)state.showDone={today:false,week:false}; return;}}catch(e){}}
+    if(raw){try{var d=JSON.parse(raw);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};return;}}catch(e){}}
     state=defaultState();
   }
   function save(){lsSet(SKEY,JSON.stringify(state));}
   function uid(){return 'x'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);}
+  function byId(id){for(var i=0;i<state.tasks.length;i++)if(state.tasks[i].id===id)return state.tasks[i];return null;}
 
-  /* ---------- 入力解析（@締切 / !優先） ---------- */
-  function parseInput(text){
-    var prio=false,due='';
-    var tokens=text.trim().split(/\s+/), keep=[];
-    tokens.forEach(function(tk){
-      if(tk==='!'){prio=true;}
-      else if(tk.length>1&&tk.charAt(0)==='@'){due=tk.slice(1);}
-      else keep.push(tk);
-    });
-    var title=keep.join(' ').replace(/!+$/,'').trim();
-    if(/!$/.test(text.trim()))prio=true;
-    return {title:title,due:due,prio:prio};
+  /* ---------- 振り分けロジック ---------- */
+  // 'today' | 'week' | 'later'（未来＝まだ表示しない）
+  function sectionOf(t){
+    var today=todayStr(), mon=mondayOf(today);
+    if(t.workDate){
+      if(t.workDate<=today)return 'today';                 // 今日 or 繰越（期限超過）
+      if(mondayOf(t.workDate)===mon)return 'week';          // 今週の後日
+      return 'later';                                       // 来週以降
+    }
+    if(t.workWeek){
+      if(t.workWeek<=mon)return 'week';                     // 今週 or 繰越週
+      return 'later';                                       // 来週以降
+    }
+    return 'week';                                          // 未設定は今週バックログ
+  }
+  function compareTasks(a,b){
+    if(a.prio!==b.prio)return a.prio?-1:1;
+    var ad=a.deadline||'9999', bd=b.deadline||'9999';
+    if(ad!==bd)return ad<bd?-1:1;
+    var aw=a.workDate||'9999', bw=b.workDate||'9999';
+    if(aw!==bw)return aw<bw?-1:1;
+    return (a.t||0)-(b.t||0);
   }
 
   /* ---------- レンダリング ---------- */
   var lists={today:document.getElementById('list-today'),week:document.getElementById('list-week')};
   var SVG='<svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
 
-  function tasksOf(list){return state.tasks.filter(function(t){return t.list===list;});}
-
   function render(){
+    var today=todayStr();
+    var buckets={today:{open:[],done:[]},week:{open:[],done:[]}}, later=0;
+    state.tasks.forEach(function(t){
+      var s=sectionOf(t);
+      if(s==='later'){ if(!t.done)later++; return; }
+      buckets[s][t.done?'done':'open'].push(t);
+    });
     ['today','week'].forEach(function(list){
       var ul=lists[list]; ul.innerHTML='';
-      var all=tasksOf(list);
-      var open=all.filter(function(t){return !t.done;});
-      var done=all.filter(function(t){return t.done;});
+      var open=buckets[list].open.slice().sort(compareTasks);
+      var done=buckets[list].done.slice().sort(compareTasks);
       if(open.length===0 && (!state.showDone[list]||done.length===0)){
-        var li=document.createElement('li'); li.className='empty';
-        li.textContent=(done.length? 'すべて完了しました 🎉' : '＋ から最初のタスクを追加');
+        var li=document.createElement('li');li.className='empty';
+        li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'今週のタスクはありません'));
         ul.appendChild(li);
       }
-      open.forEach(function(t){ul.appendChild(taskEl(t));});
-      if(state.showDone[list]) done.forEach(function(t){ul.appendChild(taskEl(t));});
-      // 完了バー
+      open.forEach(function(t){ul.appendChild(taskEl(t,list));});
+      if(state.showDone[list])done.forEach(function(t){ul.appendChild(taskEl(t,list));});
       var bar=document.getElementById('donebar-'+list);
-      if(done.length){bar.hidden=false; document.getElementById('donelabel-'+list).textContent='完了 '+done.length+' 件';
-        bar.querySelector('[data-act="toggledone"]').textContent=state.showDone[list]?'隠す':'表示';
-      } else bar.hidden=true;
-      // カウント
-      document.getElementById('count-'+list).textContent=done.length+' / '+all.length;
+      if(done.length){bar.hidden=false;document.getElementById('donelabel-'+list).textContent='完了 '+done.length+' 件';
+        bar.querySelector('[data-act="toggledone"]').textContent=state.showDone[list]?'隠す':'表示';}
+      else bar.hidden=true;
+      document.getElementById('count-'+list).textContent=done.length+' / '+(open.length+done.length);
     });
-    updateProgress();
+    var lw=document.getElementById('later-week');
+    if(later){lw.hidden=false;lw.textContent='予定 '+later;}else lw.hidden=true;
+    updateProgress(buckets);
     save();
   }
 
-  function taskEl(t){
-    var li=document.createElement('li');
-    li.className='task'+(t.done?' done':'')+(t.prio?' prio':'');
-    li.setAttribute('draggable','true'); li.dataset.id=t.id;
-    // grip
-    var grip=document.createElement('span'); grip.className='grip'; grip.textContent='⋮⋮'; li.appendChild(grip);
-    // check
-    var ck=document.createElement('span'); ck.className='check'; ck.innerHTML=SVG; ck.title='完了/戻す';
-    ck.addEventListener('click',function(){toggleDone(t.id);});
-    li.appendChild(ck);
-    // body
-    var body=document.createElement('div'); body.className='body';
-    var title=document.createElement('div'); title.className='title'; title.textContent=t.title;
-    title.addEventListener('dblclick',function(){editTask(t.id,title);});
-    body.appendChild(title);
-    if(t.due||t.prio){
-      var meta=document.createElement('div'); meta.className='meta';
-      if(t.prio){var c=document.createElement('span'); c.className='chip prio'; c.textContent='優先'; meta.appendChild(c);}
-      if(t.due){var d=document.createElement('span'); d.className='chip due'; d.textContent=t.due; meta.appendChild(d);}
-      body.appendChild(meta);
+  function chipsFor(t,list){
+    var out=[];
+    if(t.prio)out.push(['prio','優先']);
+    if(list==='today'){
+      if(t.workDate&&t.workDate<todayStr())out.push(['sched urgent','繰越']);
+    }else{ // week
+      if(t.workDate)out.push(['sched',wdShort(t.workDate)+' '+fmtMD(t.workDate)]);
+      else if(t.workWeek&&t.workWeek<mondayOf(todayStr()))out.push(['sched urgent','今週(繰越)']);
+      else out.push(['sched','今週']);
     }
+    if(t.deadline){
+      var urg=t.deadline<todayStr()?' urgent':(t.deadline===todayStr()?' urgent':'');
+      out.push(['dl'+urg,'〆'+fmtMD(t.deadline)+'('+wdShort(t.deadline)+')']);
+    }
+    return out;
+  }
+
+  function taskEl(t,list){
+    var li=document.createElement('li');li.className='task'+(t.done?' done':'');li.dataset.id=t.id;
+    var ck=document.createElement('span');ck.className='check';ck.innerHTML=SVG;ck.title='完了/戻す';
+    ck.addEventListener('click',function(){t.done=!t.done;render();});li.appendChild(ck);
+    var body=document.createElement('div');body.className='body';
+    var title=document.createElement('div');title.className='title';title.textContent=t.title;
+    title.addEventListener('dblclick',function(){openForm(t.id);});body.appendChild(title);
+    var chips=chipsFor(t,list);
+    if(chips.length){var meta=document.createElement('div');meta.className='meta';
+      chips.forEach(function(c){var s=document.createElement('span');s.className='chip '+c[0];s.textContent=c[1];meta.appendChild(s);});
+      body.appendChild(meta);}
     li.appendChild(body);
-    // row buttons
-    var rb=document.createElement('div'); rb.className='rowbtns';
-    var star=document.createElement('button'); star.className='star'+(t.prio?' on':''); star.textContent=t.prio?'★':'☆'; star.title='優先';
-    star.addEventListener('click',function(){t.prio=!t.prio; render();});
-    var mv=document.createElement('button'); mv.textContent='⇄'; mv.title=(t.list==='today'?'今週へ':'本日へ');
-    mv.addEventListener('click',function(){t.list=(t.list==='today'?'week':'today'); render();});
-    var del=document.createElement('button'); del.textContent='✕'; del.title='削除';
-    del.addEventListener('click',function(){removeTask(t.id);});
-    rb.appendChild(star); rb.appendChild(mv); rb.appendChild(del);
-    li.appendChild(rb);
-    // drag
-    addDrag(li);
+    var rb=document.createElement('div');rb.className='rowbtns';
+    var star=document.createElement('button');star.className='star'+(t.prio?' on':'');star.textContent=t.prio?'★':'☆';star.title='優先';
+    star.addEventListener('click',function(){t.prio=!t.prio;render();});
+    var ed=document.createElement('button');ed.textContent='✎';ed.title='編集';ed.addEventListener('click',function(){openForm(t.id);});
+    var del=document.createElement('button');del.textContent='✕';del.title='削除';del.addEventListener('click',function(){removeTask(t.id);});
+    rb.appendChild(star);rb.appendChild(ed);rb.appendChild(del);li.appendChild(rb);
     return li;
   }
 
-  function editTask(id,titleEl){
-    var t=byId(id); if(!t)return;
-    var inp=document.createElement('input'); inp.className='title-input';
-    inp.value=t.title+(t.due?' @'+t.due:'')+(t.prio?' !':'');
-    titleEl.replaceWith(inp); inp.focus(); inp.setSelectionRange(t.title.length,t.title.length);
-    function commit(){
-      var p=parseInput(inp.value);
-      if(p.title){t.title=p.title; t.due=p.due; t.prio=p.prio;}
-      render();
-    }
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();commit();}else if(e.key==='Escape'){render();}});
-    inp.addEventListener('blur',commit);
-  }
-
-  function byId(id){for(var i=0;i<state.tasks.length;i++)if(state.tasks[i].id===id)return state.tasks[i];return null;}
-
-  function toggleDone(id){var t=byId(id); if(!t)return; t.done=!t.done; render();}
-
   function removeTask(id){
-    var idx=state.tasks.findIndex(function(t){return t.id===id;});
-    if(idx<0)return;
-    var removed=state.tasks[idx];
-    var el=lists[removed.list].querySelector('[data-id="'+id+'"]');
+    var idx=state.tasks.findIndex(function(t){return t.id===id;});if(idx<0)return;
+    var removed=state.tasks[idx], el=document.querySelector('.task[data-id="'+id+'"]');
     state.tasks.splice(idx,1);
-    if(el){el.classList.add('removing'); setTimeout(render,180);} else render();
-    showToast('削除しました',function(){state.tasks.splice(Math.min(idx,state.tasks.length),0,removed); render();},'元に戻す');
-  }
-
-  function addTask(list,text){
-    var p=parseInput(text); if(!p.title)return;
-    state.tasks.push({id:uid(),list:list,title:p.title,due:p.due,prio:p.prio,done:false,t:Date.now()});
-    render();
+    if(el){el.classList.add('removing');setTimeout(render,170);}else render();
+    showToast('削除しました',function(){state.tasks.splice(Math.min(idx,state.tasks.length),0,removed);render();},'元に戻す');
   }
 
   function clearDone(list){
-    var done=state.tasks.filter(function(t){return t.list===list&&t.done;});
+    var done=state.tasks.filter(function(t){return !t.done?false:sectionOf(t)===list;});
     if(!done.length)return;
-    var backup=done.slice();
-    state.tasks=state.tasks.filter(function(t){return !(t.list===list&&t.done);});
-    render();
-    showToast(done.length+' 件を消しました',function(){state.tasks=state.tasks.concat(backup); render();},'元に戻す');
+    var backup=done.slice(), ids={};done.forEach(function(t){ids[t.id]=1;});
+    state.tasks=state.tasks.filter(function(t){return !ids[t.id];});render();
+    showToast(done.length+' 件を消しました',function(){state.tasks=state.tasks.concat(backup);render();},'元に戻す');
   }
 
-  function updateProgress(){
+  function updateProgress(b){
     var all=state.tasks.length, done=state.tasks.filter(function(t){return t.done;}).length;
-    var pct=all? Math.round(done/all*100):0;
+    var pct=all?Math.round(done/all*100):0;
     document.getElementById('progress').style.width=pct+'%';
     document.getElementById('pct').textContent=pct+'%';
-    var to=tasksOf('today'), wk=tasksOf('week');
-    document.getElementById('note').textContent='本日 '+to.filter(d=>d.done).length+'/'+to.length+'・今週 '+wk.filter(d=>d.done).length+'/'+wk.length+' 完了';
   }
 
-  /* ---------- ドラッグ並べ替え ---------- */
-  var dragId=null;
-  function addDrag(li){
-    li.addEventListener('dragstart',function(e){dragId=li.dataset.id; e.dataTransfer.effectAllowed='move'; setTimeout(function(){li.style.opacity='.4';},0);});
-    li.addEventListener('dragend',function(){li.style.opacity=''; dragId=null; clearOver();});
-    li.addEventListener('dragover',function(e){e.preventDefault(); clearOver(); li.classList.add('dragover');});
-    li.addEventListener('drop',function(e){
-      e.preventDefault(); clearOver();
-      if(!dragId||dragId===li.dataset.id)return;
-      var from=state.tasks.findIndex(function(t){return t.id===dragId;});
-      var to=state.tasks.findIndex(function(t){return t.id===li.dataset.id;});
-      if(from<0||to<0)return;
-      var moved=state.tasks.splice(from,1)[0];
-      moved.list=byId(li.dataset.id)?state.tasks[state.tasks.findIndex(function(t){return t.id===li.dataset.id;})].list:moved.list;
-      to=state.tasks.findIndex(function(t){return t.id===li.dataset.id;});
-      state.tasks.splice(to,0,moved); render();
-    });
+  /* ---------- フォーム（追加・編集） ---------- */
+  var F={title:document.getElementById('f-title'),deadline:document.getElementById('f-deadline'),
+    workdate:document.getElementById('f-workdate'),prio:document.getElementById('f-prio'),week:document.getElementById('f-week')};
+  function setWeekSeg(v){var b=F.week.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.w===v));}
+  function getWeekSeg(){var b=F.week.querySelector('.pill[aria-pressed="true"]');return b?b.dataset.w:'none';}
+  function openForm(id){
+    editingId=id||null;
+    document.getElementById('formTitle').textContent=id?'タスクを編集':'タスクを追加';
+    if(id){var t=byId(id);F.title.value=t.title;F.deadline.value=t.deadline||'';F.workdate.value=t.workDate||'';F.prio.checked=!!t.prio;
+      var mon=mondayOf(todayStr());
+      if(t.workDate)setWeekSeg('none');
+      else if(t.workWeek===mon)setWeekSeg('this');
+      else if(t.workWeek===addDaysStr(mon,7))setWeekSeg('next');
+      else setWeekSeg(t.workWeek?'none':'none');
+    }else{F.title.value='';F.deadline.value='';F.workdate.value='';F.prio.checked=false;setWeekSeg('this');}
+    openModal('formModal');setTimeout(function(){F.title.focus();},30);
   }
-  function clearOver(){var n=document.querySelectorAll('.task.dragover'); for(var i=0;i<n.length;i++)n[i].classList.remove('dragover');}
-  // リスト末尾（空白）へのドロップで、そのリストへ移動
-  ['today','week'].forEach(function(list){
-    lists[list].addEventListener('dragover',function(e){e.preventDefault();});
-    lists[list].addEventListener('drop',function(e){
-      if(!dragId)return;
-      var t=byId(dragId); if(!t)return;
-      if(!e.target.closest('.task')){t.list=list; var i=state.tasks.findIndex(function(x){return x.id===dragId;}); var m=state.tasks.splice(i,1)[0]; state.tasks.push(m); render();}
-    });
-  });
+  function saveForm(){
+    var title=F.title.value.trim();if(!title){F.title.focus();return;}
+    var workDate=F.workdate.value||'';
+    var wk=getWeekSeg(), workWeek='';
+    if(!workDate){ // 日が無いときだけ週を採用
+      if(wk==='this')workWeek=mondayOf(todayStr());
+      else if(wk==='next')workWeek=addDaysStr(mondayOf(todayStr()),7);
+    }
+    var data={title:title,deadline:F.deadline.value||'',workDate:workDate,workWeek:workWeek,prio:F.prio.checked};
+    if(editingId){var t=byId(editingId);if(t){t.title=data.title;t.deadline=data.deadline;t.workDate=data.workDate;t.workWeek=data.workWeek;t.prio=data.prio;}}
+    else{state.tasks.push({id:uid(),title:data.title,deadline:data.deadline,workDate:data.workDate,workWeek:data.workWeek,prio:data.prio,done:false,t:Date.now()});}
+    editingId=null;closeModals();render();
+  }
+  F.week.addEventListener('click',function(e){var b=e.target.closest('.pill');if(b)setWeekSeg(b.dataset.w);});
+  document.getElementById('f-save').addEventListener('click',saveForm);
+  F.title.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();saveForm();}});
+  // クイック日付/締切ボタン
+  document.querySelectorAll('[data-q]').forEach(function(b){b.addEventListener('click',function(){
+    var q=b.dataset.q,t=todayStr();
+    if(q==='wd-today')F.workdate.value=t;
+    else if(q==='wd-tomo')F.workdate.value=addDaysStr(t,1);
+    else if(q==='wd-clear')F.workdate.value='';
+    else if(q==='dl-clear')F.deadline.value='';
+  });});
+  document.getElementById('addMainBtn').addEventListener('click',function(){openForm(null);});
+
+  /* ---------- クイック追加（各リスト） ---------- */
+  function quickAdd(list,text){
+    var s=text.trim(),prio=false;if(/!$/.test(s)){prio=true;s=s.replace(/!+$/,'').trim();}if(!s)return;
+    var task={id:uid(),title:s,deadline:'',workDate:'',workWeek:'',prio:prio,done:false,t:Date.now()};
+    if(list==='today')task.workDate=todayStr(); else task.workWeek=mondayOf(todayStr());
+    state.tasks.push(task);render();
+  }
+  ['today','week'].forEach(function(list){var inp=document.getElementById('q-'+list);
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&inp.value.trim()){quickAdd(list,inp.value);inp.value='';}});});
+  document.querySelectorAll('.donebar button').forEach(function(b){b.addEventListener('click',function(){
+    var list=b.dataset.list;
+    if(b.dataset.act==='toggledone'){state.showDone[list]=!state.showDone[list];render();}
+    else if(b.dataset.act==='cleardone'){clearDone(list);}
+  });});
 
   /* ---------- テーマ ---------- */
-  function setTheme(name){
-    document.documentElement.setAttribute('data-theme',name);
-    var btns=document.querySelectorAll('#themeseg button');
-    for(var i=0;i<btns.length;i++)btns[i].setAttribute('aria-pressed',String(btns[i].dataset.set===name));
-    lsSet(TKEY,name);
-  }
-  document.getElementById('themeseg').addEventListener('click',function(e){
-    var b=e.target.closest('button'); if(b)setTheme(b.dataset.set);
+  var THEMES=['neon','glass','mono'], TNAME={neon:'NEON',glass:'GLASS',mono:'MONO'};
+  function setTheme(name){document.documentElement.setAttribute('data-theme',name);lsSet(TKEY,name);}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=THEMES[(THEMES.indexOf(cur)+1)%THEMES.length];setTheme(next);showToast('デザイン：'+TNAME[next]);
   });
 
   /* ---------- 目隠し ---------- */
@@ -537,76 +526,47 @@ button{font-family:inherit}
   document.getElementById('cover').addEventListener('click',toggleCover);
 
   /* ---------- 時計 ---------- */
-  var WD=['日','月','火','水','木','金','土'];
-  function tick(){
-    var n=new Date();
-    var dd=n.getFullYear()+'.'+p2(n.getMonth()+1)+'.'+p2(n.getDate())+'（'+WD[n.getDay()]+'）';
-    var tt=p2(n.getHours())+':'+p2(n.getMinutes());
-    document.getElementById('dateStr').textContent=dd;
-    document.getElementById('timeStr').textContent=tt;
-    document.getElementById('coverTime').textContent=tt;
-    document.getElementById('coverDate').textContent=dd;
+  function tick(){var n=new Date();
+    var dd=(n.getMonth()+1)+'.'+n.getDate()+'（'+WD[n.getDay()]+'）', tt=pad(n.getHours())+':'+pad(n.getMinutes());
+    document.getElementById('dateStr').textContent=dd+' '+tt;
+    document.getElementById('coverTime').textContent=tt;document.getElementById('coverDate').textContent=dd;
   }
-  function p2(n){return (n<10?'0':'')+n;}
 
-  /* ---------- トースト ---------- */
+  /* ---------- トースト / モーダル ---------- */
   var toastTimer;
-  function showToast(msg,onAction,actionLabel){
-    var t=document.getElementById('toast'), m=document.getElementById('toastMsg'), a=document.getElementById('toastAction');
-    m.textContent=msg;
-    if(onAction){a.hidden=false; a.textContent=actionLabel||'元に戻す'; a.onclick=function(){onAction(); hideToast();};}
-    else a.hidden=true;
-    t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(hideToast,4200);
-  }
+  function showToast(msg,onAction,label){var t=document.getElementById('toast'),m=document.getElementById('toastMsg'),a=document.getElementById('toastAction');
+    m.textContent=msg;if(onAction){a.hidden=false;a.textContent=label||'元に戻す';a.onclick=function(){onAction();hideToast();};}else a.hidden=true;
+    t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,4200);}
   function hideToast(){document.getElementById('toast').classList.remove('show');}
-
-  /* ---------- モーダル ---------- */
   function openModal(id){document.getElementById(id).classList.add('open');}
-  function closeModals(){var m=document.querySelectorAll('.modal.open'); for(var i=0;i<m.length;i++)m[i].classList.remove('open');}
-  document.getElementById('helpBtn').addEventListener('click',function(){openModal('helpModal');});
-  document.getElementById('backupBtn').addEventListener('click',function(){openModal('backupModal');});
+  function closeModals(){var m=document.querySelectorAll('.modal.open');for(var i=0;i<m.length;i++)m[i].classList.remove('open');}
+  document.getElementById('menuBtn').addEventListener('click',function(){openModal('menuModal');});
   document.querySelectorAll('.modal').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m||e.target.hasAttribute('data-close'))closeModals();});});
 
   /* ---------- バックアップ ---------- */
   document.getElementById('exportBtn').addEventListener('click',function(){
-    var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    var n=new Date(); a.download='タスクボード_'+n.getFullYear()+p2(n.getMonth()+1)+p2(n.getDate())+'.json';
-    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); showToast('書き出しました');
-  });
+    var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);var n=new Date();
+    a.download='タスクボード_'+n.getFullYear()+pad(n.getMonth()+1)+pad(n.getDate())+'.json';
+    a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);showToast('書き出しました');});
   document.getElementById('importBtn').addEventListener('click',function(){document.getElementById('importFile').click();});
-  document.getElementById('importFile').addEventListener('change',function(e){
-    var f=e.target.files[0]; if(!f)return;
-    var r=new FileReader();
-    r.onload=function(){try{var d=JSON.parse(r.result); if(d&&Array.isArray(d.tasks)){state=d; if(!state.showDone)state.showDone={today:false,week:false}; render(); closeModals(); showToast('読み込みました');}else showToast('形式が違うようです');}catch(err){showToast('読み込めませんでした');}};
-    r.readAsText(f); e.target.value='';
-  });
-
-  /* ---------- 入力欄・完了バー ---------- */
-  ['today','week'].forEach(function(list){
-    var inp=document.getElementById('add-'+list);
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&inp.value.trim()){addTask(list,inp.value); inp.value='';}});
-  });
-  document.querySelectorAll('.donebar button').forEach(function(b){
-    b.addEventListener('click',function(){
-      var list=b.dataset.list;
-      if(b.dataset.act==='toggledone'){state.showDone[list]=!state.showDone[list]; render();}
-      else if(b.dataset.act==='cleardone'){clearDone(list);}
-    });
-  });
+  document.getElementById('importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
+    r.onload=function(){try{var d=JSON.parse(r.result);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};render();closeModals();showToast('読み込みました');}else showToast('形式が違うようです');}catch(err){showToast('読み込めませんでした');}};
+    r.readAsText(f);e.target.value='';});
 
   /* ---------- キー操作 ---------- */
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       if(document.querySelector('.modal.open')){closeModals();return;}
-      if(document.activeElement&&/INPUT/.test(document.activeElement.tagName)&&!document.activeElement.classList.contains('title-input'))return;
+      var ae=document.activeElement;
+      if(ae&&/INPUT|TEXTAREA/.test(ae.tagName)){ae.blur();return;}
       toggleCover();
     }
   });
 
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
-  load(); render(); tick(); setInterval(tick,1000*15);
+  load();tick();render();setInterval(tick,1000*15);
 })();
 </script>
 </body>
