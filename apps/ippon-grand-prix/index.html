@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>大喜利グランプリ 得点発表ツール</title>
+<style>
+  :root{
+    --gold1:#fff3b0; --gold2:#ffcf3a; --gold3:#c8870f; --gold-edge:#7a4e05;
+    --led:#ffc21f; --led-glow:rgba(255,180,20,.85);
+    --glow:rgba(255,200,40,.7);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+  html,body{height:100%;}
+  body{
+    margin:0; overflow:hidden; touch-action:manipulation;
+    background:#050507; color:#fff;
+    font-family:"Yu Gothic UI","Yu Gothic","游ゴシック体","Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+  }
+
+  /* ===== 背景：黒キルト＋金色の光線 ===== */
+  #bg{position:fixed; inset:0; z-index:0; overflow:hidden; background:#070708;}
+  /* ダイヤキルト調 */
+  #quilt{position:absolute; inset:-10%;
+    background-color:#0b0b0e;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0 1px, transparent 1px 54px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,.045) 0 1px, transparent 1px 54px),
+      repeating-linear-gradient(45deg, rgba(0,0,0,.55) 0 2px, transparent 2px 54px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.55) 0 2px, transparent 2px 54px);
+    background-size:54px 54px;}
+  /* 金色の光線 */
+  #rays{position:absolute; left:50%; top:50%; width:230vmax; height:230vmax;
+    transform:translate(-50%,-50%); opacity:.28; transition:opacity .6s;
+    background:repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255,201,58,0) 0deg, rgba(255,201,58,.55) 1.4deg, rgba(255,170,20,0) 5deg);
+    animation:spin 70s linear infinite;}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+  body.celebrate #rays{opacity:.7; animation-duration:12s;}
+  #centerglow{position:absolute; left:50%; top:46%; width:120vmin; height:120vmin;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(255,190,40,.18), rgba(0,0,0,0) 60%);}
+  #vignette{position:fixed; inset:0; z-index:1; pointer-events:none;
+    box-shadow:inset 0 0 26vmax rgba(0,0,0,.9);}
+
+  #confetti{position:fixed; inset:0; z-index:40; pointer-events:none;}
+  #flash{position:fixed; inset:0; z-index:45; pointer-events:none; background:#fff; opacity:0;}
+  #flash.go{animation:flash .55s ease-out;}
+  @keyframes flash{0%{opacity:.9;}100%{opacity:0;}}
+
+  /* ===== ロゴ（IPPON風・左上） ===== */
+  #logo{position:fixed; left:2.2vw; top:2.4vh; z-index:30; line-height:1;
+    background:linear-gradient(180deg,#1b1b1f,#070708); border:2px solid var(--gold2);
+    border-radius:8px; padding:.5em .8em; box-shadow:0 4px 14px rgba(0,0,0,.6), 0 0 16px rgba(255,200,40,.25);}
+  #logo .a{font-weight:900; font-size:clamp(15px,2.4vw,26px); letter-spacing:.06em;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2) 55%,var(--gold3));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-family:"Yu Mincho","游明朝","Hiragino Mincho ProN","MS Mincho",serif;}
+  #logo .b{font-weight:800; font-size:clamp(8px,1.2vw,12px); letter-spacing:.42em; color:#caa64a;
+    text-indent:.42em; margin-top:.15em;}
+
+  /* ===== ステージ ===== */
+  #stage{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1.4vh; padding:6vh 3vw 8vh;}
+
+  /* クラス名（金の帯） */
+  #classBadge{position:relative; text-align:center; opacity:.98;}
+  #classBadge .lead{font-size:clamp(11px,2vw,18px); letter-spacing:.34em; color:#e9c95a;
+    font-weight:800; text-indent:.34em; margin-bottom:.5em;}
+  #classBadge .name{display:inline-block; font-family:"Yu Mincho","游明朝","Hiragino Mincho ProN","MS Mincho",serif;
+    font-weight:900; letter-spacing:.1em; color:#1a1205;
+    font-size:clamp(24px,5.4vw,56px); line-height:1.05; padding:.12em .8em;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2) 52%,var(--gold3));
+    border:2px solid #fff0b0; border-radius:8px;
+    box-shadow:0 6px 0 var(--gold-edge), 0 10px 26px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.5);}
+
+  /* 八角形 金フレーム（16:9ワイド画面に合わせた横長） */
+  #frame{position:relative; width:min(92vw,128vh); aspect-ratio:2.4/1; padding:1.5vmin;
+    clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
+    background:linear-gradient(135deg,#fff0b0,#e8b531 38%,#a06f12 70%,#6f4a05);
+    filter:drop-shadow(0 0 30px var(--glow));}
+  #frameInner{width:100%; height:100%;
+    clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
+    background:radial-gradient(ellipse at 50% 45%, #1a1922 0%, #0a0a10 60%, #050507 100%);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;}
+
+  /* LED風の数字 */
+  #score{font-family:"Courier New",ui-monospace,monospace; font-weight:900; line-height:.9;
+    font-size:min(34vh,30vw); color:var(--led);
+    text-shadow:0 0 10px var(--led-glow), 0 0 34px rgba(255,170,20,.75), 0 0 70px rgba(255,140,0,.5);
+    transition:color .2s, text-shadow .2s;}
+  #score.q{color:#6a5a22; text-shadow:0 0 14px rgba(150,120,30,.35);}
+  #score.tick{animation:tick .14s ease-out;}
+  @keyframes tick{0%{transform:scale(1);}45%{transform:scale(1.18);}100%{transform:scale(1);}}
+  #score.shake{animation:shk .42s infinite;}
+  @keyframes shk{0%,100%{transform:translate(0,0);}25%{transform:translate(-5px,3px);}
+    50%{transform:translate(5px,-3px);}75%{transform:translate(-4px,4px);}}
+  #score.max{color:#fff7d0; text-shadow:0 0 16px #fff, 0 0 50px var(--led-glow), 0 0 100px rgba(255,160,0,.7);
+    animation:beat 1s ease-in-out infinite;}
+  @keyframes beat{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+  #score.zero{animation:drop .7s cubic-bezier(.2,.8,.2,1);}
+  @keyframes drop{0%{transform:translateY(-30%);opacity:0;}70%{transform:translateY(4%);opacity:1;}100%{transform:translateY(0);}}
+
+  /* キャッチコピー */
+  #catch{min-height:1.3em; font-weight:900; letter-spacing:.06em; text-align:center;
+    font-size:clamp(22px,5.4vw,58px); opacity:0; transform:translateY(16px);
+    color:var(--gold2); text-shadow:0 3px 0 rgba(0,0,0,.45), 0 0 24px var(--glow);}
+  #catch.show{animation:catchin .45s ease-out forwards;}
+  @keyframes catchin{to{opacity:1; transform:translateY(0);}}
+
+  /* IPPON スタンプ（満点） */
+  #ippon{position:fixed; inset:0; z-index:46; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;}
+  #ippon span{font-family:"Arial Black","Yu Gothic UI",sans-serif; font-weight:900;
+    font-size:min(32vh,15vw); letter-spacing:.01em;
+    background:linear-gradient(180deg,#fff7cf,#ffd23a 50%,#ff9d00);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 6px 0 rgba(120,70,0,.5)) drop-shadow(0 0 40px var(--glow));
+    -webkit-text-stroke:3px rgba(120,70,0,.25);}
+  #ippon.go{animation:slam 1.4s cubic-bezier(.18,1.4,.4,1) forwards;}
+  @keyframes slam{0%{opacity:0;transform:scale(3) rotate(-12deg);filter:blur(8px);}
+    18%{opacity:1;transform:scale(1) rotate(-6deg);filter:blur(0);}
+    72%{opacity:1;transform:scale(1) rotate(-6deg);}100%{opacity:0;transform:scale(1.05) rotate(-6deg);}}
+
+  /* お題 帯（下） */
+  #odaiBar{position:fixed; left:0; right:0; bottom:0; z-index:22; pointer-events:none;
+    display:none; flex-direction:column; align-items:stretch;}
+  #odaiBar.show{display:flex;}
+  #odaiMain{background:linear-gradient(180deg,var(--gold1),var(--gold2) 55%,var(--gold3));
+    color:#1a1205; font-family:"Yu Mincho","游明朝","Hiragino Mincho ProN","MS Mincho",serif;
+    font-weight:900; font-size:clamp(18px,3.8vw,40px); letter-spacing:.04em;
+    padding:.35em .9em; text-align:center; border-top:3px solid #fff0b0;
+    box-shadow:0 -6px 20px rgba(0,0,0,.5);}
+  #odaiSub{background:#0c0c10; color:#e9c95a; font-weight:800; font-size:clamp(11px,2vw,16px);
+    letter-spacing:.2em; padding:.3em .9em; display:flex; justify-content:space-between;}
+  #odaiSub .r{color:#9a7e34; letter-spacing:.34em;}
+
+  /* ===== イントロ ===== */
+  #intro{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:3vh; text-align:center;
+    background:radial-gradient(ellipse at 50% 40%, rgba(26,33,64,.6) 0%, rgba(7,9,20,0) 70%);
+    transition:opacity .5s;}
+  #intro.hide{opacity:0; pointer-events:none;}
+  .logo2 .sub{font-size:clamp(13px,3vw,28px); letter-spacing:.42em; color:#ffd54a; font-weight:800;
+    margin-bottom:1.4vh; text-indent:.42em;}
+  .logo2 .main{font-size:clamp(38px,11vw,150px); font-weight:900; letter-spacing:.02em;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2) 55%,var(--gold3));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 6px 0 rgba(120,70,0,.45)) drop-shadow(0 0 30px var(--glow));}
+  .logo2 .ja{font-size:clamp(18px,4.2vw,42px); font-weight:900; color:#fff; margin-top:1vh;
+    font-family:"Yu Mincho","游明朝","Hiragino Mincho ProN","MS Mincho",serif; letter-spacing:.16em;}
+  .startbtn{margin-top:2vh; font-size:clamp(18px,3.5vw,30px); font-weight:800;
+    padding:.7em 2.4em; border:none; border-radius:999px; cursor:pointer; color:#3a2400;
+    background:linear-gradient(180deg,#ffe89a,#ffc23a); box-shadow:0 8px 0 #a9760a, 0 14px 30px rgba(255,180,40,.35);}
+  .startbtn:active{transform:translateY(6px); box-shadow:0 2px 0 #a9760a;}
+  .intro-note{color:#9fb0d8; font-size:clamp(12px,2.4vw,17px); line-height:1.9; max-width:90vw;}
+  .intro-note b{color:#ffd54a;}
+
+  /* ===== コントロールバー（タッチ操作・押しても無反応） ===== */
+  #bar{position:fixed; left:0; right:0; bottom:0; z-index:70;
+    display:flex; flex-direction:column; gap:8px; padding:10px 12px 14px;
+    background:linear-gradient(0deg, rgba(4,5,9,.97), rgba(4,5,9,.82) 70%, rgba(4,5,9,0));
+    transition:transform .32s ease, opacity .32s;}
+  #bar.hidden{transform:translateY(120%); opacity:0;}
+  .barrow{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; align-items:center;}
+  .barlabel{color:#8fa0c8; font-size:13px; font-weight:700; min-width:4.2em; text-align:right;}
+  /* ★ボタンは押しても一切見た目が変わらない（点数バレ防止） */
+  .cls,.sc,.util{outline:none; cursor:pointer; border:2px solid #2a2f4a; color:#cdd6f4;
+    background:#141826; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  .cls:focus,.sc:focus,.util:focus,.cls:active,.sc:active,.util:active,
+  .cls:hover,.sc:hover,.util:hover{background:#141826; border-color:#2a2f4a; color:#cdd6f4; transform:none;}
+  .cls{font-size:clamp(15px,2.1vw,21px); font-weight:800; padding:.55em 1.05em; border-radius:12px; min-width:5.4em;}
+  .cls.cur{border-color:#5a648c;}            /* 現在クラスのうっすら表示（点数とは無関係なのでOK） */
+  .sc{width:clamp(54px,6vw,76px); height:clamp(54px,6vw,76px); border-radius:14px;
+    font-size:clamp(22px,2.8vw,32px); font-weight:900; color:#e7ecff;}
+  .sc.s10{width:auto; padding:0 1.05em; color:#e7ecff;}
+  .util{font-size:14px; font-weight:700; padding:.6em 1em; border-radius:10px; color:#aab6da; background:#10142a;}
+  #handle{position:fixed; right:14px; bottom:14px; z-index:69; font-size:24px; cursor:pointer;
+    width:54px; height:54px; border-radius:50%; border:2px solid var(--gold3);
+    background:rgba(16,16,26,.9); color:#ffd54a; display:none; align-items:center; justify-content:center;}
+  #bar.hidden ~ #handle{display:flex;}
+
+  /* ===== モーダル ===== */
+  .modal{position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center;
+    background:rgba(2,3,8,.8); backdrop-filter:blur(3px);}
+  .modal.show{display:flex;}
+  .card{background:#10142a; border:1px solid #2a3358; border-radius:18px; padding:24px 26px;
+    width:min(560px,92vw); max-height:88vh; overflow:auto; box-shadow:0 24px 60px rgba(0,0,0,.6);}
+  .card h2{margin:0 0 6px; color:#ffd54a; font-size:22px;}
+  .card p.muted{color:#8fa0c8; font-size:13px; margin:0 0 16px; line-height:1.7;}
+  .field{display:flex; align-items:center; gap:10px; margin:10px 0;}
+  .field label{width:5.5em; color:#cdd6f4; font-weight:700; font-size:15px;}
+  .field input[type=text]{flex:1; font-size:16px; padding:.55em .7em; border-radius:10px;
+    border:1px solid #2a3358; background:#0a0e1e; color:#fff;}
+  .field input[type=range]{flex:1;}
+  .field .val{width:4.5em; text-align:right; color:#ffd54a; font-weight:800;}
+  .toggle{display:flex; align-items:center; gap:10px; margin:12px 0; color:#cdd6f4; font-weight:700;}
+  .toggle input{width:20px; height:20px;}
+  .card .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap;}
+  .card button.primary{font-size:16px; font-weight:800; padding:.6em 1.6em; border:none; border-radius:10px;
+    cursor:pointer; color:#3a2400; background:linear-gradient(180deg,#ffe89a,#ffc23a);}
+  .card button.ghost{font-size:16px; font-weight:700; padding:.6em 1.4em; border-radius:10px; cursor:pointer;
+    background:#1a2040; color:#cdd6f4; border:1px solid #2a3358;}
+  .keys{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:14px; color:#cdd6f4;}
+  .keys kbd{background:#0a0e1e; border:1px solid #2a3358; border-bottom-width:3px; border-radius:6px;
+    padding:2px 8px; font-weight:800; color:#ffd54a;}
+</style>
+</head>
+<body>
+  <div id="bg">
+    <div id="quilt"></div><div id="rays"></div><div id="centerglow"></div>
+  </div>
+  <div id="vignette"></div>
+  <canvas id="confetti"></canvas>
+  <div id="flash"></div>
+  <div id="ippon"><span>INABUN</span></div>
+
+  <div id="logo"><div class="a">INABUN</div><div class="b">GRAND PRIX</div></div>
+
+  <!-- ステージ -->
+  <div id="stage">
+    <div id="classBadge">
+      <div class="lead">これから発表するのは</div>
+      <div class="name" id="className">1組</div>
+    </div>
+    <div id="frame"><div id="frameInner"><div id="score" class="q">？</div></div></div>
+    <div id="catch"></div>
+  </div>
+
+  <!-- お題 帯 -->
+  <div id="odaiBar">
+    <div id="odaiMain"></div>
+    <div id="odaiSub"><span class="l"></span><span class="r">OGIRI GRAND PRIX</span></div>
+  </div>
+
+  <!-- イントロ -->
+  <div id="intro">
+    <div class="logo2">
+      <div class="sub">YAGAI GAKUSHU SPECIAL</div>
+      <div class="main">INABUN GRAND PRIX</div>
+      <div class="ja">得点 発表</div>
+    </div>
+    <button class="startbtn" id="startBtn">▶ はじめる</button>
+    <div class="intro-note">
+      クラスを選んで点数（0〜10）をタップすると、得点がカウントアップで発表されます。<br>
+      画面を大きく使うには <b>F11キー</b> で全画面に。音を出すには会場の<b>スピーカー</b>をつないでください。
+    </div>
+  </div>
+
+  <!-- コントロールバー -->
+  <div id="bar">
+    <div class="barrow" id="classRow"><span class="barlabel">クラス</span></div>
+    <div class="barrow" id="scoreRow"><span class="barlabel">てんすう</span></div>
+    <div class="barrow">
+      <button class="util" id="resetBtn">↺ ？に戻す</button>
+      <button class="util" id="odaiBtn">✎ お題</button>
+      <button class="util" id="soundBtn">🔊 音</button>
+      <button class="util" id="fsBtn">⛶ 全画面</button>
+      <button class="util" id="setBtn">⚙ 設定</button>
+      <button class="util" id="helpBtn">❔ 使い方</button>
+      <button class="util" id="hideBtn">▽ バーを隠す</button>
+    </div>
+  </div>
+  <div id="handle" title="操作バーを出す">🎛</div>
+
+  <!-- お題モーダル -->
+  <div class="modal" id="odaiModal">
+    <div class="card">
+      <h2>✎ お題の表示</h2>
+      <p class="muted">画面下の金色の帯に表示されます。空らんにすると帯は消えます。</p>
+      <div class="field"><label>お題</label><input type="text" id="odaiText" maxlength="40" placeholder="例：大御所たちを注意してください"></div>
+      <div class="field"><label>サブ</label><input type="text" id="odaiSubText" maxlength="24" placeholder="例：Bブロック 第1問"></div>
+      <div class="actions">
+        <button class="ghost" id="odaiClear">帯を消す</button>
+        <button class="primary" id="odaiSave">表示する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="modal" id="setModal">
+    <div class="card">
+      <h2>⚙ 設定</h2>
+      <p class="muted">クラス名を会場に合わせて変えられます。空らんにすると初期名にもどります。</p>
+      <div id="nameFields"></div>
+      <hr style="border-color:#2a3358; margin:16px 0;">
+      <label class="toggle"><input type="checkbox" id="rollChk"> ドラムロールでためてから発表する</label>
+      <div class="field">
+        <label>ためる長さ</label>
+        <input type="range" id="rollMs" min="600" max="6000" step="200" value="2600">
+        <span class="val" id="rollMsVal">2.6秒</span>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="setClose">とじる</button>
+        <button class="primary" id="setSave">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使い方モーダル -->
+  <div class="modal" id="helpModal">
+    <div class="card">
+      <h2>❔ 使い方</h2>
+      <p class="muted">指でタップして操作します。得点ボタンは<b>押しても見た目が変わりません</b>（何点か観客にバレないように）。</p>
+      <div class="keys">
+        <kbd>クラス</kbd><span>画面下のクラスボタンをタップ</span>
+        <kbd>てんすう</kbd><span>0〜10をタップ → カウントアップで発表</span>
+        <kbd>画面タップ</kbd><span>ドラムロール中＝今すぐ発表／発表後＝次へ（？に戻す）／待機中＝バー開閉</span>
+        <kbd>✎ お題</kbd><span>下の金帯にお題を表示</span>
+      </div>
+      <p class="muted" style="margin-top:14px;">キーボードでも操作できます：<kbd>0〜9</kbd>点数／<kbd>M</kbd>満点／<kbd>←→</kbd>クラス／<kbd>Space</kbd>今すぐ発表・次へ／<kbd>R</kbd>？に戻す／<kbd>F</kbd>全画面／<kbd>S</kbd>音／<kbd>H</kbd>バー</p>
+      <div class="actions"><button class="primary" id="helpClose">とじる</button></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DEFAULT_NAMES = ["1組","2組","3組","4組","5組"];
+  var state = {
+    classes: DEFAULT_NAMES.slice(), current:0,
+    phase:"standby",            // standby / rolling / counting / revealed
+    sound:true, drumroll:true, rollMs:2600,
+    odai:"", odaiSub:"",
+    rollTimer:null, countIv:null, countTimer:null, pending:null
+  };
+
+  try{
+    var saved = JSON.parse(localStorage.getItem("ogiri-gp2")||"null");
+    if(saved){
+      if(Array.isArray(saved.classes)&&saved.classes.length===5) state.classes=saved.classes;
+      if(typeof saved.sound==="boolean") state.sound=saved.sound;
+      if(typeof saved.drumroll==="boolean") state.drumroll=saved.drumroll;
+      if(typeof saved.rollMs==="number") state.rollMs=saved.rollMs;
+      if(typeof saved.odai==="string") state.odai=saved.odai;
+      if(typeof saved.odaiSub==="string") state.odaiSub=saved.odaiSub;
+    }
+  }catch(e){}
+  function persist(){
+    try{ localStorage.setItem("ogiri-gp2", JSON.stringify({
+      classes:state.classes, sound:state.sound, drumroll:state.drumroll,
+      rollMs:state.rollMs, odai:state.odai, odaiSub:state.odaiSub })); }catch(e){}
+  }
+
+  // 点数ごとのキャッチコピー
+  var CATCH = {10:"満点————！！！",9:"すばらしい！！",8:"お見事！",7:"うまい！",6:"いいね！",
+    5:"ナイスチャレンジ！",4:"いい線いってる！",3:"あと一歩…！",2:"これからこれから！",
+    1:"うーん、おしい？",0:"ドンマイ！！"};
+
+  var $=function(id){return document.getElementById(id);};
+  var scoreEl=$("score"), classNameEl=$("className"), catchEl=$("catch"),
+      bar=$("bar"), stage=$("stage"), root=document.documentElement;
+
+  /* ===== サウンド（Web Audio・外部ファイル不要／低音・厚み重視） ===== */
+  var actx=null, master=null, comp=null, revGain=null, noiseBuf=null;
+  function makeImpulse(dur,decay){
+    var rate=actx.sampleRate, len=Math.floor(rate*dur), buf=actx.createBuffer(2,len,rate);
+    for(var c=0;c<2;c++){ var ch=buf.getChannelData(c);
+      for(var i=0;i<len;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+    return buf;
+  }
+  function audioReady(){
+    if(actx){ if(actx.state==="suspended") actx.resume(); return true; }
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
+    actx=new AC();
+    // master → コンプレッサー（迫力・まとまり） → 出力
+    comp=actx.createDynamicsCompressor();
+    comp.threshold.value=-16; comp.knee.value=22; comp.ratio.value=4; comp.attack.value=0.003; comp.release.value=0.25;
+    comp.connect(actx.destination);
+    master=actx.createGain(); master.gain.value=1.0; master.connect(comp);
+    // リバーブ送り（広がり）
+    var conv=actx.createConvolver(); conv.buffer=makeImpulse(1.8,3.0);
+    revGain=actx.createGain(); revGain.gain.value=0.85; revGain.connect(conv); conv.connect(comp);
+    var len=actx.sampleRate*1.0; noiseBuf=actx.createBuffer(1,len,actx.sampleRate);
+    var d=noiseBuf.getChannelData(0); for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    return true;
+  }
+  function nowT(){ return actx.currentTime; }
+  function sendRev(node,amt){ var rg=actx.createGain(); rg.gain.value=amt; node.connect(rg); rg.connect(revGain); }
+
+  function tone(t,freq,dur,type,vol,bendTo,rev){
+    var o=actx.createOscillator(), g=actx.createGain(), lp=actx.createBiquadFilter();
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
+    if(bendTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,bendTo),t+dur);
+    lp.type="lowpass"; lp.frequency.value=5200;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(lp); lp.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+    o.start(t); o.stop(t+dur+0.05);
+  }
+  function noiseHit(t,vol,type,freq,q,dur,rev){
+    if(!noiseBuf) return;
+    var s=actx.createBufferSource(); s.buffer=noiseBuf;
+    var f=actx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q||0.8;
+    var g=actx.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    s.connect(f); f.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+    s.start(t); s.stop(t+dur+0.02);
+  }
+  // 太鼓／キック（重い低音で迫力）
+  function boom(t,vol){
+    var o=actx.createOscillator(), g=actx.createGain();
+    o.type="sine"; o.frequency.setValueAtTime(170,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.62);
+    o.connect(g); g.connect(master); sendRev(g,0.2);
+    o.start(t); o.stop(t+0.68);
+    noiseHit(t,vol*0.5,"lowpass",220,0.7,0.16);  // アタック感
+  }
+  // 重ねた金管（厚み）＋ 1オクターブ下のサブ
+  function brass(t,freq,dur,vol,rev){
+    var lp=actx.createBiquadFilter(), g=actx.createGain(), det=[-8,0,8];
+    lp.type="lowpass"; lp.frequency.setValueAtTime(650,t); lp.frequency.linearRampToValueAtTime(3400,t+0.14);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.04);
+    g.gain.setValueAtTime(vol,t+dur*0.65); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    for(var i=0;i<det.length;i++){ var o=actx.createOscillator(); o.type="sawtooth";
+      o.frequency.value=freq; o.detune.value=det[i]; o.connect(lp); o.start(t); o.stop(t+dur+0.05); }
+    var sub=actx.createOscillator(); sub.type="sine"; sub.frequency.value=freq/2; sub.connect(lp); sub.start(t); sub.stop(t+dur+0.05);
+    lp.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+  }
+  // カウントアップの鐘／マリンバ（倍音＋低い胴鳴りで太く）
+  function bell(i){
+    if(!state.sound||!audioReady()) return;
+    var t=nowT()+0.01, base=523.25, f=base*Math.pow(1.05946,(i-1)*2); // 2半音ずつ上昇
+    noiseHit(t,0.10,"bandpass",f*2,3,0.04);          // マレットのアタック
+    tone(t,f,0.55,"triangle",0.24,null,0.16);
+    tone(t,f*2.0,0.34,"sine",0.10,null,0.1);
+    tone(t,f*3.01,0.2,"sine",0.05);
+    tone(t,f/2,0.55,"sine",0.12);                     // 低音で厚み
+  }
+  function cymbal(){ if(!state.sound||!audioReady())return; var t=nowT()+0.01;
+    noiseHit(t,0.5,"highpass",5000,0.5,1.3,0.4); noiseHit(t,0.35,"bandpass",3400,0.4,0.6,0.2); }
+  function honk(t,freq,dur,vol){
+    var lp=actx.createBiquadFilter(), g=actx.createGain();
+    lp.type="lowpass"; lp.frequency.value=1300;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.02);
+    g.gain.setValueAtTime(vol,t+dur*0.7); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    var a=actx.createOscillator(); a.type="square"; a.frequency.value=freq;
+    var b=actx.createOscillator(); b.type="square"; b.frequency.value=freq; b.detune.value=16;
+    var s=actx.createOscillator(); s.type="sine"; s.frequency.value=freq/2;
+    a.connect(lp); b.connect(lp); s.connect(lp); lp.connect(g); g.connect(master);
+    a.start(t);b.start(t);s.start(t); a.stop(t+dur+0.05);b.stop(t+dur+0.05);s.stop(t+dur+0.05);
+  }
+  function buzzer(){ if(!state.sound||!audioReady())return; var t=nowT()+0.02;
+    honk(t,150,0.22,0.24); honk(t+0.28,138,0.5,0.26); boom(t+0.28,0.28); }
+  // 発表前のキメ（ドラムロール終わりのドンッ＋ジャーン）
+  function hitTransition(){ if(!state.sound||!audioReady())return; boom(nowT()+0.01,0.6); cymbal(); }
+
+  var rollActive=false, rollNodes=[];
+  function startDrumroll(){
+    if(!state.sound||!audioReady()) return; rollActive=true;
+    // 低音ランブル（土台の迫力）
+    var src=actx.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
+    var lp=actx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=115;
+    var g=actx.createGain(); g.gain.setValueAtTime(0.04,nowT());
+    g.gain.linearRampToValueAtTime(0.22, nowT()+Math.max(0.5,state.rollMs/1000));
+    src.connect(lp); lp.connect(g); g.connect(master); src.start();
+    rollNodes=[src];
+    // スネアロール
+    var t=nowT()+0.02, step=0.06, c=0;
+    (function sch(){ if(!rollActive) return; var h=nowT()+0.4;
+      while(t<h){ noiseHit(t,0.16+0.14*Math.min(1,c/45),"bandpass",1900,1.0,0.07); t+=step; c++; }
+      setTimeout(sch,120); })();
+  }
+  function stopDrumroll(){ rollActive=false;
+    for(var i=0;i<rollNodes.length;i++){ try{ rollNodes[i].stop(); }catch(e){} } rollNodes=[]; }
+
+  function flourishSfx(score){
+    if(!state.sound||!audioReady()) return; var t=nowT()+0.02;
+    if(score===10){
+      boom(t,0.75); cymbal();
+      brass(t,392,0.16,0.26); brass(t+0.16,392,0.16,0.26); brass(t+0.32,523,0.22,0.28);
+      var ch=[523,659,784,1046]; for(var i=0;i<ch.length;i++) brass(t+0.6,ch[i],1.7,0.22,0.3);
+      brass(t+0.6,131,1.7,0.3,0.2); brass(t+0.6,261,1.7,0.24,0.2);  // 低いルート音で土台
+      boom(t+0.6,0.6); boom(t+1.15,0.5);
+      for(var k=0;k<8;k++) tone(t+0.72+k*0.08,1046+k*130,0.2,"triangle",0.09,null,0.2);
+    } else if(score>=8){
+      boom(t,0.5); cymbal();
+      brass(t,659,0.18,0.24); brass(t+0.14,784,0.18,0.24); brass(t+0.28,1046,0.7,0.26,0.3);
+      brass(t+0.28,262,0.7,0.22,0.15);
+    } else if(score>=6){
+      boom(t,0.28);
+      tone(t,659,0.22,"triangle",0.22,null,0.2); tone(t+0.14,880,0.46,"triangle",0.22,null,0.2); tone(t,330,0.46,"sine",0.14);
+    } else if(score>=4){
+      tone(t,523,0.2,"triangle",0.2,null,0.15); tone(t+0.14,659,0.4,"triangle",0.2,null,0.15); tone(t,262,0.4,"sine",0.14);
+    } else if(score>=1){
+      buzzer();
+    }
+  }
+  function zeroSfx(){ if(!state.sound||!audioReady())return; var t=nowT()+0.02;
+    tone(t,900,0.5,"sine",0.22,110);     // ズコー（下降スライド）
+    boom(t+0.05,0.7);                     // どすん（重低音）
+    var z=[277,247,220],zt=0.55; for(var m=0;m<z.length;m++){ brass(t+zt,z[m],(m===z.length-1)?0.6:0.18,0.22); zt+=0.18; }
+    buzzer();
+  }
+
+  /* ===== 紙吹雪 ===== */
+  var cv=$("confetti"), cx=cv.getContext("2d"), parts=[], rafId=null, dpr=1;
+  function sizeCanvas(){ dpr=Math.min(window.devicePixelRatio||1,2);
+    cv.width=window.innerWidth*dpr; cv.height=window.innerHeight*dpr;
+    cv.style.width=window.innerWidth+"px"; cv.style.height=window.innerHeight+"px"; }
+  sizeCanvas(); window.addEventListener("resize",sizeCanvas);
+  var CC=["#FFD54A","#FFE89A","#FF8A3D","#FFFFFF","#FFB23A","#FFC861"];
+  function burst(amount,colors){
+    var W=cv.width, pal=colors||CC;
+    for(var i=0;i<amount;i++){ parts.push({x:Math.random()*W,y:-20*dpr-Math.random()*cv.height*0.3,
+      vx:(Math.random()-0.5)*4*dpr, vy:(2+Math.random()*4)*dpr, size:(6+Math.random()*8)*dpr,
+      rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.3, color:pal[(Math.random()*pal.length)|0],
+      shape:Math.random()<0.5?0:1}); }
+    if(!rafId) loop();
+  }
+  function loop(){ cx.clearRect(0,0,cv.width,cv.height);
+    for(var i=parts.length-1;i>=0;i--){ var p=parts[i];
+      p.vy+=0.05*dpr; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.vx*=0.995;
+      cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.color;
+      if(p.shape===0) cx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+      else{ cx.beginPath(); cx.arc(0,0,p.size/2,0,Math.PI*2); cx.fill(); }
+      cx.restore(); if(p.y>cv.height+40*dpr) parts.splice(i,1); }
+    if(parts.length) rafId=requestAnimationFrame(loop); else{ cx.clearRect(0,0,cv.width,cv.height); rafId=null; } }
+  function flash(){ var f=$("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+
+  /* ===== 表示 ===== */
+  function setClassDisplay(){
+    classNameEl.textContent=state.classes[state.current];
+    var btns=document.querySelectorAll(".cls");
+    for(var i=0;i<btns.length;i++) btns[i].classList.toggle("cur", i===state.current);
+  }
+  function clearTimers(){ if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;}
+    if(state.countIv){clearInterval(state.countIv);state.countIv=null;}
+    if(state.countTimer){clearTimeout(state.countTimer);state.countTimer=null;} stopDrumroll(); }
+
+  function toStandby(){
+    clearTimers(); state.phase="standby"; state.pending=null;
+    document.body.classList.remove("celebrate");
+    scoreEl.className="q"; scoreEl.textContent="？";
+    catchEl.className=""; catchEl.textContent="";
+  }
+
+  function pressScore(score){
+    if(state.phase==="rolling"||state.phase==="counting") return;   // 連打・カウント中は無視
+    if(state.phase==="revealed") toStandby();
+    state.pending=score;
+    if(state.drumroll && state.rollMs>0){
+      state.phase="rolling"; scoreEl.className="q shake"; scoreEl.textContent="？";
+      catchEl.className=""; catchEl.textContent="";
+      startDrumroll();
+      state.rollTimer=setTimeout(function(){ countUp(score,true); }, state.rollMs);
+    } else { countUp(score,false); }
+  }
+  function revealNow(){ if(state.phase==="rolling"&&state.pending!==null){
+    if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;} countUp(state.pending,true); } }
+
+  function ledSet(n){ scoreEl.textContent=n; scoreEl.classList.remove("tick"); void scoreEl.offsetWidth; scoreEl.classList.add("tick"); }
+
+  // カウントの間隔（ms）を点数ごとに決める。
+  //  ・5までは速め／6以降（高得点）はだんだんゆっくりにして盛り上げる
+  //  ・途中でランダムに「ためる」
+  //  ・満点(10)は「一気に」と「最後は1点ずつゆっくり」を 1:2 の割合で出し分け
+  function buildSchedule(target){
+    var d=[], i;
+    if(target===10){
+      if(Math.random()<1/3){
+        // 一気に（10まで一気に駆け上がる）
+        for(i=1;i<=10;i++) d.push(70+Math.random()*45);
+        return d;
+      }
+      // 最後は1点ずつゆっくり
+      for(i=1;i<=10;i++){
+        if(i<=6) d.push(95+Math.random()*45);
+        else if(i<=8) d.push(430+Math.random()*240);
+        else d.push(850+Math.random()*500);   // 9,10 はたっぷりためる
+      }
+      return d;
+    }
+    for(i=1;i<=target;i++){
+      var gap;
+      if(i<=5) gap=100+Math.random()*45;                 // 5までは速め
+      else gap=300+(i-5)*150+Math.random()*200;          // 6以降はだんだんゆっくり
+      if(i>=4 && i<target && Math.random()<0.25) gap+=350+Math.random()*500; // 途中で時々ためる
+      if(i===target && target>=6) gap=Math.max(gap, 650+Math.random()*500);  // 高得点の最後の一歩は必ずためる
+      d.push(gap);
+    }
+    return d;
+  }
+
+  function countUp(score,fromRoll){
+    clearTimers(); stopDrumroll();
+    if(fromRoll) hitTransition();         // ドラムロール終わりのドンッ＋ジャーン
+    catchEl.className=""; catchEl.textContent="";
+    if(score===0){
+      state.phase="revealed"; scoreEl.className="zero"; scoreEl.textContent="0";
+      zeroSfx(); showCatch(0); return;
+    }
+    state.phase="counting"; scoreEl.className=""; scoreEl.textContent="0";
+    var delays=buildSchedule(score), n=0;
+    function step(){
+      n++; ledSet(n); bell(n);
+      if(n>=score){
+        if(score===10){ state.countTimer=null; finish(score); }
+        else {
+          // 満点以外は、得点に到達してから確定演出まで1〜2秒ためる（まだ上がるかも、の期待感）
+          state.countTimer=setTimeout(function(){ state.countTimer=null; finish(score); }, 1000+Math.random()*1000);
+        }
+        return;
+      }
+      state.countTimer=setTimeout(step, delays[n]);   // delays[n] = 次の値(n+1)までの間隔
+    }
+    state.countTimer=setTimeout(step, delays[0]);
+  }
+  function finish(score){
+    state.phase="revealed"; showCatch(score); flourishSfx(score);
+    if(score===10){
+      scoreEl.className="max"; document.body.classList.add("celebrate");
+      var ip=$("ippon"); ip.classList.remove("go"); void ip.offsetWidth; ip.classList.add("go");
+      flash(); burst(180); setTimeout(function(){burst(120);},500); setTimeout(function(){burst(120);},1100);
+    } else if(score>=8){ burst(80); }
+    else if(score>=6){ burst(40); }
+  }
+  function showCatch(score){ catchEl.innerHTML=CATCH[score]; void catchEl.offsetWidth; catchEl.className="show"; }
+
+  /* ===== お題帯 ===== */
+  function renderOdai(){
+    var bar=$("odaiBar");
+    if(state.odai && state.odai.trim()){
+      $("odaiMain").textContent=state.odai;
+      $("odaiSub").querySelector(".l").textContent=state.odaiSub||"";
+      bar.classList.add("show");
+    } else { bar.classList.remove("show"); }
+  }
+
+  /* ===== コントロールバー組み立て ===== */
+  var classRow=$("classRow"), scoreRow=$("scoreRow");
+  function buildBar(){
+    var olds=classRow.querySelectorAll(".cls"); for(var i=0;i<olds.length;i++) olds[i].remove();
+    state.classes.forEach(function(name,idx){
+      var b=document.createElement("button"); b.className="cls"; b.textContent=name;
+      b.addEventListener("click",function(){ selectClass(idx); this.blur(); });
+      classRow.appendChild(b);
+    });
+    if(!scoreRow.dataset.built){
+      for(var s=0;s<=10;s++){ (function(sv){
+        var b=document.createElement("button"); b.className="sc"+(sv===10?" s10":"");
+        b.textContent=sv===10?"10 満点":sv;
+        b.addEventListener("click",function(){ pressScore(sv); this.blur(); });
+        scoreRow.appendChild(b);
+      })(s); }
+      scoreRow.dataset.built="1";
+    }
+    setClassDisplay();
+  }
+  function selectClass(i){ state.current=i; setClassDisplay(); toStandby(); }
+
+  /* ===== バー表示・タッチ操作 ===== */
+  function showBar(){ bar.classList.remove("hidden"); }
+  function hideBar(){ bar.classList.add("hidden"); }
+  function toggleBar(){ bar.classList.toggle("hidden"); }
+  $("handle").addEventListener("click",toggleBar);
+  $("hideBtn").addEventListener("click",function(){ toggleBar(); this.blur(); });
+
+  // ステージ（空きスペース）タップで進行
+  stage.addEventListener("click",function(){
+    if(state.phase==="rolling") revealNow();
+    else if(state.phase==="revealed"){ toStandby(); showBar(); }
+    else if(state.phase==="standby") toggleBar();
+  });
+
+  /* ===== ボタン ===== */
+  $("startBtn").addEventListener("click",function(){ audioReady(); $("intro").classList.add("hide"); showBar(); });
+  $("resetBtn").addEventListener("click",function(){ toStandby(); this.blur(); });
+  $("fsBtn").addEventListener("click",function(){ toggleFullscreen(); this.blur(); });
+  $("soundBtn").addEventListener("click",function(){ setSound(!state.sound); this.blur(); });
+  $("setBtn").addEventListener("click",function(){ openSettings(); this.blur(); });
+  $("odaiBtn").addEventListener("click",function(){ openOdai(); this.blur(); });
+  $("helpBtn").addEventListener("click",function(){ $("helpModal").classList.add("show"); this.blur(); });
+  $("helpClose").addEventListener("click",function(){ $("helpModal").classList.remove("show"); });
+
+  function setSound(on){ state.sound=on; persist(); $("soundBtn").textContent=on?"🔊 音":"🔇 音"; if(!on) stopDrumroll(); }
+  function toggleFullscreen(){ try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }catch(e){} }
+
+  /* ===== お題モーダル ===== */
+  function openOdai(){ $("odaiText").value=state.odai; $("odaiSubText").value=state.odaiSub; $("odaiModal").classList.add("show"); }
+  $("odaiSave").addEventListener("click",function(){
+    state.odai=$("odaiText").value; state.odaiSub=$("odaiSubText").value; persist(); renderOdai(); $("odaiModal").classList.remove("show"); });
+  $("odaiClear").addEventListener("click",function(){
+    state.odai=""; state.odaiSub=""; persist(); renderOdai(); $("odaiModal").classList.remove("show"); });
+
+  /* ===== 設定モーダル ===== */
+  function openSettings(){
+    var wrap=$("nameFields"); wrap.innerHTML="";
+    state.classes.forEach(function(name,i){
+      var row=document.createElement("div"); row.className="field";
+      var lab=document.createElement("label"); lab.textContent="クラス"+(i+1);
+      var inp=document.createElement("input"); inp.type="text"; inp.value=name; inp.maxLength=12; inp.dataset.idx=i;
+      row.appendChild(lab); row.appendChild(inp); wrap.appendChild(row);
+    });
+    $("rollChk").checked=state.drumroll; $("rollMs").value=state.rollMs;
+    $("rollMsVal").textContent=(state.rollMs/1000).toFixed(1)+"秒"; $("setModal").classList.add("show");
+  }
+  $("rollMs").addEventListener("input",function(){ $("rollMsVal").textContent=(this.value/1000).toFixed(1)+"秒"; });
+  $("setClose").addEventListener("click",function(){ $("setModal").classList.remove("show"); });
+  $("setSave").addEventListener("click",function(){
+    var inputs=$("nameFields").querySelectorAll("input[type=text]");
+    for(var i=0;i<inputs.length;i++){ var idx=+inputs[i].dataset.idx; var v=inputs[i].value.trim(); state.classes[idx]=v||DEFAULT_NAMES[idx]; }
+    state.drumroll=$("rollChk").checked; state.rollMs=+$("rollMs").value; persist(); buildBar(); toStandby(); $("setModal").classList.remove("show");
+  });
+
+  /* ===== キーボード（任意） ===== */
+  document.addEventListener("keydown",function(e){
+    if(e.target&&(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
+    var m=document.querySelector(".modal.show"); if(m){ if(e.key==="Escape") m.classList.remove("show"); return; }
+    if(!$("intro").classList.contains("hide")){ if(e.key===" "||e.key==="Enter"){ $("startBtn").click(); e.preventDefault(); } return; }
+    var k=e.key;
+    if(k>="0"&&k<="9"){ pressScore(parseInt(k,10)); e.preventDefault(); return; }
+    if(k==="m"||k==="M"){ pressScore(10); e.preventDefault(); return; }
+    if(k==="ArrowRight"){ selectClass((state.current+1)%5); e.preventDefault(); return; }
+    if(k==="ArrowLeft"){ selectClass((state.current+4)%5); e.preventDefault(); return; }
+    if(k===" "||k==="Enter"){ if(state.phase==="rolling") revealNow(); else if(state.phase==="revealed") toStandby(); e.preventDefault(); return; }
+    if(k==="r"||k==="R"||k==="Backspace"){ toStandby(); e.preventDefault(); return; }
+    if(k==="f"||k==="F"){ toggleFullscreen(); e.preventDefault(); return; }
+    if(k==="s"||k==="S"){ setSound(!state.sound); e.preventDefault(); return; }
+    if(k==="h"||k==="H"){ toggleBar(); e.preventDefault(); return; }
+  });
+
+  /* ===== 初期化 ===== */
+  buildBar(); setSound(state.sound); renderOdai(); toStandby();
+})();
+</script>
+</body>
+</html>
