@@ -20,7 +20,8 @@ my-tools/
 │   ├── genetics-sim/        遺伝のモデル実験シミュレーター
 │   ├── ethanol-sim/         エタノール沸騰の実験シミュレーション
 │   ├── seat-shuffle/        席替えアプリ（Excel名簿から自動席替え）
-│   └── submission-tracker/  提出物チェックシステム
+│   ├── submission-tracker/  提出物チェックシステム
+│   └── ippon-grand-prix/    大喜利グランプリ得点発表ツール（IPPON風演出）
 └── excel/   Excel で作った教材・ツール
     └── shindo-yotei/        進度予定表システム（鳴海中用・学校共通用）
 ```
@@ -36,6 +37,7 @@ my-tools/
 | エタノール沸騰シミュレーション | HTMLアプリ | エタノールが沸騰する温度を調べる理科の実験シミュレーション。タッチ操作対応。 | [`apps/ethanol-sim/`](apps/ethanol-sim/) |
 | 席替えアプリ | HTMLアプリ | クラス名簿(Excel)を取り込み、男女配置・班・距離条件などを考慮して瞬時／ルーレットで席替え。印刷・JPG保存・履歴つき。 | [`apps/seat-shuffle/`](apps/seat-shuffle/) |
 | 提出物チェックシステム | HTMLアプリ | クラスの提出物を管理。Excel から生徒を一括登録でき、複数クラス対応。 | [`apps/submission-tracker/`](apps/submission-tracker/) |
+| 大喜利グランプリ得点発表ツール | HTMLアプリ（PC・プロジェクタ） | 5クラス対抗の大喜利の得点(0〜10)を、IPPONグランプリ風の演出・効果音・紙吹雪で発表。野外学習などのレク向け。 | [`apps/ippon-grand-prix/`](apps/ippon-grand-prix/) |
 | 進度予定表システム（鳴海中用・学校共通用） | Excel（マクロ） | 中学校教諭用の週単位の進度予定表。鳴海中用と学校共通用の 2 種類。VBA を編集するツール・手順つき。 | [`excel/shindo-yotei/`](excel/shindo-yotei/) |
 
 ## ▶️ ツールの開き方
@@ -56,6 +58,7 @@ GitHub の画面でファイルをクリックしても「中身のプログラ�
 - エタノール沸騰：`https://ueshima-blip.github.io/my-tools/apps/ethanol-sim/`
 - 席替えアプリ：`https://ueshima-blip.github.io/my-tools/apps/seat-shuffle/席替えアプリ_オンライン版.html`
 - 提出物チェック：`https://ueshima-blip.github.io/my-tools/apps/submission-tracker/`
+- 大喜利グランプリ得点発表：`https://ueshima-blip.github.io/my-tools/apps/ippon-grand-prix/`
 
 **方法2：ダウンロードして開く**
 
