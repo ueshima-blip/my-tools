@@ -112,7 +112,7 @@
   #ippon{position:fixed; inset:0; z-index:46; display:flex; align-items:center; justify-content:center;
     pointer-events:none; opacity:0;}
   #ippon span{font-family:"Arial Black","Yu Gothic UI",sans-serif; font-weight:900;
-    font-size:min(34vh,30vw); letter-spacing:.02em;
+    font-size:min(32vh,15vw); letter-spacing:.01em;
     background:linear-gradient(180deg,#fff7cf,#ffd23a 50%,#ff9d00);
     -webkit-background-clip:text; background-clip:text; color:transparent;
     filter:drop-shadow(0 6px 0 rgba(120,70,0,.5)) drop-shadow(0 0 40px var(--glow));
@@ -213,7 +213,7 @@
   <div id="vignette"></div>
   <canvas id="confetti"></canvas>
   <div id="flash"></div>
-  <div id="ippon"><span>IPPON</span></div>
+  <div id="ippon"><span>INABUN</span></div>
 
   <div id="logo"><div class="a">大喜利</div><div class="b">GRAND PRIX</div></div>
 
@@ -323,7 +323,7 @@
     phase:"standby",            // standby / rolling / counting / revealed
     sound:true, drumroll:true, rollMs:2600,
     odai:"", odaiSub:"",
-    rollTimer:null, countIv:null, pending:null
+    rollTimer:null, countIv:null, countTimer:null, pending:null
   };
 
   try{
@@ -528,7 +528,8 @@
     for(var i=0;i<btns.length;i++) btns[i].classList.toggle("cur", i===state.current);
   }
   function clearTimers(){ if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;}
-    if(state.countIv){clearInterval(state.countIv);state.countIv=null;} stopDrumroll(); }
+    if(state.countIv){clearInterval(state.countIv);state.countIv=null;}
+    if(state.countTimer){clearTimeout(state.countTimer);state.countTimer=null;} stopDrumroll(); }
 
   function toStandby(){
     clearTimers(); state.phase="standby"; state.pending=null;
@@ -553,6 +554,37 @@
 
   function ledSet(n){ scoreEl.textContent=n; scoreEl.classList.remove("tick"); void scoreEl.offsetWidth; scoreEl.classList.add("tick"); }
 
+  // カウントの間隔（ms）を点数ごとに決める。
+  //  ・5までは速め／6以降（高得点）はだんだんゆっくりにして盛り上げる
+  //  ・途中でランダムに「ためる」
+  //  ・満点(10)は「一気に」と「最後は1点ずつゆっくり」を 1:2 の割合で出し分け
+  function buildSchedule(target){
+    var d=[], i;
+    if(target===10){
+      if(Math.random()<1/3){
+        // 一気に（10まで一気に駆け上がる）
+        for(i=1;i<=10;i++) d.push(70+Math.random()*45);
+        return d;
+      }
+      // 最後は1点ずつゆっくり
+      for(i=1;i<=10;i++){
+        if(i<=6) d.push(95+Math.random()*45);
+        else if(i<=8) d.push(430+Math.random()*240);
+        else d.push(850+Math.random()*500);   // 9,10 はたっぷりためる
+      }
+      return d;
+    }
+    for(i=1;i<=target;i++){
+      var gap;
+      if(i<=5) gap=100+Math.random()*45;                 // 5までは速め
+      else gap=300+(i-5)*150+Math.random()*200;          // 6以降はだんだんゆっくり
+      if(i>=4 && i<target && Math.random()<0.25) gap+=350+Math.random()*500; // 途中で時々ためる
+      if(i===target && target>=6) gap=Math.max(gap, 650+Math.random()*500);  // 高得点の最後の一歩は必ずためる
+      d.push(gap);
+    }
+    return d;
+  }
+
   function countUp(score,fromRoll){
     clearTimers(); stopDrumroll();
     if(fromRoll) hitTransition();         // ドラムロール終わりのドンッ＋ジャーン
@@ -562,11 +594,13 @@
       zeroSfx(); showCatch(0); return;
     }
     state.phase="counting"; scoreEl.className=""; scoreEl.textContent="0";
-    var n=0, gap=Math.max(95, Math.round(1300/score));
-    state.countIv=setInterval(function(){
+    var delays=buildSchedule(score), n=0;
+    function step(){
       n++; ledSet(n); bell(n);
-      if(n>=score){ clearInterval(state.countIv); state.countIv=null; finish(score); }
-    }, gap);
+      if(n>=score){ state.countTimer=null; finish(score); return; }
+      state.countTimer=setTimeout(step, delays[n]);   // delays[n] = 次の値(n+1)までの間隔
+    }
+    state.countTimer=setTimeout(step, delays[0]);
   }
   function finish(score){
     state.phase="revealed"; showCatch(score); flourishSfx(score);
