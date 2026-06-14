@@ -61,7 +61,7 @@
 
   /* ===== ステージ ===== */
   #stage{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:1.6vh; padding:9vh 3vw 11vh;}
+    align-items:center; justify-content:center; gap:1.4vh; padding:6vh 3vw 8vh;}
 
   /* クラス名（金の帯） */
   #classBadge{position:relative; text-align:center; opacity:.98;}
@@ -74,19 +74,19 @@
     border:2px solid #fff0b0; border-radius:8px;
     box-shadow:0 6px 0 var(--gold-edge), 0 10px 26px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.5);}
 
-  /* 八角形 金フレーム */
-  #frame{position:relative; width:min(58vh,82vw); aspect-ratio:1.18/1; padding:1.4vmin;
-    clip-path:polygon(26% 0,74% 0,100% 26%,100% 74%,74% 100%,26% 100%,0 74%,0 26%);
+  /* 八角形 金フレーム（16:9ワイド画面に合わせた横長） */
+  #frame{position:relative; width:min(92vw,128vh); aspect-ratio:2.4/1; padding:1.5vmin;
+    clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
     background:linear-gradient(135deg,#fff0b0,#e8b531 38%,#a06f12 70%,#6f4a05);
-    filter:drop-shadow(0 0 26px var(--glow));}
+    filter:drop-shadow(0 0 30px var(--glow));}
   #frameInner{width:100%; height:100%;
-    clip-path:polygon(26% 0,74% 0,100% 26%,100% 74%,74% 100%,26% 100%,0 74%,0 26%);
-    background:radial-gradient(circle at 50% 42%, #1a1922 0%, #0a0a10 60%, #050507 100%);
+    clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
+    background:radial-gradient(ellipse at 50% 45%, #1a1922 0%, #0a0a10 60%, #050507 100%);
     display:flex; align-items:center; justify-content:center; overflow:hidden;}
 
   /* LED風の数字 */
   #score{font-family:"Courier New",ui-monospace,monospace; font-weight:900; line-height:.9;
-    font-size:32vh; color:var(--led);
+    font-size:min(34vh,30vw); color:var(--led);
     text-shadow:0 0 10px var(--led-glow), 0 0 34px rgba(255,170,20,.75), 0 0 70px rgba(255,140,0,.5);
     transition:color .2s, text-shadow .2s;}
   #score.q{color:#6a5a22; text-shadow:0 0 14px rgba(150,120,30,.35);}
@@ -352,75 +352,147 @@
   var scoreEl=$("score"), classNameEl=$("className"), catchEl=$("catch"),
       bar=$("bar"), stage=$("stage"), root=document.documentElement;
 
-  /* ===== サウンド（Web Audio・外部ファイル不要） ===== */
-  var actx=null, master=null, noiseBuf=null;
+  /* ===== サウンド（Web Audio・外部ファイル不要／低音・厚み重視） ===== */
+  var actx=null, master=null, comp=null, revGain=null, noiseBuf=null;
+  function makeImpulse(dur,decay){
+    var rate=actx.sampleRate, len=Math.floor(rate*dur), buf=actx.createBuffer(2,len,rate);
+    for(var c=0;c<2;c++){ var ch=buf.getChannelData(c);
+      for(var i=0;i<len;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+    return buf;
+  }
   function audioReady(){
     if(actx){ if(actx.state==="suspended") actx.resume(); return true; }
     var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
-    actx=new AC(); master=actx.createGain(); master.gain.value=0.9; master.connect(actx.destination);
+    actx=new AC();
+    // master → コンプレッサー（迫力・まとまり） → 出力
+    comp=actx.createDynamicsCompressor();
+    comp.threshold.value=-16; comp.knee.value=22; comp.ratio.value=4; comp.attack.value=0.003; comp.release.value=0.25;
+    comp.connect(actx.destination);
+    master=actx.createGain(); master.gain.value=1.0; master.connect(comp);
+    // リバーブ送り（広がり）
+    var conv=actx.createConvolver(); conv.buffer=makeImpulse(1.8,3.0);
+    revGain=actx.createGain(); revGain.gain.value=0.85; revGain.connect(conv); conv.connect(comp);
     var len=actx.sampleRate*1.0; noiseBuf=actx.createBuffer(1,len,actx.sampleRate);
     var d=noiseBuf.getChannelData(0); for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
     return true;
   }
   function nowT(){ return actx.currentTime; }
-  function tone(t,freq,dur,type,vol,bendTo){
+  function sendRev(node,amt){ var rg=actx.createGain(); rg.gain.value=amt; node.connect(rg); rg.connect(revGain); }
+
+  function tone(t,freq,dur,type,vol,bendTo,rev){
     var o=actx.createOscillator(), g=actx.createGain(), lp=actx.createBiquadFilter();
     o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
     if(bendTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,bendTo),t+dur);
-    lp.type="lowpass"; lp.frequency.value=4200;
+    lp.type="lowpass"; lp.frequency.value=5200;
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.02);
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(lp); lp.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.05);
+    o.connect(lp); lp.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+    o.start(t); o.stop(t+dur+0.05);
   }
-  function noiseHit(t,vol,type,freq,q,dur){
+  function noiseHit(t,vol,type,freq,q,dur,rev){
     if(!noiseBuf) return;
     var s=actx.createBufferSource(); s.buffer=noiseBuf;
     var f=actx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q||0.8;
     var g=actx.createGain();
     g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.002);
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t+dur+0.02);
+    s.connect(f); f.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+    s.start(t); s.stop(t+dur+0.02);
   }
-  // カウントアップの鐘（だんだん高く）
+  // 太鼓／キック（重い低音で迫力）
+  function boom(t,vol){
+    var o=actx.createOscillator(), g=actx.createGain();
+    o.type="sine"; o.frequency.setValueAtTime(170,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.62);
+    o.connect(g); g.connect(master); sendRev(g,0.2);
+    o.start(t); o.stop(t+0.68);
+    noiseHit(t,vol*0.5,"lowpass",220,0.7,0.16);  // アタック感
+  }
+  // 重ねた金管（厚み）＋ 1オクターブ下のサブ
+  function brass(t,freq,dur,vol,rev){
+    var lp=actx.createBiquadFilter(), g=actx.createGain(), det=[-8,0,8];
+    lp.type="lowpass"; lp.frequency.setValueAtTime(650,t); lp.frequency.linearRampToValueAtTime(3400,t+0.14);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.04);
+    g.gain.setValueAtTime(vol,t+dur*0.65); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    for(var i=0;i<det.length;i++){ var o=actx.createOscillator(); o.type="sawtooth";
+      o.frequency.value=freq; o.detune.value=det[i]; o.connect(lp); o.start(t); o.stop(t+dur+0.05); }
+    var sub=actx.createOscillator(); sub.type="sine"; sub.frequency.value=freq/2; sub.connect(lp); sub.start(t); sub.stop(t+dur+0.05);
+    lp.connect(g); g.connect(master); if(rev) sendRev(g,rev);
+  }
+  // カウントアップの鐘／マリンバ（倍音＋低い胴鳴りで太く）
   function bell(i){
     if(!state.sound||!audioReady()) return;
     var t=nowT()+0.01, base=523.25, f=base*Math.pow(1.05946,(i-1)*2); // 2半音ずつ上昇
-    tone(t,f,0.4,"triangle",0.22); tone(t,f*2,0.32,"sine",0.10); tone(t,f*3.01,0.2,"sine",0.05);
+    noiseHit(t,0.10,"bandpass",f*2,3,0.04);          // マレットのアタック
+    tone(t,f,0.55,"triangle",0.24,null,0.16);
+    tone(t,f*2.0,0.34,"sine",0.10,null,0.1);
+    tone(t,f*3.01,0.2,"sine",0.05);
+    tone(t,f/2,0.55,"sine",0.12);                     // 低音で厚み
   }
   function cymbal(){ if(!state.sound||!audioReady())return; var t=nowT()+0.01;
-    noiseHit(t,0.5,"highpass",5200,0.5,1.1); noiseHit(t,0.3,"bandpass",3000,0.4,0.5); }
+    noiseHit(t,0.5,"highpass",5000,0.5,1.3,0.4); noiseHit(t,0.35,"bandpass",3400,0.4,0.6,0.2); }
+  function honk(t,freq,dur,vol){
+    var lp=actx.createBiquadFilter(), g=actx.createGain();
+    lp.type="lowpass"; lp.frequency.value=1300;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.02);
+    g.gain.setValueAtTime(vol,t+dur*0.7); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    var a=actx.createOscillator(); a.type="square"; a.frequency.value=freq;
+    var b=actx.createOscillator(); b.type="square"; b.frequency.value=freq; b.detune.value=16;
+    var s=actx.createOscillator(); s.type="sine"; s.frequency.value=freq/2;
+    a.connect(lp); b.connect(lp); s.connect(lp); lp.connect(g); g.connect(master);
+    a.start(t);b.start(t);s.start(t); a.stop(t+dur+0.05);b.stop(t+dur+0.05);s.stop(t+dur+0.05);
+  }
   function buzzer(){ if(!state.sound||!audioReady())return; var t=nowT()+0.02;
-    tone(t,160,0.22,"square",0.18); tone(t+0.26,150,0.42,"square",0.18); }
+    honk(t,150,0.22,0.24); honk(t+0.28,138,0.5,0.26); boom(t+0.28,0.28); }
+  // 発表前のキメ（ドラムロール終わりのドンッ＋ジャーン）
+  function hitTransition(){ if(!state.sound||!audioReady())return; boom(nowT()+0.01,0.6); cymbal(); }
+
+  var rollActive=false, rollNodes=[];
   function startDrumroll(){
     if(!state.sound||!audioReady()) return; rollActive=true;
+    // 低音ランブル（土台の迫力）
+    var src=actx.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
+    var lp=actx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=115;
+    var g=actx.createGain(); g.gain.setValueAtTime(0.04,nowT());
+    g.gain.linearRampToValueAtTime(0.22, nowT()+Math.max(0.5,state.rollMs/1000));
+    src.connect(lp); lp.connect(g); g.connect(master); src.start();
+    rollNodes=[src];
+    // スネアロール
     var t=nowT()+0.02, step=0.06, c=0;
     (function sch(){ if(!rollActive) return; var h=nowT()+0.4;
-      while(t<h){ noiseHit(t,0.16+0.12*Math.min(1,c/40),"bandpass",1900,1.0,0.07); t+=step; c++; }
+      while(t<h){ noiseHit(t,0.16+0.14*Math.min(1,c/45),"bandpass",1900,1.0,0.07); t+=step; c++; }
       setTimeout(sch,120); })();
   }
-  var rollActive=false; function stopDrumroll(){ rollActive=false; }
+  function stopDrumroll(){ rollActive=false;
+    for(var i=0;i<rollNodes.length;i++){ try{ rollNodes[i].stop(); }catch(e){} } rollNodes=[]; }
+
   function flourishSfx(score){
     if(!state.sound||!audioReady()) return; var t=nowT()+0.02;
     if(score===10){
-      cymbal();
-      tone(t,392,0.14,"sawtooth",0.22); tone(t+0.14,392,0.14,"sawtooth",0.22); tone(t+0.30,523,0.20,"sawtooth",0.24);
-      var ch=[523,659,784,1046]; for(var i=0;i<ch.length;i++) tone(t+0.55,ch[i],1.5,"sawtooth",0.16);
-      tone(t+0.55,261,1.5,"triangle",0.18);
-      for(var k=0;k<8;k++) tone(t+0.62+k*0.08,1046+k*120,0.18,"triangle",0.08);
+      boom(t,0.75); cymbal();
+      brass(t,392,0.16,0.26); brass(t+0.16,392,0.16,0.26); brass(t+0.32,523,0.22,0.28);
+      var ch=[523,659,784,1046]; for(var i=0;i<ch.length;i++) brass(t+0.6,ch[i],1.7,0.22,0.3);
+      brass(t+0.6,131,1.7,0.3,0.2); brass(t+0.6,261,1.7,0.24,0.2);  // 低いルート音で土台
+      boom(t+0.6,0.6); boom(t+1.15,0.5);
+      for(var k=0;k<8;k++) tone(t+0.72+k*0.08,1046+k*130,0.2,"triangle",0.09,null,0.2);
     } else if(score>=8){
-      cymbal(); tone(t,659,0.16,"triangle",0.2); tone(t+0.12,784,0.16,"triangle",0.2);
-      tone(t+0.24,1046,0.5,"triangle",0.2); tone(t+0.24,523,0.5,"sine",0.12);
+      boom(t,0.5); cymbal();
+      brass(t,659,0.18,0.24); brass(t+0.14,784,0.18,0.24); brass(t+0.28,1046,0.7,0.26,0.3);
+      brass(t+0.28,262,0.7,0.22,0.15);
     } else if(score>=6){
-      tone(t,659,0.18,"sine",0.2); tone(t+0.12,880,0.4,"sine",0.2);
+      boom(t,0.28);
+      tone(t,659,0.22,"triangle",0.22,null,0.2); tone(t+0.14,880,0.46,"triangle",0.22,null,0.2); tone(t,330,0.46,"sine",0.14);
     } else if(score>=4){
-      tone(t,523,0.18,"sine",0.18); tone(t+0.14,659,0.34,"sine",0.18);
+      tone(t,523,0.2,"triangle",0.2,null,0.15); tone(t+0.14,659,0.4,"triangle",0.2,null,0.15); tone(t,262,0.4,"sine",0.14);
     } else if(score>=1){
       buzzer();
     }
   }
   function zeroSfx(){ if(!state.sound||!audioReady())return; var t=nowT()+0.02;
-    tone(t,900,0.5,"sine",0.22,110); tone(t+0.05,80,0.3,"sine",0.25);
-    var z=[277,247,220],zt=0.55; for(var m=0;m<z.length;m++){ tone(t+zt,z[m],(m===z.length-1)?0.6:0.18,"sawtooth",0.2,z[m]*0.9); zt+=0.18; }
+    tone(t,900,0.5,"sine",0.22,110);     // ズコー（下降スライド）
+    boom(t+0.05,0.7);                     // どすん（重低音）
+    var z=[277,247,220],zt=0.55; for(var m=0;m<z.length;m++){ brass(t+zt,z[m],(m===z.length-1)?0.6:0.18,0.22); zt+=0.18; }
     buzzer();
   }
 
@@ -473,16 +545,17 @@
       state.phase="rolling"; scoreEl.className="q shake"; scoreEl.textContent="？";
       catchEl.className=""; catchEl.textContent="";
       startDrumroll();
-      state.rollTimer=setTimeout(function(){ countUp(score); }, state.rollMs);
-    } else { countUp(score); }
+      state.rollTimer=setTimeout(function(){ countUp(score,true); }, state.rollMs);
+    } else { countUp(score,false); }
   }
   function revealNow(){ if(state.phase==="rolling"&&state.pending!==null){
-    if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;} countUp(state.pending); } }
+    if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;} countUp(state.pending,true); } }
 
   function ledSet(n){ scoreEl.textContent=n; scoreEl.classList.remove("tick"); void scoreEl.offsetWidth; scoreEl.classList.add("tick"); }
 
-  function countUp(score){
+  function countUp(score,fromRoll){
     clearTimers(); stopDrumroll();
+    if(fromRoll) hitTransition();         // ドラムロール終わりのドンッ＋ジャーン
     catchEl.className=""; catchEl.textContent="";
     if(score===0){
       state.phase="revealed"; scoreEl.className="zero"; scoreEl.textContent="0";
