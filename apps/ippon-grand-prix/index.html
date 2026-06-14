@@ -597,7 +597,14 @@
     var delays=buildSchedule(score), n=0;
     function step(){
       n++; ledSet(n); bell(n);
-      if(n>=score){ state.countTimer=null; finish(score); return; }
+      if(n>=score){
+        if(score===10){ state.countTimer=null; finish(score); }
+        else {
+          // 満点以外は、得点に到達してから確定演出まで1〜2秒ためる（まだ上がるかも、の期待感）
+          state.countTimer=setTimeout(function(){ state.countTimer=null; finish(score); }, 1000+Math.random()*1000);
+        }
+        return;
+      }
       state.countTimer=setTimeout(step, delays[n]);   // delays[n] = 次の値(n+1)までの間隔
     }
     state.countTimer=setTimeout(step, delays[0]);
