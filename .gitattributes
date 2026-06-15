@@ -3,3 +3,6 @@
 
 # Word マクロのソースは CRLF（VBA エディタの標準）
 *.bas text eol=crlf
+
+# PDF はバイナリ（改行変換などをしない）
+*.pdf binary

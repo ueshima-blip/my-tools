@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>自動ルビ振り 使い方マニュアル</title>
+<style>
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm 14mm;
+    @bottom-center {
+      content: "漢字に自動でふりがな（ルビ）をふる方法　／　" counter(page) " ページ";
+      font-family: "Noto Sans CJK JP", sans-serif;
+      font-size: 8.5pt; color: #9aa3af;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Noto Sans CJK JP", sans-serif;
+    color: #1f2937; line-height: 1.6; font-size: 10pt; margin: 0;
+  }
+  /* ===== 見出し帯 ===== */
+  .hero {
+    background: linear-gradient(100deg, #2b579a, #3b82f6);
+    color: #fff; border-radius: 14px; padding: 16px 22px; margin-bottom: 14px;
+  }
+  .hero h1 { margin: 0 0 4px; font-size: 19pt; letter-spacing: .5px; }
+  .hero p { margin: 0; font-size: 11pt; opacity: .95; }
+  .hero .tag {
+    display: inline-block; background: rgba(255,255,255,.22);
+    border-radius: 20px; padding: 2px 12px; font-size: 9.5pt; margin-top: 8px;
+  }
+
+  h2 {
+    font-size: 13pt; color: #1d4ed8; margin: 13px 0 6px;
+    border-left: 7px solid #3b82f6; padding-left: 10px;
+    break-after: avoid;
+  }
+
+  /* ===== ステップ ===== */
+  .step { display: table; width: 100%; margin: 7px 0; break-inside: avoid; }
+  .num {
+    display: table-cell; width: 42px; vertical-align: top;
+  }
+  .num span {
+    display: inline-block; width: 34px; height: 34px; line-height: 34px;
+    text-align: center; border-radius: 50%;
+    background: #2563eb; color: #fff; font-size: 15pt; font-weight: bold;
+  }
+  .body { display: table-cell; vertical-align: top; padding-left: 6px; }
+  .body .t { font-size: 11.5pt; font-weight: bold; margin-bottom: 2px; }
+
+  /* ===== 吹き出し・注意箱 ===== */
+  .box { border-radius: 10px; padding: 8px 13px; margin: 6px 0; break-inside: avoid; }
+  .point { background: #ecfdf5; border: 2px solid #34d399; }
+  .point .h { color: #059669; font-weight: bold; }
+  .warn  { background: #fffbeb; border: 2px solid #f59e0b; }
+  .warn .h { color: #b45309; font-weight: bold; }
+  .danger{ background: #fef2f2; border: 2px solid #ef4444; }
+  .danger .h { color: #b91c1c; font-weight: bold; }
+  .box .h { display:block; margin-bottom: 2px; }
+
+  /* ===== Word画面のモック ===== */
+  .mock { border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; margin:8px 0; break-inside: avoid; }
+  /* 黄色いセキュリティの警告バー */
+  .secbar {
+    background:#fef3c7; border:1px solid #f59e0b; border-radius:6px;
+    padding:8px 12px; margin:8px 0; display:flex; align-items:center; gap:10px; break-inside: avoid;
+  }
+  .secbar .ic { font-size:14pt; color:#b45309; }
+  .secbar .msg { flex:1; font-size:10pt; }
+  .btnY {
+    background:#fde68a; border:1px solid #d97706; border-radius:5px;
+    padding:5px 12px; font-weight:bold; color:#92400e; white-space:nowrap;
+  }
+  .redbar {
+    background:#fee2e2; border:1px solid #ef4444; border-radius:6px;
+    padding:8px 12px; margin:8px 0; display:flex; align-items:center; gap:10px; break-inside: avoid;
+  }
+  .redbar .ic { font-size:14pt; color:#b91c1c; }
+  .redbar .msg { flex:1; font-size:10pt; }
+
+  /* リボン */
+  .ribbon { border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; break-inside: avoid; }
+  .rtabs { background:#f1f5f9; padding:6px 10px 0; font-size:9.5pt; color:#475569; border-bottom:1px solid #e2e8f0; }
+  .rtabs span { padding:4px 9px; display:inline-block; }
+  .rtabs .active { background:#fff; color:#2b579a; font-weight:bold; border:1px solid #e2e8f0; border-bottom:1px solid #fff; border-radius:6px 6px 0 0; }
+  .rbody { background:#fff; padding:10px; display:flex; gap:8px; }
+  .rbtn { text-align:center; border:1px solid #dbeafe; border-radius:8px; padding:6px 8px; width:25%; background:#f8fbff; }
+  .rbtn .ico { font-size:16pt; color:#2563eb; line-height:1.1; }
+  .rbtn .lbl { font-size:8.5pt; margin-top:3px; color:#1e3a8a; }
+  .rgroup { font-size:8pt; color:#94a3b8; text-align:center; padding:2px; }
+
+  /* マクロ ダイアログ */
+  .dlg { width:340px; border:1px solid #94a3b8; border-radius:8px; overflow:hidden; }
+  .dlg .ti { background:#2b579a; color:#fff; font-size:9.5pt; padding:5px 10px; }
+  .dlg .ct { display:flex; }
+  .dlg ul { list-style:none; margin:0; padding:6px; flex:1; font-size:9.5pt; border-right:1px solid #e2e8f0; }
+  .dlg li { padding:3px 6px; border-radius:4px; }
+  .dlg li.sel { background:#dbeafe; font-weight:bold; }
+  .dlg .side { padding:8px; display:flex; flex-direction:column; gap:5px; }
+  .dlg .runbtn { background:#2563eb; color:#fff; text-align:center; border-radius:5px; padding:5px 14px; font-weight:bold; font-size:9.5pt; }
+  .dlg .gbtn { background:#e2e8f0; color:#475569; text-align:center; border-radius:5px; padding:5px 14px; font-size:9.5pt; }
+
+  /* before/after */
+  .ba { display:flex; align-items:center; gap:14px; justify-content:center; margin:6px 0; }
+  .ba .cell { border:1px dashed #cbd5e1; border-radius:8px; padding:8px 16px; background:#fff; text-align:center; }
+  .ba .lab { font-size:8.5pt; color:#94a3b8; margin-bottom:2px; }
+  .ba .big { font-size:15pt; }
+  .ba .arrow { font-size:18pt; color:#2563eb; }
+  ruby rt { font-size:55%; color:#2563eb; }
+
+  /* テーブル */
+  table.fn { width:100%; border-collapse:collapse; margin:8px 0; font-size:10pt; break-inside: avoid; }
+  table.fn th { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:6px 8px; text-align:left; }
+  table.fn td { border:1px solid #e2e8f0; padding:6px 8px; vertical-align:top; }
+  table.fn code { background:#f1f5f9; border-radius:4px; padding:1px 5px; font-size:9pt; }
+
+  .qa { margin:6px 0; break-inside: avoid; }
+  .qa .q { font-weight:bold; color:#1d4ed8; }
+  .qa .a { margin-left: 2px; }
+
+  .credit { margin-top:10px; font-size:8.5pt; color:#9aa3af; border-top:1px solid #e5e7eb; padding-top:6px; }
+  .keep { break-inside: avoid; }
+  .pagebreak { break-before: page; }
+  small.note { color:#64748b; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>漢字に自動でふりがな（ルビ）をふる方法</h1>
+  <p>共有された Word ファイルを開くだけ。クリックで漢字にふりがながつきます。</p>
+  <span class="tag">はじめての人向け　かんたんマニュアル</span>
+</div>
+
+<div class="box point">
+  <span class="h">◎ このファイルでできること</span>
+  配られた Word ファイルに文章を入れて、ボタンを押すだけで、漢字の上に自動でふりがな（ルビ）がつきます。
+  <div class="ba">
+    <div class="cell"><div class="lab">押す前</div><div class="big">漢字の練習</div></div>
+    <div class="arrow">→</div>
+    <div class="cell"><div class="lab">押した後</div><div class="big"><ruby>漢<rt>かん</rt>字<rt>じ</rt></ruby>の<ruby>練<rt>れん</rt>習<rt>しゅう</rt></ruby></div></div>
+  </div>
+</div>
+
+<h2>STEP 1　ファイルを開いて、使えるようにする（最初の1回だけ）</h2>
+
+<div class="step">
+  <div class="num"><span>1</span></div>
+  <div class="body">
+    <div class="t">共有された Word ファイルをダブルクリックで開きます。</div>
+    開いたら、画面の上のほうに出る<b>黄色い帯（おび）</b>を確認してください。
+  </div>
+</div>
+
+<div class="secbar">
+  <div class="ic">！</div>
+  <div class="msg"><b>セキュリティの警告</b>　マクロが無効にされました。</div>
+  <div class="btnY">コンテンツの有効化</div>
+</div>
+
+<div class="step">
+  <div class="num"><span>2</span></div>
+  <div class="body">
+    <div class="t">黄色い帯の右にある「コンテンツの有効化」を1回クリックします。</div>
+    これで、自動ふりがなの機能（マクロ）が使えるようになります。
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="h">⚠ ここが一番大事</span>
+  「コンテンツの有効化」を押さないと、ボタンを押しても<b>ふりがなはつきません</b>。
+  帯が出たら、まず押すクセをつけましょう。<br>
+  <small class="note">※ 帯が出ない・赤い帯が出る・「保護ビュー」と出る場合は、最後の「困ったとき」を見てください。</small>
+</div>
+
+<h2>STEP 2　ふりがなをふりたい文章を入れる</h2>
+<div class="step">
+  <div class="num"><span>3</span></div>
+  <div class="body">
+    <div class="t">この文書に、文章を入力するか、貼り付けます。</div>
+    ほかの文書からコピーしてきた文章を、ここに貼り付けてもOKです。
+  </div>
+</div>
+
+<h2>STEP 3　ふりがなをふる（2つのやり方／どちらでもOK）</h2>
+
+<div class="keep">
+<div class="step">
+  <div class="num"><span>A</span></div>
+  <div class="body">
+    <div class="t">やり方A：リボンの「ルビ振り」タブのボタンを押す（ボタンがある場合）</div>
+    画面の上に「ルビ振り」というタブがあれば、それをクリックして、目的のボタンを押すだけです。
+  </div>
+</div>
+
+<div class="ribbon">
+  <div class="rtabs">
+    <span>ホーム</span><span>挿入</span><span>デザイン</span><span>レイアウト</span><span>表示</span><span class="active">ルビ振り</span>
+  </div>
+  <div class="rbody">
+    <div class="rbtn"><div class="ico">あ</div><div class="lbl">全文にルビ</div></div>
+    <div class="rbtn"><div class="ico">あ</div><div class="lbl">全文にルビ<br>（初出のみ）</div></div>
+    <div class="rbtn"><div class="ico">あ</div><div class="lbl">選択範囲に<br>ルビ</div></div>
+    <div class="rbtn"><div class="ico">あ</div><div class="lbl">選択範囲に<br>ルビ（初出のみ）</div></div>
+  </div>
+</div>
+</div><!-- /keep A -->
+
+<div class="keep">
+<div class="step">
+  <div class="num"><span>B</span></div>
+  <div class="body">
+    <div class="t">やり方B：「表示」→「マクロ」から選ぶ（ボタンが無い場合）</div>
+    上のメニューの「表示」タブ →「マクロ」をクリック。出てきた一覧から名前を選び、右の「実行」を押します。
+  </div>
+</div>
+
+<div style="display:flex; gap:14px; align-items:flex-start;">
+  <div class="dlg">
+    <div class="ti">マクロ</div>
+    <div class="ct">
+      <ul>
+        <li class="sel">MakeRubiAll</li>
+        <li>MakeFirstRubiAll</li>
+        <li>MakeRubiPartial</li>
+        <li>MakeFirstRubiPartial</li>
+      </ul>
+      <div class="side">
+        <div class="runbtn">実行</div>
+        <div class="gbtn">キャンセル</div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;">
+    <div class="box point" style="margin-top:0;">
+      <span class="h">◎ 迷ったらこれ</span>
+      文書ぜんぶにふりがなをつけたいときは <b>MakeRubiAll</b> を選んで「実行」。<br>
+      これが一番よく使う基本の操作です。
+    </div>
+  </div>
+</div>
+</div><!-- /keep B -->
+
+<h2>4つのボタン（マクロ）の使い分け</h2>
+<table class="fn">
+  <tr><th style="width:32%">ボタン名／マクロ名</th><th>どうなる？</th><th style="width:26%">こんなとき</th></tr>
+  <tr><td>全文にルビ<br><code>MakeRubiAll</code></td><td>文書ぜんぶの漢字すべてにふりがな</td><td>プリント全体にふりがなを</td></tr>
+  <tr><td>全文にルビ（初出のみ）<br><code>MakeFirstRubiAll</code></td><td>同じ漢字は<b>最初の1回だけ</b>ふりがな</td><td>すっきり見せたい</td></tr>
+  <tr><td>選択範囲にルビ<br><code>MakeRubiPartial</code></td><td>マウスで選んだ範囲の漢字にふりがな</td><td>一部分だけ</td></tr>
+  <tr><td>選択範囲にルビ（初出のみ）<br><code>MakeFirstRubiPartial</code></td><td>選んだ範囲で、同じ漢字は最初の1回だけ</td><td>一部分だけ・すっきり</td></tr>
+</table>
+<small class="note">※「選択範囲」を使うときは、先にマウスで文章をなぞって選んでから、ボタンを押してください。</small>
+
+<div class="box point">
+  <span class="h">◎ できあがり</span>
+  ボタンを押すと、漢字の上にふりがなが自動でつきます。少し時間がかかることがありますが、待てば終わります。
+  <div class="ba">
+    <div class="cell"><div class="lab">押す前</div><div class="big">今日は理科の授業です。</div></div>
+    <div class="arrow">→</div>
+    <div class="cell"><div class="lab">押した後</div><div class="big"><ruby>今日<rt>きょう</rt></ruby>は<ruby>理<rt>り</rt>科<rt>か</rt></ruby>の<ruby>授<rt>じゅ</rt>業<rt>ぎょう</rt></ruby>です。</div></div>
+  </div>
+</div>
+
+<h2>ふりがなを直したい・消したいとき</h2>
+<div class="box warn">
+  <span class="h">読みがまちがっているとき</span>
+  直したい漢字をマウスで選び、<b>「ホーム」タブ →「ルビ」ボタン（「亜」のようなアイコン）</b>をクリックすると、
+  ふりがなを手で書き直せます。<br>
+  <small class="note">ふりがなは Word が自動で判断するため、人名や特別な読みは間違うことがあります。その場合だけ手直ししてください。</small>
+</div>
+<div class="box warn" style="background:#f8fafc;border-color:#cbd5e1;">
+  <span class="h" style="color:#475569;">ぜんぶ消してやり直したいとき</span>
+  ふりがなをつける前の状態に戻したいときは、キーボードの <b>Ctrl ＋ Z</b>（元に戻す）を押します。
+  押すたびに1つずつ戻ります。
+</div>
+
+<h2>困ったとき（Q&amp;A）</h2>
+
+<div class="qa">
+  <div class="q">Q. 黄色い帯（コンテンツの有効化）が出てこない</div>
+  <div class="a">A. すでに有効になっている場合は出ません。そのまま STEP 2 へ進んでください。
+  一度開いて有効化したファイルは、次回からは帯が出ないことがあります。</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q. 赤い帯で「マクロが…ブロックされました」と出て、ボタンが無い</div>
+  <div class="a">A. インターネットやメール経由で受け取ったファイルでよく起きます。次の手順で解除します。<br>
+  ① いったん Word を閉じる　② ファイルを<b>右クリック →「プロパティ」</b>
+  ③ 下のほうにある<b>「許可する」（ブロックの解除）にチェック</b> →「OK」　④ もう一度開く</div>
+</div>
+<div class="redbar">
+  <div class="ic">✕</div>
+  <div class="msg"><b>セキュリティリスク</b>　このファイルのマクロはブロックされています。</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q.「保護ビュー」と出て編集できない</div>
+  <div class="a">A. 上に出る帯の<b>「編集を有効にする」</b>を押すと編集できます。そのあと「コンテンツの有効化」も押してください。</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q.「ルビ振り」タブが見当たらない</div>
+  <div class="a">A. タブが無くても大丈夫です。<b>「表示」→「マクロ」</b>から <code>MakeRubiAll</code> などを選んで「実行」すれば同じことができます（STEP 3 のやり方B）。</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q. ふりがなが思った漢字につかない／時間がかかる</div>
+  <div class="a">A. すでにふりがなが付いている漢字は、二重につかないように飛ばされます。文章が長いと少し時間がかかります。固まったように見えても、しばらく待ってください。</div>
+</div>
+
+<div class="qa">
+  <div class="q">Q. Mac（マック）で使いたい</div>
+  <div class="a">A. このしくみは <b>Windows 版の Word 専用</b>です。Mac では動きません。学校の Windows パソコンでお使いください。</div>
+</div>
+
+<div class="box point">
+  <span class="h">◎ まとめ（この3つだけ覚えればOK）</span>
+  ① 開いたら「コンテンツの有効化」を押す　→　② 文章を入れる　→　③ ボタン（または 表示→マクロ）を押す
+</div>
+
+<div class="credit">
+  このマクロは、Web で公開されている「初心者備忘録」さん・「福原裕之の科学グッズ」さんのふりがなマクロを利用しています。
+  Word 内蔵の「ふりがなガイド」を自動で実行するしくみです（Windows 版 Word 専用）。
+</div>
+
+</body>
+</html>

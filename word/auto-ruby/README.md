@@ -40,6 +40,9 @@ Word の文章の漢字に、**ふりがな（ルビ）を自動で振る**マ�
 
 ## 👩‍🏫 受け取る先生むけ：使い方（配布物にこの3行を添えるだけ）
 
+> 📄 **印刷して渡せる詳しい使い方**は [`manual/使い方マニュアル.pdf`](manual/使い方マニュアル.pdf) にまとめてあります（A4・3ページ・図解つき）。
+> パソコンが苦手な先生には、このPDFを配布物に同梱するか、印刷して一緒に渡すのがおすすめです。
+
 ### 方法A（インストール版）を受け取ったら
 1. `install.bat` を **ダブルクリック**（「実行」をきかれたら はい／実行）
 2. 開いている **Word をいったん全部閉じて、もう一度開く**
@@ -113,10 +116,13 @@ word/auto-ruby/
 │   └── AutoRuby.bas              マクロ本体（VBAにドラッグで取り込める／コピペ不要）
 ├── ribbon/
 │   └── customUI14.xml            リボンに「ルビ振り」タブを出す定義（任意）
-└── installer/
-    ├── install.bat               AutoRuby.dotm をWordのSTARTUPに入れる
-    ├── uninstall.bat             元に戻す
-    └── open_startup_folder.bat   STARTUPフォルダを手動で開く（保険）
+├── installer/
+│   ├── install.bat               AutoRuby.dotm をWordのSTARTUPに入れる
+│   ├── uninstall.bat             元に戻す
+│   └── open_startup_folder.bat   STARTUPフォルダを手動で開く（保険）
+└── manual/
+    ├── 使い方マニュアル.pdf        印刷して配れる「初めての人向け」使い方マニュアル
+    └── 使い方マニュアル.html        マニュアルのもと（作り直したいとき用）
 ```
 
 > ⚠️ `AutoRuby.dotm` / `自動ルビ.docm` は **配る人が STEP 2 で作るファイル**です。
