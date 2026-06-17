@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>自動ルビ振り かんたん使い方ガイド（表示→マクロ）</title>
+<style>
+  @page { size: A4; margin: 13mm 13mm 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font-family:"Noto Sans CJK JP",sans-serif; color:#1f2937; font-size:10.3pt; line-height:1.55; margin:0; }
+
+  .hero { background:linear-gradient(100deg,#2b579a,#3b82f6); color:#fff; border-radius:12px; padding:12px 18px; margin-bottom:11px; }
+  .hero h1 { margin:0; font-size:17pt; }
+  .hero p { margin:3px 0 0; font-size:10pt; opacity:.95; }
+
+  h2 { font-size:12.5pt; color:#1d4ed8; margin:13px 0 6px; padding:4px 10px; background:#eff6ff; border-left:7px solid #3b82f6; border-radius:0 7px 7px 0; }
+
+  .step { display:table; width:100%; margin:6px 0; }
+  .num { display:table-cell; width:30px; vertical-align:top; }
+  .num span { display:inline-block; width:24px; height:24px; line-height:24px; text-align:center; border-radius:50%; background:#2563eb; color:#fff; font-size:12pt; font-weight:bold; }
+  .bd { display:table-cell; vertical-align:top; padding-top:1px; }
+  .bd .t { font-weight:bold; }
+  .note { color:#64748b; font-size:9pt; }
+  b.k { color:#1d4ed8; }
+
+  .secbar { background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:6px 11px; margin:6px 0; font-size:9.6pt; display:flex; align-items:center; gap:8px; }
+  .secbar .ic { color:#b45309; font-weight:bold; font-size:12pt; }
+  .secbar .b { background:#fde68a; border:1px solid #d97706; border-radius:5px; padding:2px 9px; font-weight:bold; color:#92400e; white-space:nowrap; }
+
+  /* 表示タブのマクロボタン */
+  .ribbon { border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; margin:6px 0; }
+  .rtabs { background:#f1f5f9; padding:5px 9px 0; font-size:9pt; color:#64748b; }
+  .rtabs .act { background:#fff; color:#2b579a; font-weight:bold; border:1px solid #e2e8f0; border-bottom-color:#fff; border-radius:6px 6px 0 0; padding:3px 9px; }
+  .rtabs span { padding:3px 7px; display:inline-block; }
+  .rbody { background:#fff; padding:7px 9px; text-align:right; }
+  .mbtn { display:inline-block; border:1px solid #93c5fd; border-radius:7px; padding:5px 12px; background:#eff6ff; color:#1e3a8a; font-size:9pt; text-align:center; }
+  .mbtn .i { font-size:13pt; color:#2563eb; display:block; line-height:1; }
+
+  /* マクロ ダイアログ */
+  .dlg { width:300px; border:1px solid #94a3b8; border-radius:8px; overflow:hidden; }
+  .dlg .ti { background:#2b579a; color:#fff; font-size:9.3pt; padding:5px 10px; }
+  .dlg .ct { display:flex; }
+  .dlg ul { list-style:none; margin:0; padding:6px; flex:1; font-size:9.3pt; border-right:1px solid #e2e8f0; }
+  .dlg li { padding:2px 6px; border-radius:4px; }
+  .dlg li.sel { background:#dbeafe; font-weight:bold; }
+  .dlg .side { padding:8px; display:flex; flex-direction:column; gap:5px; }
+  .dlg .run { background:#2563eb; color:#fff; text-align:center; border-radius:5px; padding:5px 16px; font-weight:bold; font-size:9.3pt; }
+  .dlg .gb { background:#e2e8f0; color:#475569; text-align:center; border-radius:5px; padding:5px 16px; font-size:9.3pt; }
+
+  .ba { display:flex; align-items:center; gap:12px; }
+  .ba .c { border:1px dashed #cbd5e1; border-radius:7px; padding:5px 14px; background:#fff; font-size:12pt; text-align:center; }
+  .ba .lab { font-size:8.4pt; color:#94a3b8; }
+  .ba .ar { font-size:16pt; color:#2563eb; }
+  ruby rt { font-size:52%; color:#2563eb; }
+
+  table { width:100%; border-collapse:collapse; margin:5px 0; font-size:9.6pt; }
+  th { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:4px 7px; text-align:left; }
+  td { border:1px solid #e2e8f0; padding:4px 7px; }
+  td code { background:#f1f5f9; border-radius:3px; padding:0 5px; font-size:8.8pt; }
+
+  .tip { background:#ecfdf5; border:1px solid #34d399; border-radius:8px; padding:6px 11px; font-size:9.4pt; margin:6px 0; }
+  .tip b { color:#059669; }
+  .two { display:flex; gap:12px; }
+  .two > div { flex:1; }
+  .footer { margin-top:8px; font-size:8pt; color:#9aa3af; border-top:1px solid #e5e7eb; padding-top:4px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>自動ルビ振り　かんたん使い方ガイド</h1>
+  <p>「表示」→「マクロ」を選ぶだけ。漢字に自動でふりがな（ルビ）がつきます。（Windows 版 Word 専用）</p>
+</div>
+
+<h2>STEP 1　ファイルを開いて、使えるようにする</h2>
+<div class="step"><div class="num"><span>1</span></div><div class="bd">配られた Word ファイルを<b>ダブルクリックで開く</b>。</div></div>
+<div class="step"><div class="num"><span>2</span></div><div class="bd"><div class="t">上に黄色い帯が出たら「コンテンツの有効化」を1回押す。</div></div></div>
+<div class="secbar"><span class="ic">！</span><span style="flex:1;">セキュリティの警告　マクロが無効にされました。</span><span class="b">コンテンツの有効化</span></div>
+<div class="note" style="margin-left:30px;">※ これを押さないと、ふりがなはつきません。</div>
+
+<h2>STEP 2　ふりがなをふりたい文章を入れる</h2>
+<div class="step"><div class="num"><span>3</span></div><div class="bd">この文書に文章を<b>入力／貼り付け</b>する。<br><span class="note">※ 一部だけにふりたいときは、その部分をマウスでなぞって選んでおく。</span></div></div>
+
+<h2>STEP 3　マクロを実行する（ここが本番）</h2>
+<div class="two">
+  <div>
+    <div class="step"><div class="num"><span>4</span></div><div class="bd">上の <b class="k">「表示」タブ → 「マクロ」</b> をクリック。</div></div>
+    <div class="ribbon">
+      <div class="rtabs"><span>差し込み文書</span><span>校閲</span><span class="act">表示</span><span>ヘルプ</span></div>
+      <div class="rbody"><span class="mbtn"><span class="i">▷</span>マクロ</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="step"><div class="num"><span>5</span></div><div class="bd">一覧から選んで <b class="k">「実行」</b> を押す。</div></div>
+    <div class="dlg">
+      <div class="ti">マクロ</div>
+      <div class="ct">
+        <ul>
+          <li class="sel">MakeRubiAll</li>
+          <li>MakeFirstRubiAll</li>
+          <li>MakeRubiPartial</li>
+          <li>MakeFirstRubiPartial</li>
+        </ul>
+        <div class="side"><div class="run">実行</div><div class="gb">キャンセル</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tip"><b>◎ 迷ったら</b>　文書ぜんぶにふりがなをつけるなら <b>MakeRubiAll</b> を選んで「実行」。これが一番よく使う基本です。</div>
+
+<h2>どれを選ぶ？（4つのマクロ）</h2>
+<table>
+  <tr><th style="width:30%">マクロ名</th><th>どうなる？</th><th style="width:22%">こんなとき</th></tr>
+  <tr><td><code>MakeRubiAll</code></td><td>文書ぜんぶの漢字すべてにふりがな</td><td>全体につけたい</td></tr>
+  <tr><td><code>MakeFirstRubiAll</code></td><td>文書ぜんぶ。同じ漢字は最初の1回だけ</td><td>すっきり見せたい</td></tr>
+  <tr><td><code>MakeRubiPartial</code></td><td>選んだ範囲の漢字すべてにふりがな</td><td>一部分だけ</td></tr>
+  <tr><td><code>MakeFirstRubiPartial</code></td><td>選んだ範囲で、同じ漢字は最初の1回だけ</td><td>一部分・すっきり</td></tr>
+</table>
+
+<div class="two">
+  <div>
+    <div style="font-weight:bold;color:#1d4ed8;margin:4px 0 2px;">できあがり</div>
+    <div class="ba">
+      <div class="c"><div class="lab">前</div>理科の授業</div>
+      <div class="ar">→</div>
+      <div class="c"><div class="lab">後</div><ruby>理<rt>り</rt>科<rt>か</rt></ruby>の<ruby>授<rt>じゅ</rt>業<rt>ぎょう</rt></ruby></div>
+    </div>
+  </div>
+  <div>
+    <div style="font-weight:bold;color:#1d4ed8;margin:4px 0 2px;">困ったとき</div>
+    <div class="note">・読みが違う → 直したい漢字を選び <b>［ホーム］→［ルビ］</b>（亜のアイコン）で手直し<br>
+    ・帯が出ない／マクロがブロック → ファイルを<b>右クリック→プロパティ→「許可する」にチェック→OK</b>、開き直す</div>
+  </div>
+</div>
+
+<div class="footer">漢字に自動でふりがな（ルビ）を振るマクロ（Web公開のふりがなマクロを利用）。Windows 版 Word 専用。</div>
+
+</body>
+</html>
