@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>自動ルビ振り かんたん使い方ガイド</title>
+<style>
+  @page { size: A4; margin: 11mm 12mm 10mm 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans CJK JP", sans-serif; color:#1f2937; font-size: 9.6pt; line-height: 1.45; margin:0; }
+
+  .hero { background: linear-gradient(100deg,#2b579a,#3b82f6); color:#fff; border-radius:11px; padding:9px 15px; margin-bottom:8px; }
+  .hero h1 { margin:0; font-size:15.5pt; }
+  .hero p { margin:2px 0 0; font-size:9.3pt; opacity:.95; }
+
+  h2 { font-size:11.5pt; color:#1d4ed8; margin:9px 0 5px; padding:3px 9px; background:#eff6ff; border-left:6px solid #3b82f6; border-radius:0 6px 6px 0; }
+  h2 .mini { font-size:8.7pt; color:#3b6; font-weight:normal; }
+
+  .step { display:table; width:100%; margin:3.5px 0; }
+  .num { display:table-cell; width:23px; vertical-align:top; }
+  .num span { display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; background:#2563eb; color:#fff; font-size:9.5pt; font-weight:bold; }
+  .bd { display:table-cell; vertical-align:top; }
+  kbd { background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:0 5px; font-size:8.8pt; font-family:inherit; white-space:nowrap; }
+  b.k { color:#1d4ed8; }
+
+  .secbar { background:#fef3c7; border:1px solid #f59e0b; border-radius:5px; padding:4px 9px; margin:4px 0; font-size:8.9pt; }
+  .secbar .b { background:#fde68a; border:1px solid #d97706; border-radius:4px; padding:1px 7px; font-weight:bold; color:#92400e; }
+
+  /* リボンの完成イメージ */
+  .ribbon { border:1px solid #cbd5e1; border-radius:7px; overflow:hidden; margin:5px 0; }
+  .rtabs { background:#f1f5f9; padding:4px 8px 0; font-size:8.6pt; color:#64748b; }
+  .rtabs .act { background:#fff; color:#2b579a; font-weight:bold; border:1px solid #e2e8f0; border-bottom-color:#fff; border-radius:5px 5px 0 0; padding:3px 8px; }
+  .rtabs span { padding:3px 6px; display:inline-block; }
+  .rbody { background:#fff; padding:6px; display:flex; gap:6px; }
+  .rbtn { text-align:center; border:1px solid #dbeafe; border-radius:6px; padding:4px 5px; width:25%; background:#f8fbff; font-size:8pt; color:#1e3a8a; }
+  .rbtn .i { font-size:12pt; color:#2563eb; }
+
+  .ba { display:flex; align-items:center; gap:9px; margin:3px 0; }
+  .ba .c { border:1px dashed #cbd5e1; border-radius:6px; padding:3px 10px; background:#fff; font-size:11pt; }
+  .ba .ar { font-size:13pt; color:#2563eb; }
+  ruby rt { font-size:52%; color:#2563eb; }
+
+  table { width:100%; border-collapse:collapse; margin:4px 0; font-size:9pt; }
+  th { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:3px 6px; text-align:left; }
+  td { border:1px solid #e2e8f0; padding:3px 6px; }
+  td code { background:#f1f5f9; border-radius:3px; padding:0 4px; font-size:8.2pt; }
+
+  .two { display:flex; gap:12px; }
+  .two > div { flex:1; }
+  .tip { background:#ecfdf5; border:1px solid #34d399; border-radius:7px; padding:5px 10px; font-size:8.9pt; }
+  .tip b { color:#059669; }
+  .warnbox { background:#fffbeb; border:1px solid #f59e0b; border-radius:7px; padding:5px 10px; font-size:8.9pt; }
+  .warnbox b { color:#b45309; }
+  .footer { margin-top:6px; font-size:7.8pt; color:#9aa3af; border-top:1px solid #e5e7eb; padding-top:3px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>自動ルビ振り　かんたん使い方ガイド</h1>
+  <p>漢字に自動でふりがな（ルビ）。リボンに「ルビ振り」ボタンを作って使います。（Windows 版 Word 専用）</p>
+</div>
+
+<h2>STEP 1　最初に1回だけ：「ルビ振り」タブを作る <span class="mini">（2回目からは不要）</span></h2>
+
+<div class="step"><div class="num"><span>1</span></div><div class="bd">配られた Word ファイルを開く。上に黄色い帯が出たら押す →</div></div>
+<div class="secbar">セキュリティの警告　マクロが無効にされました。<span class="b">コンテンツの有効化</span>　← これを1回クリック</div>
+
+<div class="step"><div class="num"><span>2</span></div><div class="bd"><b class="k">［ファイル］→［オプション］→［リボンのユーザー設定］</b> を開く</div></div>
+<div class="step"><div class="num"><span>3</span></div><div class="bd">右下の <b class="k">［新しいタブ］</b> を押す（「新しいタブ(ユーザー設定)」ができる）</div></div>
+<div class="step"><div class="num"><span>4</span></div><div class="bd">その「新しいタブ」を選び <b class="k">［名前の変更］</b> →「<b>ルビ振り</b>」にする</div></div>
+<div class="step"><div class="num"><span>5</span></div><div class="bd">左上の「コマンドの選択」を <b class="k">［マクロ］</b> に変える</div></div>
+<div class="step"><div class="num"><span>6</span></div><div class="bd">「<code>MakeRubiAll</code>」など <b>Make…Rubi… が付く4つ</b>を選び、右の新しいグループへ <b class="k">［追加］</b></div></div>
+<div class="step"><div class="num"><span>7</span></div><div class="bd">各ボタンを <b class="k">［名前の変更］</b> で下の表の名前に →　<b class="k">［OK］</b>。リボンに「ルビ振り」タブが出れば完成！</div></div>
+
+<div class="ribbon">
+  <div class="rtabs"><span>ホーム</span><span>挿入</span><span>表示</span><span class="act">ルビ振り</span></div>
+  <div class="rbody">
+    <div class="rbtn"><div class="i">あ</div>全文にルビ</div>
+    <div class="rbtn"><div class="i">あ</div>全文にルビ<br>（初出のみ）</div>
+    <div class="rbtn"><div class="i">あ</div>選択範囲に<br>ルビ</div>
+    <div class="rbtn"><div class="i">あ</div>選択範囲にルビ<br>（初出のみ）</div>
+  </div>
+</div>
+
+<h2>STEP 2　毎回の使い方</h2>
+<div class="two">
+  <div>
+    <div class="step"><div class="num"><span>1</span></div><div class="bd">文章を入力／貼り付け<br><span style="color:#64748b;font-size:8.4pt;">※一部だけなら、その範囲をマウスで選ぶ</span></div></div>
+    <div class="step"><div class="num"><span>2</span></div><div class="bd">「ルビ振り」タブの<b>ボタンを押す</b></div></div>
+    <div class="step"><div class="num"><span>3</span></div><div class="bd">漢字の上にふりがながつく</div></div>
+  </div>
+  <div>
+    <div class="ba">
+      <div class="c">理科の授業</div>
+      <div class="ar">→</div>
+      <div class="c"><ruby>理<rt>り</rt>科<rt>か</rt></ruby>の<ruby>授<rt>じゅ</rt>業<rt>ぎょう</rt></ruby></div>
+    </div>
+    <div style="font-size:8.4pt;color:#64748b;">少し時間がかかることがあります。終わるまで待ってください。</div>
+  </div>
+</div>
+
+<h2>4つのボタンの使い分け</h2>
+<table>
+  <tr><th style="width:34%">ボタンの名前（マクロ名）</th><th>どうなる？</th></tr>
+  <tr><td>全文にルビ（<code>MakeRubiAll</code>）</td><td>文書ぜんぶの漢字すべてにふりがな</td></tr>
+  <tr><td>全文にルビ（初出のみ）（<code>MakeFirstRubiAll</code>）</td><td>文書ぜんぶ。同じ漢字は最初の1回だけ</td></tr>
+  <tr><td>選択範囲にルビ（<code>MakeRubiPartial</code>）</td><td>マウスで選んだ範囲の漢字すべてに</td></tr>
+  <tr><td>選択範囲にルビ（初出のみ）（<code>MakeFirstRubiPartial</code>）</td><td>選んだ範囲で、同じ漢字は最初の1回だけ</td></tr>
+</table>
+
+<div class="two" style="margin-top:6px;">
+  <div class="tip"><b>◎ 困ったとき</b><br>
+    ・読みが違う → 直したい漢字を選び <b>［ホーム］→［ルビ］</b>（亜のアイコン）で手直し<br>
+    ・ボタンが効かない → 配られたファイルを開いた状態で使う</div>
+  <div class="warnbox"><b>⚠ マクロがブロックされたら</b><br>
+    赤い帯／黄色い帯が出ないときは、ファイルを<b>右クリック→プロパティ→「許可する」にチェック→OK</b>、開き直す</div>
+</div>
+
+<div class="footer">漢字に自動でふりがな（ルビ）を振るマクロ（Web公開のふりがなマクロを利用）。Windows 版 Word 専用。</div>
+
+</body>
+</html>
