@@ -1,34 +1,34 @@
 Attribute VB_Name = "AutoRuby"
 '==================================================================
-'  è‡ªå‹•ãƒ«ãƒ“æŒ¯ã‚Šï¼ˆãµã‚ŠãŒãªï¼‰ãƒã‚¯ãƒ­  AutoRuby
-'  - Wordå†…è”µã®ã€Œãµã‚ŠãŒãªã‚¬ã‚¤ãƒ‰ã€ã‚’ä½¿ã£ã¦æ¼¢å­—ã«ãƒ«ãƒ“ã‚’è‡ªå‹•ã§æŒ¯ã‚Šã¾ã™ã€‚
-'  - ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã¯ã€ŒVBAç”»é¢ã«ãƒ‰ãƒ©ãƒƒã‚°ï¼†ãƒ‰ãƒ­ãƒƒãƒ—ã€ã¾ãŸã¯
-'    ã€Œãƒ•ã‚¡ã‚¤ãƒ« â†’ ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚¤ãƒ³ãƒãƒ¼ãƒˆã€ã§ä¸¸ã”ã¨å–ã‚Šè¾¼ã‚ã¾ã™ï¼ˆã‚³ãƒ”ãƒšä¸è¦ï¼‰ã€‚
-'  - å–ã‚Šè¾¼ã‚€ã¨ã€è¡¨ç¤º â†’ ãƒã‚¯ãƒ­ ã«ä¸‹ã®4ã¤ãŒä¸¦ã³ã¾ã™ã€‚
+'  ©“®ƒ‹ƒrU‚èi‚Ó‚è‚ª‚Èjƒ}ƒNƒ  AutoRuby
+'  - Word“à‘ ‚Ìu‚Ó‚è‚ª‚ÈƒKƒCƒhv‚ğg‚Á‚ÄŠ¿š‚Éƒ‹ƒr‚ğ©“®‚ÅU‚è‚Ü‚·B
+'  - ‚±‚Ìƒtƒ@ƒCƒ‹‚ÍuVBA‰æ–Ê‚Éƒhƒ‰ƒbƒO•ƒhƒƒbƒvv‚Ü‚½‚Í
+'    uƒtƒ@ƒCƒ‹ ¨ ƒtƒ@ƒCƒ‹‚ÌƒCƒ“ƒ|[ƒgv‚ÅŠÛ‚²‚Ææ‚è‚ß‚Ü‚·iƒRƒsƒy•s—vjB
+'  - æ‚è‚Ş‚ÆA•\¦ ¨ ƒ}ƒNƒ ‚É‰º‚Ì4‚Â‚ª•À‚Ñ‚Ü‚·B
 '==================================================================
 Option Explicit
 
-'ãƒ«ãƒ“ã‚’æŒ¯ã£ãŸæ¼¢å­—ã‚’æ ¼ç´ã™ã‚‹Array
+'ƒ‹ƒr‚ğU‚Á‚½Š¿š‚ğŠi”[‚·‚éArray
 Public kanjiArray(9999) As String
-'KanjiArrayã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
+'KanjiArray‚ÌƒCƒ“ƒfƒbƒNƒX
 Public KI As Long
 
-'é¸æŠã—ãŸç¯„å›²å†…ã®æ–‡å­—åˆ—ã«ãƒ«ãƒ“è¨­å®š
+'‘I‘ğ‚µ‚½”ÍˆÍ“à‚Ì•¶š—ñ‚Éƒ‹ƒrİ’è
 Public Sub MakeRubiPartial()
   SetPhoneticRange Selection.Range, False
 End Sub
 
-'æ–‡æ›¸å…¨ä½“ã«ãƒ«ãƒ“è¨­å®š
+'•¶‘‘S‘Ì‚Éƒ‹ƒrİ’è
 Public Sub MakeRubiAll()
   SetPhoneticRange ActiveDocument.Range, False
 End Sub
 
-'é¸æŠã—ãŸç¯„å›²å†…ã®æ–‡å­—åˆ—ã«ãƒ«ãƒ“è¨­å®šï¼ˆæœ€åˆã®æ¼¢å­—ã®ã¿ï¼‰
+'‘I‘ğ‚µ‚½”ÍˆÍ“à‚Ì•¶š—ñ‚Éƒ‹ƒrİ’èiÅ‰‚ÌŠ¿š‚Ì‚İj
 Public Sub MakeFirstRubiPartial()
   SetPhoneticRange Selection.Range, True
 End Sub
 
-'æ–‡æ›¸å…¨ä½“ã«ãƒ«ãƒ“è¨­å®šï¼ˆæœ€åˆã®æ¼¢å­—ã®ã¿ï¼‰
+'•¶‘‘S‘Ì‚Éƒ‹ƒrİ’èiÅ‰‚ÌŠ¿š‚Ì‚İj
 Public Sub MakeFirstRubiAll()
   SetPhoneticRange ActiveDocument.Range, True
 End Sub
@@ -39,25 +39,25 @@ Private Sub SetPhoneticRange(ByVal rng As Word.Range, ByVal FirstFlag As Boolean
   Dim i As Long
   Dim dFlag As Boolean
 
-  ' kanjiArrayã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®åˆæœŸåŒ–
+  ' kanjiArray‚ÌƒCƒ“ƒfƒbƒNƒX‚Ì‰Šú‰»
   KI = 0
 
-  'å˜èªå˜ä½ã§å‡¦ç†
+  '’PŒê’PˆÊ‚Åˆ—
   For Each r In rng.Words
-    'ãƒ«ãƒ“ãŒæŒ¯ã‚‰ã‚Œã¦ã„ãªã„ã‹æœ€åˆã«ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰æ•°ã§åˆ¤å®š
+    'ƒ‹ƒr‚ªU‚ç‚ê‚Ä‚¢‚È‚¢‚©Å‰‚ÉƒtƒB[ƒ‹ƒh”‚Å”»’è
     If r.Fields.Count < 1 Then
-      ' æ¼¢å­—ãŒå«ã¾ã‚Œã¦ã„ã‚‹ã‹åˆ¤å®š
+      ' Š¿š‚ªŠÜ‚Ü‚ê‚Ä‚¢‚é‚©”»’è
       If ChkKanjiRange2(r) = True Then
 
-        ' å…¨éƒ¨ãŒæ¼¢å­—ã‹åˆ¤å®š
+        ' ‘S•”‚ªŠ¿š‚©”»’è
         If ChkKanjiRange(r) = True Then
 
           If FirstFlag = False Then
-            ' å…¨ã¦ã®æ¼¢å­—ã«ãƒ«ãƒ“ã‚’ãµã‚‹
+            ' ‘S‚Ä‚ÌŠ¿š‚Éƒ‹ƒr‚ğ‚Ó‚é
             r.Select
             Application.Dialogs(wdDialogPhoneticGuide).Show 1
           Else
-            ' æœ€åˆã«å‡ºã¦ããŸæ¼¢å­—ã«ã ã‘ãƒ«ãƒ“ã‚’ãµã‚‹
+            ' Å‰‚Éo‚Ä‚«‚½Š¿š‚É‚¾‚¯ƒ‹ƒr‚ğ‚Ó‚é
             If inKanjiArray(r.Text) = False Then
               addKanjiArray (r.Text)
               r.Select
@@ -66,27 +66,27 @@ Private Sub SetPhoneticRange(ByVal rng As Word.Range, ByVal FirstFlag As Boolean
           End If
 
         Else
-          'æ–‡å­—å˜ä½ã§å‡¦ç†
+          '•¶š’PˆÊ‚Åˆ—
           i = 1
           For Each s In r.Characters
-            ' æ¼¢å­—ã‹åˆ¤å®š
+            ' Š¿š‚©”»’è
             If ChkKanjiRange(s) = True Then
-              ' æ¬¡ã®æ–‡å­—ãŒæ¼¢å­—ã‹åˆ¤å®š
+              ' Ÿ‚Ì•¶š‚ªŠ¿š‚©”»’è
               dFlag = False
               If i < Len(r.Text) And Len(Mid(r.Text, i + 1, 1)) > 0 Then
                 If isKanji(Mid(r.Text, i + 1, 1)) = True Then
-                  ' æ¼¢å­—ãŒï¼’æ–‡å­—ç¶šãã®å ´åˆã€ä¸€ç·’ã«ãƒ«ãƒ“ã‚’æŒ¯ã‚‹
+                  ' Š¿š‚ª‚Q•¶š‘±‚«‚Ìê‡Aˆê‚Éƒ‹ƒr‚ğU‚é
                   s.End = s.End + 1
                   dFlag = True
                 End If
               End If
 
               If FirstFlag = False Then
-                ' å…¨ã¦ã®æ¼¢å­—ã«ãƒ«ãƒ“ã‚’ãµã‚‹
+                ' ‘S‚Ä‚ÌŠ¿š‚Éƒ‹ƒr‚ğ‚Ó‚é
                 s.Select
                 Application.Dialogs(wdDialogPhoneticGuide).Show 1
               Else
-                ' æœ€åˆã«å‡ºã¦ããŸæ¼¢å­—ã«ã ã‘ãƒ«ãƒ“ã‚’ãµã‚‹
+                ' Å‰‚Éo‚Ä‚«‚½Š¿š‚É‚¾‚¯ƒ‹ƒr‚ğ‚Ó‚é
                 If inKanjiArray(s.Text) = False Then
                   If dFlag = True Then
                     addKanjiArray (Mid(r.Text, i, 1))
@@ -109,7 +109,7 @@ Private Sub SetPhoneticRange(ByVal rng As Word.Range, ByVal FirstFlag As Boolean
 End Sub
 
 Private Function ChkKanjiRange(ByVal rng As Word.Range) As Boolean
-'æŒ‡å®šã—ãŸRangeãŒå…¨éƒ¨æ¼¢å­—ã ã£ãŸã‚‰True
+'w’è‚µ‚½Range‚ª‘S•”Š¿š‚¾‚Á‚½‚çTrue
   Dim ret As Boolean
   Dim i As Long
 
@@ -124,7 +124,7 @@ Private Function ChkKanjiRange(ByVal rng As Word.Range) As Boolean
 End Function
 
 Private Function ChkKanjiRange2(ByVal rng As Word.Range) As Boolean
-'æŒ‡å®šã—ãŸRangeã«æ¼¢å­—ãŒï¼‘æ–‡å­—ã§ã‚‚å«ã¾ã‚Œã¦ã„ãŸã‚‰True
+'w’è‚µ‚½Range‚ÉŠ¿š‚ª‚P•¶š‚Å‚àŠÜ‚Ü‚ê‚Ä‚¢‚½‚çTrue
   Dim ret As Boolean
   Dim i As Long
 
@@ -141,13 +141,13 @@ End Function
 Private Function isKanji(ByVal strIn As String) As Boolean
     Dim re As Object
     Set re = CreateObject("VBScript.RegExp")
-    re.Pattern = "[ä¸€-é¾ ã€ƒã€…ã€†ã€‡]"
+    re.Pattern = "[ˆê-êVXYZ]"
 
     If re.test(strIn) Then
-        'MsgBox "å…¥åŠ›æ–‡å­—åˆ—ã«ã¯ã€æ¼¢å­—ãŒå«ã¾ã‚Œã¦ã¾ã™ã€‚"
+        'MsgBox "“ü—Í•¶š—ñ‚É‚ÍAŠ¿š‚ªŠÜ‚Ü‚ê‚Ä‚Ü‚·B"
         isKanji = True
     Else
-        'MsgBox "å…¥åŠ›æ–‡å­—åˆ—ã«ã¯ã€æ¼¢å­—ãŒå«ã¾ã‚Œã¦ã„ã¾ã›ã‚“ã€‚"
+        'MsgBox "“ü—Í•¶š—ñ‚É‚ÍAŠ¿š‚ªŠÜ‚Ü‚ê‚Ä‚¢‚Ü‚¹‚ñB"
         isKanji = False
     End If
 End Function
@@ -172,9 +172,9 @@ Private Function addKanjiArray(ByVal str As String) As Boolean
 End Function
 
 '==================================================================
-'  â†“ã“ã“ã‹ã‚‰ä¸‹ã¯ã€Œãƒªãƒœãƒ³ã®ãƒœã‚¿ãƒ³ã€ã‹ã‚‰å‘¼ã³å‡ºã™ãŸã‚ã®å—ã‘å£ã§ã™ã€‚
-'   è¡¨ç¤ºâ†’ãƒã‚¯ãƒ­ã‹ã‚‰å®Ÿè¡Œã™ã‚‹å ´åˆã¯ä½¿ã„ã¾ã›ã‚“ï¼ˆã‚ã£ã¦ã‚‚å®³ã¯ã‚ã‚Šã¾ã›ã‚“ï¼‰ã€‚
-'   ribbon/customUI14.xml ã®ãƒœã‚¿ãƒ³ãŒã€ã“ã®4ã¤ã‚’å‘¼ã³å‡ºã—ã¾ã™ã€‚
+'  «‚±‚±‚©‚ç‰º‚ÍuƒŠƒ{ƒ“‚Ìƒ{ƒ^ƒ“v‚©‚çŒÄ‚Ño‚·‚½‚ß‚Ìó‚¯Œû‚Å‚·B
+'   •\¦¨ƒ}ƒNƒ‚©‚çÀs‚·‚éê‡‚Íg‚¢‚Ü‚¹‚ñi‚ ‚Á‚Ä‚àŠQ‚Í‚ ‚è‚Ü‚¹‚ñjB
+'   ribbon/customUI14.xml ‚Ìƒ{ƒ^ƒ“‚ªA‚±‚Ì4‚Â‚ğŒÄ‚Ño‚µ‚Ü‚·B
 '==================================================================
 Public Sub Ribbon_MakeRubiAll(ByVal control As IRibbonControl)
   MakeRubiAll
