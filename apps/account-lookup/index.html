@@ -61,6 +61,8 @@
   }
   select{min-width:90px;} #q{min-width:220px;} input[type=password]{min-width:200px;}
   input:focus,select:focus{outline:2px solid #9fc1e6; border-color:var(--primary);}
+  input:disabled{background:#eceff3; color:#9aa4b0; cursor:not-allowed;}
+  .dim{opacity:.55;}
 
   button{
     font:inherit; cursor:pointer; border:1px solid transparent; border-radius:8px;
@@ -174,11 +176,11 @@
       <label class="optline"><input type="radio" name="protMode" value="password">
         <span><b>パスワードを設定する</b> ― 開くときに合言葉が必要。フォルダの権限に加えて二重に守りたい場合。</span></label>
     </div>
-    <div id="pwFields" class="row" hidden style="margin-top:10px;">
+    <div id="pwFields" class="row" style="margin-top:10px;">
       <div class="fld"><label for="newPw">閲覧用パスワードを決める</label>
-        <input type="password" id="newPw" autocomplete="new-password" placeholder="8文字以上を推奨"></div>
+        <input type="password" id="newPw" autocomplete="new-password" placeholder="「パスワードを設定する」を選ぶと入力できます" disabled></div>
       <div class="fld"><label for="newPw2">同じものをもう一度</label>
-        <input type="password" id="newPw2" autocomplete="new-password" placeholder="確認のため再入力"></div>
+        <input type="password" id="newPw2" autocomplete="new-password" placeholder="確認のため再入力" disabled></div>
     </div>
     <p style="margin:12px 0 0;"><button class="primary" id="buildBtn" disabled>📦 配布用HTMLを作成</button></p>
     <div id="buildMsg" class="loaded"></div>
@@ -193,8 +195,8 @@
         <select id="fYear"><option value="">（すべて）</option></select></div>
       <div class="fld"><label for="fClass">組</label>
         <select id="fClass"><option value="">（すべて）</option></select></div>
-      <div class="fld" style="flex:1 1 220px;"><label for="q">氏名（ひらがな）</label>
-        <input type="text" id="q" placeholder="例）やまだ たろう（一部でも可）" autocomplete="off"></div>
+      <div class="fld" style="flex:1 1 240px;"><label for="q">氏名（ひらがな）でしぼり込む（任意）</label>
+        <input type="text" id="q" placeholder="例）やまだ（一部でも可・空欄なら一覧から選択）" autocomplete="off"></div>
       <button class="ghost" id="clearSearch">条件をクリア</button>
     </div>
     <div id="result"></div>
@@ -838,10 +840,15 @@ function init(){
     drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
     $('dlTemplate').addEventListener('click',downloadTemplate);
     $('buildBtn').addEventListener('click',buildProtected);
-    // パスワードあり／なしの切り替え
-    document.querySelectorAll('input[name="protMode"]').forEach(r=>r.addEventListener('change',()=>{
-      $('pwFields').hidden = selectedMode()!=='password';
-    }));
+    // パスワードあり／なしの切り替え：なしのときは入力欄をグレーアウト（無効化）
+    const syncPwFields=()=>{
+      const on = selectedMode()==='password';
+      $('newPw').disabled=!on; $('newPw2').disabled=!on;
+      $('pwFields').classList.toggle('dim', !on);
+      if(!on){ $('newPw').value=''; $('newPw2').value=''; }
+    };
+    document.querySelectorAll('input[name="protMode"]').forEach(r=>r.addEventListener('change',syncPwFields));
+    syncPwFields(); // 初期状態（パスワードなし）に同期
   }
 
   // 検索パネル（両モード共通）
