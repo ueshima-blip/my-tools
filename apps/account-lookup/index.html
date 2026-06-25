@@ -49,6 +49,9 @@
   .loaded{margin-top:10px; font-size:.92rem;}
   .loaded.ok{color:var(--ok);} .loaded.err{color:#b3261e;}
   .desc{color:var(--muted); font-size:.9rem; margin:0 0 10px;}
+  .opt{display:flex; flex-direction:column; gap:8px; margin:6px 0;}
+  .optline{display:flex; gap:8px; align-items:flex-start; cursor:pointer; font-size:.92rem;}
+  .optline input{margin-top:.35em; flex:none;}
 
   .row{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;}
   .fld{display:flex; flex-direction:column; gap:4px;}
@@ -160,19 +163,24 @@
 
     <hr class="sep">
 
-    <p class="step"><span class="num">2</span>保護版HTMLを作成（配布用）</p>
+    <p class="step"><span class="num">2</span>配布用HTMLを作成</p>
     <p class="desc">
-      名簿を <b>パスワードで暗号化して1つのHTMLファイル</b> にします。これを共有フォルダ等に置けば、
-      他の先生は <b>そのHTMLとパスワードだけ</b> で使えます（生のExcelを置く必要はありません）。
-      パスワードは口頭など別の方法で伝えてください。
+      名簿を <b>1つのHTMLファイル</b> にまとめて配布できます（生のExcelを共有フォルダに置く必要はありません）。
+      パスワードの有無を選べます。
     </p>
-    <div class="row">
+    <div class="opt">
+      <label class="optline"><input type="radio" name="protMode" value="open" checked>
+        <span><b>パスワードなし</b>で作成 ― 教員だけがアクセスできる共有フォルダで管理する場合。開くとすぐ使えます。</span></label>
+      <label class="optline"><input type="radio" name="protMode" value="password">
+        <span><b>パスワードを設定する</b> ― 開くときに合言葉が必要。フォルダの権限に加えて二重に守りたい場合。</span></label>
+    </div>
+    <div id="pwFields" class="row" hidden style="margin-top:10px;">
       <div class="fld"><label for="newPw">閲覧用パスワードを決める</label>
         <input type="password" id="newPw" autocomplete="new-password" placeholder="8文字以上を推奨"></div>
       <div class="fld"><label for="newPw2">同じものをもう一度</label>
         <input type="password" id="newPw2" autocomplete="new-password" placeholder="確認のため再入力"></div>
-      <button class="primary" id="buildBtn" disabled>🔐 保護版HTMLを作成</button>
     </div>
+    <p style="margin:12px 0 0;"><button class="primary" id="buildBtn" disabled>📦 配布用HTMLを作成</button></p>
     <div id="buildMsg" class="loaded"></div>
   </section>
 
@@ -219,6 +227,9 @@ const $ = (id)=>document.getElementById(id);
    暗号化（Web Crypto / AES-GCM + PBKDF2）— 外部ライブラリ不要
    ========================================================================= */
 const PBKDF2_ITER = 200000;
+/* パスワードなし版で使う固定キー。これは「本当の保護」ではなく、ファイルを開いても
+   中身が平文で見えないようにするための難読化。実際の保護は共有フォルダのアクセス権限による。 */
+const OPEN_KEY = 'account-lookup::open-mode::v1::real-protection-is-folder-permissions';
 function b64(u){let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s);}
 function ub64(str){const bin=atob(str);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 async function deriveKey(password, salt, iter, usage){
@@ -226,12 +237,13 @@ async function deriveKey(password, salt, iter, usage){
   return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'},
     km, {name:'AES-GCM', length:256}, false, usage);
 }
-async function encryptData(plaintext, password){
+async function encryptData(plaintext, password, iter){
+  iter = iter || PBKDF2_ITER;
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const key=await deriveKey(password, salt, PBKDF2_ITER, ['encrypt']);
+  const key=await deriveKey(password, salt, iter, ['encrypt']);
   const ct=await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plaintext));
-  return {v:1, alg:'AES-GCM', kdf:'PBKDF2', iter:PBKDF2_ITER, salt:b64(salt), iv:b64(iv), ct:b64(new Uint8Array(ct))};
+  return {v:1, alg:'AES-GCM', kdf:'PBKDF2', iter, salt:b64(salt), iv:b64(iv), ct:b64(new Uint8Array(ct))};
 }
 async function decryptData(payload, password){
   const key=await deriveKey(password, ub64(payload.salt), payload.iter||PBKDF2_ITER, ['decrypt']);
@@ -451,9 +463,12 @@ async function handleFile(file){
 /* =========================================================================
    管理者モード：保護版HTMLを作成
    ========================================================================= */
+function selectedMode(){
+  const r=document.querySelector('input[name="protMode"]:checked');
+  return r? r.value : 'open';
+}
 function updateBuildBtn(){
-  const ok = STUDENTS.length>0 && cryptoOK();
-  $('buildBtn').disabled = !ok;
+  $('buildBtn').disabled = !(STUDENTS.length>0 && cryptoOK());
 }
 /* 自分自身のHTMLに暗号データを差し込んだ文字列を返す（純粋関数：テスト可能） */
 function bakeProtected(selfHtml, payloadObj){
@@ -463,25 +478,38 @@ function bakeProtected(selfHtml, payloadObj){
 }
 async function buildProtected(){
   const msg=$('buildMsg');
-  const pw=$('newPw').value, pw2=$('newPw2').value;
-  if(!cryptoOK()){msg.className='loaded err';msg.textContent='⚠ この環境では暗号化が使えません。';return;}
+  const mode=selectedMode();
+  if(!cryptoOK()){msg.className='loaded err';msg.textContent='⚠ この環境では作成できません。';return;}
   if(STUDENTS.length===0){msg.className='loaded err';msg.textContent='⚠ 先に名簿（Excel）を読み込んでください。';return;}
-  if(pw.length<4){msg.className='loaded err';msg.textContent='⚠ パスワードは4文字以上にしてください（8文字以上を推奨）。';return;}
-  if(pw!==pw2){msg.className='loaded err';msg.textContent='⚠ 2つのパスワードが一致しません。';return;}
-  msg.className='loaded'; msg.textContent='⏳ 暗号化しています…';
+
+  let password, iter, fname;
+  if(mode==='password'){
+    const pw=$('newPw').value, pw2=$('newPw2').value;
+    if(pw.length<4){msg.className='loaded err';msg.textContent='⚠ パスワードは4文字以上にしてください（8文字以上を推奨）。';return;}
+    if(pw!==pw2){msg.className='loaded err';msg.textContent='⚠ 2つのパスワードが一致しません。';return;}
+    password=pw; iter=PBKDF2_ITER; fname='アカウント確認（保護版・パスワードあり）.html';
+  }else{
+    password=OPEN_KEY; iter=2000; fname='アカウント確認（パスワードなし）.html';
+  }
+
+  msg.className='loaded'; msg.textContent='⏳ 作成しています…';
   try{
-    // 検索用の補助フィールドは保存せず、素のデータだけ暗号化
+    // 検索用の補助フィールドは保存せず、素のデータだけ格納
     const plain=JSON.stringify({
       students: STUDENTS.map(s=>({year:s.year,cls:s.cls,no:s.no,kanji:s.kanji,kana:s.kana,
         account:s.account,password:s.password,device:s.device,pin:s.pin})),
       schoolCode: SCHOOL_CODE,
     });
-    const payload=await encryptData(plain, pw);
+    const payload=await encryptData(plain, password, iter);
+    payload.mode=mode;
     const out=bakeProtected(SELF_HTML, payload);
-    download(out, 'アカウント確認（保護版）.html', 'text/html');
+    download(out, fname, 'text/html');
     msg.className='loaded ok';
-    msg.innerHTML='✅ 保護版HTMLを作成しました（<b>'+STUDENTS.length+'人</b>分を暗号化）。<br>'
-      +'このファイルを共有フォルダ等に置き、先生方には<b>パスワードを別途お伝え</b>ください。';
+    msg.innerHTML = (mode==='password')
+      ? '✅ 保護版HTML（パスワードあり）を作成しました（<b>'+STUDENTS.length+'人</b>分を暗号化）。<br>'
+        +'共有フォルダ等に置き、先生方には<b>パスワードを別途お伝え</b>ください。'
+      : '✅ パスワードなしの配布用HTMLを作成しました（<b>'+STUDENTS.length+'人</b>分）。<br>'
+        +'<b>教員だけがアクセスできる共有フォルダ</b>に置いてください（開くとすぐ使えます）。';
     $('newPw').value=''; $('newPw2').value='';
   }catch(err){
     msg.className='loaded err'; msg.textContent='⚠ 作成に失敗しました：'+err.message;
@@ -489,8 +517,23 @@ async function buildProtected(){
 }
 
 /* =========================================================================
-   閲覧モード：ロック解除（復号）
+   閲覧モード：解錠
    ========================================================================= */
+/* パスワードなし版：開いた直後に自動で解錠して検索へ */
+async function autoUnlock(){
+  if(!cryptoOK()){ $('nocrypto').hidden=false; return; }
+  try{
+    const obj=JSON.parse(await decryptData(EMBEDDED, OPEN_KEY));
+    STUDENTS=indexStudents(obj.students||[]);
+    SCHOOL_CODE=obj.schoolCode||'';
+    showSearch();
+    doSearch();
+  }catch(err){
+    const b=$('nocrypto'); b.hidden=false;
+    b.innerHTML='⚠ 名簿データを読み込めませんでした。ファイルが壊れている可能性があります。';
+  }
+}
+/* パスワードあり版：パスワードを入力して解錠 */
 async function unlock(){
   const msg=$('gateMsg'), pw=$('gatePw').value;
   if(!cryptoOK()){msg.className='loaded err';msg.textContent='⚠ この環境では解錠できません。';return;}
@@ -524,7 +567,8 @@ function lock(){
    ========================================================================= */
 function showSearch(){
   $('searchPanel').hidden=false;
-  $('lockBtn').hidden = !EMBEDDED ? true : false; // 保護版のときだけロックボタン
+  // パスワードあり版のときだけ「ロック」ボタンを出す（パスワードなし版は再施錠しても意味がないため）
+  $('lockBtn').hidden = !(EMBEDDED && EMBEDDED.mode==='password');
   buildFilters();
   $('q').focus();
 }
@@ -773,11 +817,16 @@ function init(){
   if(!cryptoOK()) $('nocrypto').hidden=false;
 
   if(EMBEDDED){
-    // 保護版：ロック画面のみ
-    $('gate').hidden=false;
-    $('gateBtn').addEventListener('click',unlock);
-    $('gatePw').addEventListener('keydown',e=>{ if(e.key==='Enter')unlock(); });
-    $('gatePw').focus();
+    if(EMBEDDED.mode==='open'){
+      // パスワードなし版：自動で解錠して検索へ
+      autoUnlock();
+    }else{
+      // パスワードあり版：ロック画面
+      $('gate').hidden=false;
+      $('gateBtn').addEventListener('click',unlock);
+      $('gatePw').addEventListener('keydown',e=>{ if(e.key==='Enter')unlock(); });
+      $('gatePw').focus();
+    }
   }else{
     // 通常版：管理者メニュー
     $('admin').hidden=false;
@@ -789,7 +838,10 @@ function init(){
     drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
     $('dlTemplate').addEventListener('click',downloadTemplate);
     $('buildBtn').addEventListener('click',buildProtected);
-    ['input','change'].forEach(ev=>{$('newPw').addEventListener(ev,updateBuildBtn);$('newPw2').addEventListener(ev,updateBuildBtn);});
+    // パスワードあり／なしの切り替え
+    document.querySelectorAll('input[name="protMode"]').forEach(r=>r.addEventListener('change',()=>{
+      $('pwFields').hidden = selectedMode()!=='password';
+    }));
   }
 
   // 検索パネル（両モード共通）
