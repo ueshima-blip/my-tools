@@ -9,7 +9,7 @@
     --bg:#f4f6f9; --panel:#ffffff; --ink:#1f2733; --muted:#6b7785;
     --primary:#1f4e79; --primary-d:#163a5a; --line:#dde3ea;
     --warn-bg:#fff6e6; --warn-line:#e7b85a; --warn-ink:#8a5a00;
-    --secret:#fbe9e7; --ok:#1f7a4d;
+    --ok:#1f7a4d;
   }
   *{box-sizing:border-box}
   body{
@@ -31,13 +31,15 @@
     background:var(--panel); border:1px solid var(--line); border-radius:12px;
     padding:16px; margin:14px 0; box-shadow:0 1px 2px rgba(20,40,70,.04);
   }
-  .step{font-weight:700; color:var(--primary); font-size:.95rem; margin:0 0 10px;}
+  .panel[hidden]{display:none;}
+  .step{font-weight:700; color:var(--primary); font-size:.95rem; margin:0 0 10px; display:flex; align-items:center; gap:.2em;}
   .step .num{
     display:inline-grid; place-items:center; width:1.5em; height:1.5em; margin-right:.4em;
-    background:var(--primary); color:#fff; border-radius:50%; font-size:.8rem;
+    background:var(--primary); color:#fff; border-radius:50%; font-size:.8rem; flex:none;
   }
+  .step .spacer{flex:1;}
+  hr.sep{border:none; border-top:1px solid var(--line); margin:18px 0;}
 
-  /* ファイル読み込み */
   .drop{
     border:2px dashed #b9c6d6; border-radius:10px; padding:18px; text-align:center;
     background:#fafcff; cursor:pointer; transition:.15s;
@@ -46,27 +48,28 @@
   .drop small{color:var(--muted); display:block; margin-top:6px;}
   .loaded{margin-top:10px; font-size:.92rem;}
   .loaded.ok{color:var(--ok);} .loaded.err{color:#b3261e;}
+  .desc{color:var(--muted); font-size:.9rem; margin:0 0 10px;}
 
   .row{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;}
   .fld{display:flex; flex-direction:column; gap:4px;}
   .fld label{font-size:.82rem; color:var(--muted);}
-  select,input[type=text]{
+  select,input[type=text],input[type=password]{
     font:inherit; padding:9px 10px; border:1px solid #c4cdd8; border-radius:8px; background:#fff; min-height:42px;
   }
-  select{min-width:90px;} #q{min-width:220px;}
-  input[type=text]:focus,select:focus{outline:2px solid #9fc1e6; border-color:var(--primary);}
+  select{min-width:90px;} #q{min-width:220px;} input[type=password]{min-width:200px;}
+  input:focus,select:focus{outline:2px solid #9fc1e6; border-color:var(--primary);}
 
   button{
     font:inherit; cursor:pointer; border:1px solid transparent; border-radius:8px;
     padding:9px 14px; min-height:42px; background:#eef2f7; color:var(--ink);
   }
   button:hover{filter:brightness(.98);}
+  button:disabled{opacity:.5; cursor:not-allowed;}
   button.primary{background:var(--primary); color:#fff;}
   button.ghost{background:#fff; border-color:#c4cdd8;}
   button.danger{background:#fff; border-color:#e0b4b0; color:#b3261e;}
   .link{background:none; border:none; color:var(--primary); text-decoration:underline; padding:4px 2px; min-height:auto;}
 
-  /* 候補リスト */
   .cands{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:6px;}
   .cands li button{
     width:100%; text-align:left; background:#fff; border:1px solid var(--line); border-radius:8px;
@@ -76,10 +79,8 @@
   .cands .pos{color:var(--muted); font-size:.85rem; min-width:78px;}
   .cands .nm{font-weight:600;}
   .cands .kn{color:var(--muted); font-size:.85rem;}
-
   .hint{color:var(--muted); font-size:.92rem; margin:12px 0 0;}
 
-  /* 結果カード */
   .card{border:1px solid var(--line); border-radius:12px; overflow:hidden;}
   .card .head{background:#eef4fb; padding:12px 16px; border-bottom:1px solid var(--line);}
   .card .pos{color:var(--primary); font-weight:700;}
@@ -99,7 +100,6 @@
 
   footer{color:var(--muted); font-size:.82rem; margin-top:24px; text-align:center;}
 
-  /* 印刷用スリップ（通常は非表示、印刷時のみ表示） */
   #printSlip{display:none;}
   @media print{
     body{background:#fff;}
@@ -119,18 +119,34 @@
 <div class="wrap">
   <header>
     <h1>アカウント確認ツール</h1>
-    <p class="sub">生徒の <b>年・組・氏名（ひらがな）</b> から、Googleアカウント／パスワード・端末番号／暗証番号を調べて知らせるための教職員用ツールです。</p>
+    <p class="sub">生徒の <b>年・組・氏名（ひらがな）</b> から、Googleアカウント／パスワード・端末番号／暗証番号・まなびポケット学校コードを調べて知らせるための教職員用ツールです。</p>
   </header>
 
   <div class="warn">
     🔐 <b>取り扱い注意（個人情報・パスワード）</b><br>
-    このツールはすべて <b>この端末の中だけ</b> で動作し、入力した名簿や生徒情報を外部へ送信することは一切ありません。
-    表示される情報は機密です。<b>周囲の人に画面を見られないよう</b>注意し、用が済んだら「消す」を押してください。
-    名簿の Excel ファイルは、<b>かぎのかかった場所（権限つき共有・USB等）</b> に保管してください。
+    このツールはすべて <b>この端末の中だけ</b> で動作し、生徒情報を外部へ送信することは一切ありません。
+    表示される情報は機密です。周囲に画面を見られないよう注意し、用が済んだら「消す」「ロック」を押してください。
   </div>
 
-  <!-- ① 名簿を読み込む -->
-  <section class="panel">
+  <!-- 互換性メッセージ -->
+  <div id="nocrypto" class="warn" hidden style="background:#fdecea;border-color:#e0998f;color:#9a2820;">
+    ⚠ この環境では暗号化機能（保護版の作成・解錠）が使えません。<b>Chrome / Edge / Safari</b> で開くか、<b>https のURL（GitHub Pages 等）</b> からお使いください。
+  </div>
+
+  <!-- ロック解除（保護版を開いたとき） -->
+  <section id="gate" class="panel" hidden>
+    <p class="step">🔒 ロック解除</p>
+    <p class="desc">この名簿は暗号化されています。閲覧用パスワードを入力してください。</p>
+    <div class="row">
+      <div class="fld"><label for="gatePw">閲覧用パスワード</label>
+        <input type="password" id="gatePw" autocomplete="off" placeholder="パスワード"></div>
+      <button class="primary" id="gateBtn">解錠する</button>
+    </div>
+    <div id="gateMsg" class="loaded"></div>
+  </section>
+
+  <!-- 管理者：名簿の読み込み／保護版の作成（通常版を開いたとき） -->
+  <section id="admin" class="panel" hidden>
     <p class="step"><span class="num">1</span>名簿（Excel）を読み込む</p>
     <div id="drop" class="drop">
       📄 ここに Excel（.xlsx）をドラッグ＆ドロップ、またはクリックして選択
@@ -141,11 +157,29 @@
     <p style="margin:12px 0 0;">
       <button class="link" id="dlTemplate">📥 記入用テンプレート（Excel）をダウンロード</button>
     </p>
+
+    <hr class="sep">
+
+    <p class="step"><span class="num">2</span>保護版HTMLを作成（配布用）</p>
+    <p class="desc">
+      名簿を <b>パスワードで暗号化して1つのHTMLファイル</b> にします。これを共有フォルダ等に置けば、
+      他の先生は <b>そのHTMLとパスワードだけ</b> で使えます（生のExcelを置く必要はありません）。
+      パスワードは口頭など別の方法で伝えてください。
+    </p>
+    <div class="row">
+      <div class="fld"><label for="newPw">閲覧用パスワードを決める</label>
+        <input type="password" id="newPw" autocomplete="new-password" placeholder="8文字以上を推奨"></div>
+      <div class="fld"><label for="newPw2">同じものをもう一度</label>
+        <input type="password" id="newPw2" autocomplete="new-password" placeholder="確認のため再入力"></div>
+      <button class="primary" id="buildBtn" disabled>🔐 保護版HTMLを作成</button>
+    </div>
+    <div id="buildMsg" class="loaded"></div>
   </section>
 
-  <!-- ② 検索 -->
-  <section class="panel" id="searchPanel" style="opacity:.5; pointer-events:none;">
-    <p class="step"><span class="num">2</span>生徒を検索する</p>
+  <!-- 検索 -->
+  <section class="panel" id="searchPanel" hidden>
+    <p class="step">🔎 生徒を検索する<span class="spacer"></span>
+      <button class="ghost" id="lockBtn" hidden>🔒 ロック</button></p>
     <div class="row">
       <div class="fld"><label for="fYear">年</label>
         <select id="fYear"><option value="">（すべて）</option></select></div>
@@ -163,18 +197,47 @@
   </footer>
 </div>
 
-<!-- 印刷用スリップ -->
 <div id="printSlip"></div>
+
+<!-- 暗号化された名簿データの埋め込み先（保護版を作るとここに入ります） -->
+<script id="payload" type="application/json">null</script>
 
 <script>
 /* =========================================================================
-   状態
+   起動直後に「自分自身のHTML」を保持しておく（保護版HTML作成に使う）
    ========================================================================= */
-let STUDENTS = [];   // {year,cls,no,kanji,kana,account,password,device,pin}
-let SCHOOL_CODE = ''; // まなびポケット学校コード（全員共通）
-let selected = null; // 表示中の生徒
+let SELF_HTML = '';
 
+/* 状態 */
+let STUDENTS = [];   // {year,cls,no,kanji,kana,account,password,device,pin, _kana,_kanji}
+let SCHOOL_CODE = ''; // まなびポケット学校コード（全員共通）
+let EMBEDDED = null;  // 埋め込まれた暗号データ（保護版のとき）
+let selected = null;
 const $ = (id)=>document.getElementById(id);
+
+/* =========================================================================
+   暗号化（Web Crypto / AES-GCM + PBKDF2）— 外部ライブラリ不要
+   ========================================================================= */
+const PBKDF2_ITER = 200000;
+function b64(u){let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s);}
+function ub64(str){const bin=atob(str);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+async function deriveKey(password, salt, iter, usage){
+  const km=await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'},
+    km, {name:'AES-GCM', length:256}, false, usage);
+}
+async function encryptData(plaintext, password){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(password, salt, PBKDF2_ITER, ['encrypt']);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plaintext));
+  return {v:1, alg:'AES-GCM', kdf:'PBKDF2', iter:PBKDF2_ITER, salt:b64(salt), iv:b64(iv), ct:b64(new Uint8Array(ct))};
+}
+async function decryptData(payload, password){
+  const key=await deriveKey(password, ub64(payload.salt), payload.iter||PBKDF2_ITER, ['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv:ub64(payload.iv)}, key, ub64(payload.ct)); // 失敗で例外
+  return new TextDecoder().decode(pt);
+}
 
 /* =========================================================================
    Excel(.xlsx) 読み込み（外部ライブラリ不要・端末内で完結）
@@ -255,9 +318,9 @@ async function readXlsx(buf){
    ========================================================================= */
 function normHeader(s){
   return (s||'')
-    .replace(/[（）]/g,m=>m==='（'?'(':')')      // 全角カッコ → 半角
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)) // 全角英数 → 半角
-    .replace(/[\s　]/g,'')                   // 空白除去
+    .replace(/[（）]/g,m=>m==='（'?'(':')')
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/[\s　]/g,'')
     .toLowerCase();
 }
 function resolveField(h){
@@ -275,22 +338,17 @@ function resolveField(h){
   if(h.includes('番'))return 'no';
   return null;
 }
-
-/* =========================================================================
-   かな正規化（カタカナ→ひらがな・空白除去）
-   ========================================================================= */
 function normKana(s){
   return (s||'')
-    .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)) // カタカナ→ひらがな
+    .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
     .replace(/[\s　]/g,'')
     .toLowerCase();
 }
 
 /* =========================================================================
-   名簿を解釈して STUDENTS を作る
+   名簿を解釈
    ========================================================================= */
 function parseStudents(rows){
-  // ヘッダー行を探す（最初に複数列を判定できた行）
   let headerRow=-1, map={};
   for(let i=0;i<Math.min(rows.length,10);i++){
     const m={}, r=rows[i]; let hit=0;
@@ -301,7 +359,6 @@ function parseStudents(rows){
     if(hit>=3 && ('kana' in m || 'kanji' in m)){headerRow=i; map=m; break;}
   }
   if(headerRow<0)throw new Error('見出し行が見つかりません。テンプレートの見出し（年・組・番・氏名（漢字）・氏名（ひらがな）…）をご確認ください。');
-
   const get=(r,key)=> (key in map)? (r[map[key]]||'').trim() : '';
   const list=[];
   for(let i=headerRow+1;i<rows.length;i++){
@@ -312,42 +369,39 @@ function parseStudents(rows){
       account:get(r,'account'), password:get(r,'password'),
       device:get(r,'device'), pin:get(r,'pin'),
     };
-    if(!s.kanji && !s.kana && !s.account)continue; // 空行はスキップ
-    s._kana=normKana(s.kana);
-    s._kanji=(s.kanji||'').replace(/[\s　]/g,'');
+    if(!s.kanji && !s.kana && !s.account)continue;
     list.push(s);
   }
   return {list, map, headerRow};
 }
+/* 検索用の正規化フィールドを付与（Excel取込後・復号後の両方で使う） */
+function indexStudents(list){
+  return (list||[]).map(s=>({
+    ...s,
+    _kana:normKana(s.kana),
+    _kanji:(s.kanji||'').replace(/[\s　]/g,''),
+  }));
+}
 
-/* =========================================================================
-   まなびポケット学校コード（全員共通）を取り出す
-   - 専用セル（「まなびポケット学校コード」ラベルの右／下／同セル内）を最優先
-   - 列として入力されている場合は、その列の最初の非空値を使う
-   ========================================================================= */
+/* まなびポケット学校コード（全員共通）を取り出す */
 function findSchoolCode(rows, headerRow, map){
-  // 1) 専用ラベルのセルを探す
   for(let i=0;i<rows.length;i++){
-    if(i===headerRow)continue;            // 見出し行は対象外
+    if(i===headerRow)continue;
     const r=rows[i]||[];
     for(let j=0;j<r.length;j++){
       const raw=(r[j]||'').trim();
       if(!raw)continue;
       const norm=normHeader(raw);
       if(norm.includes('学校コード')||norm.includes('まなびポケット')){
-        // 同じセル内に「ラベル：値」の形で書かれている場合
         const inline=raw.match(/(?:コード)\s*[:：]\s*(\S.*)$/);
         if(inline && inline[1].trim())return inline[1].trim();
-        // 右隣のセル
         const right=(r[j+1]||'').trim();
         if(right && !/学校コード|まなびポケット/.test(normHeader(right)))return right;
-        // 下のセル
         const below=((rows[i+1]||[])[j]||'').trim();
         if(below && !/学校コード|まなびポケット/.test(normHeader(below)))return below;
       }
     }
   }
-  // 2) 列として入力されている場合：最初の非空値
   if('schoolcode' in map){
     for(let i=headerRow+1;i<rows.length;i++){
       const v=((rows[i]||[])[map.schoolcode]||'').trim();
@@ -358,22 +412,20 @@ function findSchoolCode(rows, headerRow, map){
 }
 
 /* =========================================================================
-   ファイル読み込みハンドラ
+   管理者モード：Excel読み込み
    ========================================================================= */
 async function handleFile(file){
   const loaded=$('loaded');
   if(!file){return;}
   if(!/\.xlsx$/i.test(file.name)){
-    loaded.className='loaded err'; loaded.textContent='⚠ .xlsx ファイルを選んでください。';
-    return;
+    loaded.className='loaded err'; loaded.textContent='⚠ .xlsx ファイルを選んでください。'; return;
   }
   try{
     const buf=await file.arrayBuffer();
     const rows=await readXlsx(buf);
     const {list,map,headerRow}=parseStudents(rows);
-    STUDENTS=list;
+    STUDENTS=indexStudents(list);
     SCHOOL_CODE=findSchoolCode(rows, headerRow, map);
-    // 欠けている列の注意書き
     const need={year:'年',cls:'組',no:'番',kanji:'氏名（漢字）',kana:'氏名（ひらがな）',
                 account:'Googleアカウント',password:'Googleパスワード',device:'端末番号',pin:'端末暗証番号'};
     const keyName={year:'year',cls:'class',no:'no',kanji:'kanji',kana:'kana',
@@ -385,23 +437,97 @@ async function handleFile(file){
           ? '<br>🏫 まなびポケット学校コード（全員共通）：<b>'+escapeHtml(SCHOOL_CODE)+'</b>'
           : '<br><span style="color:#b08400">⚠ まなびポケット学校コードが見つかりませんでした（Excelの先頭セルに入力してください）</span>')
       + (missing.length? '<br><span style="color:#b08400">⚠ 見つからなかった列：'+missing.join('・')+'（その項目は表示されません）</span>':'');
-    buildFilters();
-    $('searchPanel').style.opacity='1';
-    $('searchPanel').style.pointerEvents='auto';
-    $('q').focus();
+    updateBuildBtn();
+    showSearch();
     doSearch();
   }catch(err){
-    STUDENTS=[];
+    STUDENTS=[]; SCHOOL_CODE='';
     loaded.className='loaded err';
     loaded.textContent='⚠ 読み込みに失敗しました：'+err.message;
-    $('searchPanel').style.opacity='.5';
-    $('searchPanel').style.pointerEvents='none';
+    $('searchPanel').hidden=true; updateBuildBtn();
   }
 }
 
 /* =========================================================================
-   年・組のプルダウンを作る
+   管理者モード：保護版HTMLを作成
    ========================================================================= */
+function updateBuildBtn(){
+  const ok = STUDENTS.length>0 && cryptoOK();
+  $('buildBtn').disabled = !ok;
+}
+/* 自分自身のHTMLに暗号データを差し込んだ文字列を返す（純粋関数：テスト可能） */
+function bakeProtected(selfHtml, payloadObj){
+  const json=JSON.stringify(payloadObj).replace(/</g,'\\u003c'); // 念のため < をエスケープ
+  return selfHtml.replace(/(<script[^>]*id="payload"[^>]*>)[\s\S]*?(<\/script>)/,
+    (m,a,b)=>a+json+b);
+}
+async function buildProtected(){
+  const msg=$('buildMsg');
+  const pw=$('newPw').value, pw2=$('newPw2').value;
+  if(!cryptoOK()){msg.className='loaded err';msg.textContent='⚠ この環境では暗号化が使えません。';return;}
+  if(STUDENTS.length===0){msg.className='loaded err';msg.textContent='⚠ 先に名簿（Excel）を読み込んでください。';return;}
+  if(pw.length<4){msg.className='loaded err';msg.textContent='⚠ パスワードは4文字以上にしてください（8文字以上を推奨）。';return;}
+  if(pw!==pw2){msg.className='loaded err';msg.textContent='⚠ 2つのパスワードが一致しません。';return;}
+  msg.className='loaded'; msg.textContent='⏳ 暗号化しています…';
+  try{
+    // 検索用の補助フィールドは保存せず、素のデータだけ暗号化
+    const plain=JSON.stringify({
+      students: STUDENTS.map(s=>({year:s.year,cls:s.cls,no:s.no,kanji:s.kanji,kana:s.kana,
+        account:s.account,password:s.password,device:s.device,pin:s.pin})),
+      schoolCode: SCHOOL_CODE,
+    });
+    const payload=await encryptData(plain, pw);
+    const out=bakeProtected(SELF_HTML, payload);
+    download(out, 'アカウント確認（保護版）.html', 'text/html');
+    msg.className='loaded ok';
+    msg.innerHTML='✅ 保護版HTMLを作成しました（<b>'+STUDENTS.length+'人</b>分を暗号化）。<br>'
+      +'このファイルを共有フォルダ等に置き、先生方には<b>パスワードを別途お伝え</b>ください。';
+    $('newPw').value=''; $('newPw2').value='';
+  }catch(err){
+    msg.className='loaded err'; msg.textContent='⚠ 作成に失敗しました：'+err.message;
+  }
+}
+
+/* =========================================================================
+   閲覧モード：ロック解除（復号）
+   ========================================================================= */
+async function unlock(){
+  const msg=$('gateMsg'), pw=$('gatePw').value;
+  if(!cryptoOK()){msg.className='loaded err';msg.textContent='⚠ この環境では解錠できません。';return;}
+  if(!pw){msg.className='loaded err';msg.textContent='⚠ パスワードを入力してください。';return;}
+  msg.className='loaded'; msg.textContent='⏳ 解錠しています…';
+  try{
+    const plain=await decryptData(EMBEDDED, pw);
+    const obj=JSON.parse(plain);
+    STUDENTS=indexStudents(obj.students||[]);
+    SCHOOL_CODE=obj.schoolCode||'';
+    $('gate').hidden=true;
+    $('gatePw').value=''; msg.textContent='';
+    showSearch();
+    doSearch();
+  }catch(err){
+    msg.className='loaded err'; msg.textContent='⚠ パスワードが違います。もう一度お試しください。';
+    $('gatePw').value=''; $('gatePw').focus();
+  }
+}
+function lock(){
+  // メモリ上の情報を消して、再びロック画面へ（保護版のとき）
+  STUDENTS=[]; SCHOOL_CODE=''; selected=null;
+  $('result').innerHTML=''; $('printSlip').innerHTML='';
+  $('searchPanel').hidden=true;
+  if(EMBEDDED){ $('gate').hidden=false; $('gatePw').focus(); }
+  else { $('admin').hidden=false; }
+}
+
+/* =========================================================================
+   検索 → 表示
+   ========================================================================= */
+function showSearch(){
+  $('searchPanel').hidden=false;
+  $('lockBtn').hidden = !EMBEDDED ? true : false; // 保護版のときだけロックボタン
+  buildFilters();
+  $('q').focus();
+}
 function uniqSorted(vals){
   const u=[...new Set(vals.filter(v=>v!==''))];
   const allNum=u.every(v=>/^\d+$/.test(v));
@@ -414,14 +540,9 @@ function buildFilters(){
   const classes=uniqSorted(STUDENTS.map(s=>s.cls));
   yearSel.innerHTML='<option value="">（すべて）</option>'+years.map(y=>`<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
   classSel.innerHTML='<option value="">（すべて）</option>'+classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-  // 年・組の列が無ければ隠す
   yearSel.parentElement.style.display = years.length? '' : 'none';
   classSel.parentElement.style.display = classes.length? '' : 'none';
 }
-
-/* =========================================================================
-   検索 → 表示
-   ========================================================================= */
 function currentMatches(){
   const y=$('fYear').value, c=$('fClass').value, q=normKana($('q').value);
   const qRaw=$('q').value.replace(/[\s　]/g,'');
@@ -462,7 +583,6 @@ function renderCandidates(list){
     btn.addEventListener('click',()=>{ selected=list[+btn.dataset.i]; renderCard(selected); });
   });
 }
-
 function renderCard(s){
   const res=$('result');
   const pos=[s.year&&s.year+'年',s.cls&&s.cls+'組',s.no&&s.no+'番'].filter(Boolean).join(' ');
@@ -474,7 +594,6 @@ function renderCard(s){
         <button data-toggle="${id}">表示</button>
         <button data-copy="${escapeHtml(val)}">コピー</button>
       </span></td></tr>`;
-
   res.innerHTML=`<div class="card">
     <div class="head">
       <div class="pos">${escapeHtml(pos||'')}</div>
@@ -493,12 +612,9 @@ function renderCard(s){
       <button class="danger" id="clearBtn">🧹 画面を消す</button>
     </div>
   </div>`;
-
-  // コピー
   res.querySelectorAll('button[data-copy]').forEach(btn=>{
     btn.addEventListener('click',()=>copyText(btn.dataset.copy, btn));
   });
-  // 表示／隠す
   res.querySelectorAll('button[data-toggle]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const el=$(btn.dataset.toggle);
@@ -511,17 +627,14 @@ function renderCard(s){
   $('backBtn').addEventListener('click',()=>doSearch());
   $('clearBtn').addEventListener('click',clearResult);
 }
-
 function clearResult(){
   selected=null;
   $('fYear').value=''; $('fClass').value=''; $('q').value='';
   $('result').innerHTML='<p class="hint">画面を消しました。もう一度、年・組・氏名（ひらがな）で検索できます。</p>';
-  $('printSlip').innerHTML=''; // 印刷用に残った機密情報も消す
+  $('printSlip').innerHTML='';
 }
 
-/* =========================================================================
-   印刷用スリップ（生徒に渡す用紙）
-   ========================================================================= */
+/* 印刷用スリップ */
 function printSlip(s){
   if(!confirm('この生徒の Googleパスワード・端末暗証番号を含む用紙を印刷します。\n本人に手渡すなど、取り扱いにご注意ください。よろしいですか？'))return;
   const pos=[s.year&&s.year+'年',s.cls&&s.cls+'組',s.no&&s.no+'番'].filter(Boolean).join('　');
@@ -538,7 +651,6 @@ function printSlip(s){
     </table>
     <p class="note">※ パスワードは他の人に教えないでください。なくさないよう大切に保管しましょう。</p>
   </div>`;
-  // 印刷が終わったら、スリップに残る機密情報を消す
   const wipe=()=>{ $('printSlip').innerHTML=''; window.removeEventListener('afterprint',wipe); };
   window.addEventListener('afterprint',wipe);
   window.print();
@@ -547,7 +659,12 @@ function printSlip(s){
 /* =========================================================================
    ユーティリティ
    ========================================================================= */
+function cryptoOK(){ return !!(window.crypto && window.crypto.subtle); }
 function escapeHtml(s){return (s==null?'':String(s)).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function download(text, name, mime){
+  const blob=new Blob([text],{type:mime||'application/octet-stream'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
 function copyText(text, btn){
   const done=()=>{ const tag=document.createElement('span'); tag.className='copied'; tag.textContent='コピーしました'; btn.after(tag); setTimeout(()=>tag.remove(),1500); };
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -559,6 +676,10 @@ function fallbackCopy(text,done){
   document.body.appendChild(ta); ta.select();
   try{document.execCommand('copy'); done();}catch(e){alert('コピーできませんでした。手入力してください。');}
   ta.remove();
+}
+function readPayload(){
+  const el=$('payload'); if(!el)return null;
+  try{ const obj=JSON.parse(el.textContent.trim()); return (obj && obj.ct)? obj : null; }catch(e){ return null; }
 }
 
 /* =========================================================================
@@ -601,15 +722,13 @@ function zipStore(files){
   r.set(eocd,p);return r;
 }
 function downloadTemplate(){
-  // 先頭にまなびポケット学校コード（全員共通）の専用セルを置き、3行目から名簿表を始める
-  const SC='manabi-1234'; // 記入例（全員共通の1つ）
-  const defs=[                                   // [行(1始まり), 列(0始まり), 値, 太字]
+  const SC='manabi-1234';
+  const defs=[
     [1,0,'まなびポケット学校コード（全員共通）',true],
     [2,0,SC,false],
   ];
   HEADERS.forEach((h,ci)=>defs.push([3,ci,h,true]));
   SAMPLE.forEach((row,ri)=>row.forEach((val,ci)=>defs.push([4+ri,ci,val,false])));
-
   const ssList=[],ssIndex={};
   const si=v=>{if(!(v in ssIndex)){ssIndex[v]=ssList.length;ssList.push(v);}return ssIndex[v];};
   const colLetter=i=>{let s='';i++;while(i>0){s=String.fromCharCode(65+(i-1)%26)+s;i=Math.floor((i-1)/26);}return s;};
@@ -641,28 +760,47 @@ function downloadTemplate(){
     {name:'xl/sharedStrings.xml',data:strToU8(ssXml)},
     {name:'xl/styles.xml',data:strToU8(sty)}
   ]);
-  const blob=new Blob([z],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='アカウント名簿テンプレート.xlsx';a.click();URL.revokeObjectURL(a.href);
+  download(z, 'アカウント名簿テンプレート.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 /* =========================================================================
-   イベント登録
+   初期化
    ========================================================================= */
-(function init(){
-  const drop=$('drop'), file=$('file');
-  drop.addEventListener('click',()=>file.click());
-  file.addEventListener('change',()=>{ if(file.files[0]) handleFile(file.files[0]); });
-  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
-  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
-  drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+function init(){
+  SELF_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  EMBEDDED = readPayload();
 
+  if(!cryptoOK()) $('nocrypto').hidden=false;
+
+  if(EMBEDDED){
+    // 保護版：ロック画面のみ
+    $('gate').hidden=false;
+    $('gateBtn').addEventListener('click',unlock);
+    $('gatePw').addEventListener('keydown',e=>{ if(e.key==='Enter')unlock(); });
+    $('gatePw').focus();
+  }else{
+    // 通常版：管理者メニュー
+    $('admin').hidden=false;
+    const drop=$('drop'), file=$('file');
+    drop.addEventListener('click',()=>file.click());
+    file.addEventListener('change',()=>{ if(file.files[0]) handleFile(file.files[0]); });
+    ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+    drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+    $('dlTemplate').addEventListener('click',downloadTemplate);
+    $('buildBtn').addEventListener('click',buildProtected);
+    ['input','change'].forEach(ev=>{$('newPw').addEventListener(ev,updateBuildBtn);$('newPw2').addEventListener(ev,updateBuildBtn);});
+  }
+
+  // 検索パネル（両モード共通）
   $('fYear').addEventListener('change',doSearch);
   $('fClass').addEventListener('change',doSearch);
   $('q').addEventListener('input',doSearch);
   $('clearSearch').addEventListener('click',()=>{ $('fYear').value=''; $('fClass').value=''; $('q').value=''; doSearch(); $('q').focus(); });
-  $('dlTemplate').addEventListener('click',downloadTemplate);
-})();
+  $('lockBtn').addEventListener('click',lock);
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else init();
 </script>
 </body>
 </html>
