@@ -171,6 +171,7 @@
    状態
    ========================================================================= */
 let STUDENTS = [];   // {year,cls,no,kanji,kana,account,password,device,pin}
+let SCHOOL_CODE = ''; // まなびポケット学校コード（全員共通）
 let selected = null; // 表示中の生徒
 
 const $ = (id)=>document.getElementById(id);
@@ -260,6 +261,7 @@ function normHeader(s){
     .toLowerCase();
 }
 function resolveField(h){
+  if(h.includes('学校コード')||h.includes('まなびポケット')||(h.includes('まなび')&&h.includes('コード')))return 'schoolcode';
   if(h.includes('暗証')||h==='pin'||h.includes('パスコード'))return 'pin';
   if(h.includes('端末')&&h.includes('パスワード'))return 'pin';
   if(h.includes('パスワード')||h==='password'||h==='pass'||h==='pw')return 'password';
@@ -315,7 +317,44 @@ function parseStudents(rows){
     s._kanji=(s.kanji||'').replace(/[\s　]/g,'');
     list.push(s);
   }
-  return {list, map};
+  return {list, map, headerRow};
+}
+
+/* =========================================================================
+   まなびポケット学校コード（全員共通）を取り出す
+   - 専用セル（「まなびポケット学校コード」ラベルの右／下／同セル内）を最優先
+   - 列として入力されている場合は、その列の最初の非空値を使う
+   ========================================================================= */
+function findSchoolCode(rows, headerRow, map){
+  // 1) 専用ラベルのセルを探す
+  for(let i=0;i<rows.length;i++){
+    if(i===headerRow)continue;            // 見出し行は対象外
+    const r=rows[i]||[];
+    for(let j=0;j<r.length;j++){
+      const raw=(r[j]||'').trim();
+      if(!raw)continue;
+      const norm=normHeader(raw);
+      if(norm.includes('学校コード')||norm.includes('まなびポケット')){
+        // 同じセル内に「ラベル：値」の形で書かれている場合
+        const inline=raw.match(/(?:コード)\s*[:：]\s*(\S.*)$/);
+        if(inline && inline[1].trim())return inline[1].trim();
+        // 右隣のセル
+        const right=(r[j+1]||'').trim();
+        if(right && !/学校コード|まなびポケット/.test(normHeader(right)))return right;
+        // 下のセル
+        const below=((rows[i+1]||[])[j]||'').trim();
+        if(below && !/学校コード|まなびポケット/.test(normHeader(below)))return below;
+      }
+    }
+  }
+  // 2) 列として入力されている場合：最初の非空値
+  if('schoolcode' in map){
+    for(let i=headerRow+1;i<rows.length;i++){
+      const v=((rows[i]||[])[map.schoolcode]||'').trim();
+      if(v)return v;
+    }
+  }
+  return '';
 }
 
 /* =========================================================================
@@ -331,8 +370,9 @@ async function handleFile(file){
   try{
     const buf=await file.arrayBuffer();
     const rows=await readXlsx(buf);
-    const {list,map}=parseStudents(rows);
+    const {list,map,headerRow}=parseStudents(rows);
     STUDENTS=list;
+    SCHOOL_CODE=findSchoolCode(rows, headerRow, map);
     // 欠けている列の注意書き
     const need={year:'年',cls:'組',no:'番',kanji:'氏名（漢字）',kana:'氏名（ひらがな）',
                 account:'Googleアカウント',password:'Googleパスワード',device:'端末番号',pin:'端末暗証番号'};
@@ -341,6 +381,9 @@ async function handleFile(file){
     const missing=Object.keys(need).filter(k=>!(keyName[k] in map)).map(k=>need[k]);
     loaded.className='loaded ok';
     loaded.innerHTML='✅ <b>'+STUDENTS.length+'人</b> を読み込みました（ファイル：'+escapeHtml(file.name)+'）'
+      + (SCHOOL_CODE
+          ? '<br>🏫 まなびポケット学校コード（全員共通）：<b>'+escapeHtml(SCHOOL_CODE)+'</b>'
+          : '<br><span style="color:#b08400">⚠ まなびポケット学校コードが見つかりませんでした（Excelの先頭セルに入力してください）</span>')
       + (missing.length? '<br><span style="color:#b08400">⚠ 見つからなかった列：'+missing.join('・')+'（その項目は表示されません）</span>':'');
     buildFilters();
     $('searchPanel').style.opacity='1';
@@ -442,6 +485,7 @@ function renderCard(s){
       ${rowSecret('Googleパスワード', s.password, 'pw')}
       ${rowPlain('端末番号', s.device)}
       ${rowSecret('端末暗証番号', s.pin, 'pin')}
+      ${rowPlain('まなびポケット学校コード<br><small style="font-weight:400">（全員共通）</small>', SCHOOL_CODE)}
     </table>
     <div class="actions">
       <button class="primary" id="printBtn">🖨 この生徒の用紙を印刷</button>
@@ -490,6 +534,7 @@ function printSlip(s){
       ${row('Googleパスワード', s.password)}
       ${row('端末番号', s.device)}
       ${row('端末暗証番号', s.pin)}
+      ${row('まなびポケット学校コード', SCHOOL_CODE)}
     </table>
     <p class="note">※ パスワードは他の人に教えないでください。なくさないよう大切に保管しましょう。</p>
   </div>`;
@@ -556,23 +601,32 @@ function zipStore(files){
   r.set(eocd,p);return r;
 }
 function downloadTemplate(){
-  const tableRows=[HEADERS].concat(SAMPLE);
+  // 先頭にまなびポケット学校コード（全員共通）の専用セルを置き、3行目から名簿表を始める
+  const SC='manabi-1234'; // 記入例（全員共通の1つ）
+  const defs=[                                   // [行(1始まり), 列(0始まり), 値, 太字]
+    [1,0,'まなびポケット学校コード（全員共通）',true],
+    [2,0,SC,false],
+  ];
+  HEADERS.forEach((h,ci)=>defs.push([3,ci,h,true]));
+  SAMPLE.forEach((row,ri)=>row.forEach((val,ci)=>defs.push([4+ri,ci,val,false])));
+
   const ssList=[],ssIndex={};
   const si=v=>{if(!(v in ssIndex)){ssIndex[v]=ssList.length;ssList.push(v);}return ssIndex[v];};
   const colLetter=i=>{let s='';i++;while(i>0){s=String.fromCharCode(65+(i-1)%26)+s;i=Math.floor((i-1)/26);}return s;};
+  const byRow={};
+  defs.forEach(([r,c,v,bold])=>{(byRow[r]=byRow[r]||[]).push([c,v,bold]);});
   let rowsXml='';
-  tableRows.forEach((row,ri)=>{
-    const rnum=ri+1;let cells='';
-    row.forEach((val,ci)=>{
-      const styleAttr=ri===0?' s="1"':'';
-      cells+='<c r="'+colLetter(ci)+rnum+'" t="s"'+styleAttr+'><v>'+si(String(val))+'</v></c>';
+  Object.keys(byRow).map(Number).sort((a,b)=>a-b).forEach(r=>{
+    let cells='';
+    byRow[r].sort((a,b)=>a[0]-b[0]).forEach(([c,v,bold])=>{
+      cells+='<c r="'+colLetter(c)+r+'" t="s"'+(bold?' s="1"':'')+'><v>'+si(String(v))+'</v></c>';
     });
-    rowsXml+='<row r="'+rnum+'">'+cells+'</row>';
+    rowsXml+='<row r="'+r+'">'+cells+'</row>';
   });
-  const cellCount=tableRows.reduce((n,r)=>n+r.length,0);
+  const cellCount=defs.length;
   const ssXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+cellCount+'" uniqueCount="'+ssList.length+'">'+ssList.map(s=>'<si><t xml:space="preserve">'+escXml(s)+'</t></si>').join('')+'</sst>';
   const cols='<cols><col min="1" max="3" width="6"/><col min="4" max="4" width="16"/><col min="5" max="5" width="18"/><col min="6" max="6" width="30"/><col min="7" max="7" width="16"/><col min="8" max="8" width="12"/><col min="9" max="9" width="14"/></cols>';
-  const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>';
+  const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>';
   const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
   const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
   const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="名簿" sheetId="1" r:id="rId1"/></sheets></workbook>';

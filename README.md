@@ -39,7 +39,7 @@ my-tools/
 | 席替えアプリ | HTMLアプリ | クラス名簿(Excel)を取り込み、男女配置・班・距離条件などを考慮して瞬時／ルーレットで席替え。印刷・JPG保存・履歴つき。 | [`apps/seat-shuffle/`](apps/seat-shuffle/) |
 | 提出物チェックシステム | HTMLアプリ | クラスの提出物を管理。Excel から生徒を一括登録でき、複数クラス対応。 | [`apps/submission-tracker/`](apps/submission-tracker/) |
 | 大喜利グランプリ得点発表ツール | HTMLアプリ（PC・プロジェクタ） | 5クラス対抗の大喜利の得点(0〜10)を、IPPONグランプリ風の演出・効果音・紙吹雪で発表。野外学習などのレク向け。 | [`apps/ippon-grand-prix/`](apps/ippon-grand-prix/) |
-| アカウント確認ツール | HTMLアプリ（教職員用） | 生徒がアカウント／パスワードを忘れたとき、年・組・氏名（ひらがな）から Googleアカウント・パスワード・端末番号・暗証番号を調べて知らせる。Excel名簿を読み込み、完全オフライン動作（外部送信なし）。 | [`apps/account-lookup/`](apps/account-lookup/) |
+| アカウント確認ツール | HTMLアプリ（教職員用） | 生徒がアカウント／パスワードを忘れたとき、年・組・氏名（ひらがな）から Googleアカウント・パスワード・端末番号・暗証番号・まなびポケット学校コード（全員共通）を調べて知らせる。Excel名簿を読み込み、完全オフライン動作（外部送信なし）。 | [`apps/account-lookup/`](apps/account-lookup/) |
 | 進度予定表システム（鳴海中用・学校共通用） | Excel（マクロ） | 中学校教諭用の週単位の進度予定表。鳴海中用と学校共通用の 2 種類。VBA を編集するツール・手順つき。 | [`excel/shindo-yotei/`](excel/shindo-yotei/) |
 
 ## ▶️ ツールの開き方
