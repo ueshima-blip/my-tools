@@ -46,7 +46,9 @@
   #confetti{position:fixed; inset:0; z-index:40; pointer-events:none;}
   #flash{position:fixed; inset:0; z-index:45; pointer-events:none; background:#fff; opacity:0;}
   #flash.go{animation:flash .55s ease-out;}
+  #flash.go2{animation:flash2 .5s ease-out;}      /* 確定の合図（控えめ） */
   @keyframes flash{0%{opacity:.9;}100%{opacity:0;}}
+  @keyframes flash2{0%{opacity:.5;}100%{opacity:0;}}
 
   /* ===== ロゴ（IPPON風・左上） ===== */
   #logo{position:fixed; left:2.2vw; top:2.4vh; z-index:30; line-height:1;
@@ -59,26 +61,19 @@
   #logo .b{font-weight:800; font-size:clamp(8px,1.2vw,12px); letter-spacing:.42em; color:#caa64a;
     text-indent:.42em; margin-top:.15em;}
 
-  /* ===== ステージ ===== */
-  #stage{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:1.4vh; padding:6vh 3vw 8vh;}
-
-  /* クラス名（金の帯） */
-  #classBadge{position:relative; text-align:center; opacity:.98;}
-  #classBadge .lead{font-size:clamp(11px,2vw,18px); letter-spacing:.34em; color:#e9c95a;
-    font-weight:800; text-indent:.34em; margin-bottom:.5em;}
-  #classBadge .name{display:inline-block; font-family:"Yu Mincho","游明朝","Hiragino Mincho ProN","MS Mincho",serif;
-    font-weight:900; letter-spacing:.1em; color:#1a1205;
-    font-size:clamp(24px,5.4vw,56px); line-height:1.05; padding:.12em .8em;
-    background:linear-gradient(180deg,var(--gold1),var(--gold2) 52%,var(--gold3));
-    border:2px solid #fff0b0; border-radius:8px;
-    box-shadow:0 6px 0 var(--gold-edge), 0 10px 26px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.5);}
+  /* ===== ステージ（下の操作バーと被らないよう下側に余白） ===== */
+  #stage{position:fixed; left:0; right:0; top:0; bottom:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1.4vh; padding:5vh 3vw 15vh;}
 
   /* 八角形 金フレーム（16:9ワイド画面に合わせた横長） */
-  #frame{position:relative; width:min(92vw,128vh); aspect-ratio:2.4/1; padding:1.5vmin;
+  #frame{position:relative; width:min(88vw,112vh); aspect-ratio:2.4/1; padding:1.4vmin;
     clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
     background:linear-gradient(135deg,#fff0b0,#e8b531 38%,#a06f12 70%,#6f4a05);
     filter:drop-shadow(0 0 30px var(--glow));}
+  #frame.pulse{animation:fpulse .5s ease-out;}   /* 確定時のキラッ */
+  @keyframes fpulse{0%{filter:drop-shadow(0 0 30px var(--glow)); transform:scale(1);}
+    28%{filter:drop-shadow(0 0 80px #fff); transform:scale(1.03);}
+    100%{filter:drop-shadow(0 0 30px var(--glow)); transform:scale(1);}}
   #frameInner{width:100%; height:100%;
     clip-path:polygon(12% 0,88% 0,100% 30%,100% 70%,88% 100%,12% 100%,0 70%,0 30%);
     background:radial-gradient(ellipse at 50% 45%, #1a1922 0%, #0a0a10 60%, #050507 100%);
@@ -86,7 +81,7 @@
 
   /* LED風の数字 */
   #score{font-family:"Courier New",ui-monospace,monospace; font-weight:900; line-height:.9;
-    font-size:min(34vh,30vw); color:var(--led);
+    font-size:min(30vh,26vw); color:var(--led);
     text-shadow:0 0 10px var(--led-glow), 0 0 34px rgba(255,170,20,.75), 0 0 70px rgba(255,140,0,.5);
     transition:color .2s, text-shadow .2s;}
   #score.q{color:#6a5a22; text-shadow:0 0 14px rgba(150,120,30,.35);}
@@ -158,23 +153,21 @@
 
   /* ===== コントロールバー（タッチ操作・押しても無反応） ===== */
   #bar{position:fixed; left:0; right:0; bottom:0; z-index:70;
-    display:flex; flex-direction:column; gap:8px; padding:10px 12px 14px;
+    display:flex; flex-direction:column; gap:6px; padding:7px 10px 9px;
     background:linear-gradient(0deg, rgba(4,5,9,.97), rgba(4,5,9,.82) 70%, rgba(4,5,9,0));
     transition:transform .32s ease, opacity .32s;}
   #bar.hidden{transform:translateY(120%); opacity:0;}
-  .barrow{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; align-items:center;}
-  .barlabel{color:#8fa0c8; font-size:13px; font-weight:700; min-width:4.2em; text-align:right;}
+  .barrow{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; align-items:center;}
+  .barlabel{color:#8fa0c8; font-size:12px; font-weight:700; min-width:4em; text-align:right;}
   /* ★ボタンは押しても一切見た目が変わらない（点数バレ防止） */
-  .cls,.sc,.util{outline:none; cursor:pointer; border:2px solid #2a2f4a; color:#cdd6f4;
+  .sc,.util{outline:none; cursor:pointer; border:2px solid #2a2f4a; color:#cdd6f4;
     background:#141826; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
-  .cls:focus,.sc:focus,.util:focus,.cls:active,.sc:active,.util:active,
-  .cls:hover,.sc:hover,.util:hover{background:#141826; border-color:#2a2f4a; color:#cdd6f4; transform:none;}
-  .cls{font-size:clamp(15px,2.1vw,21px); font-weight:800; padding:.55em 1.05em; border-radius:12px; min-width:5.4em;}
-  .cls.cur{border-color:#5a648c;}            /* 現在クラスのうっすら表示（点数とは無関係なのでOK） */
-  .sc{width:clamp(54px,6vw,76px); height:clamp(54px,6vw,76px); border-radius:14px;
-    font-size:clamp(22px,2.8vw,32px); font-weight:900; color:#e7ecff;}
-  .sc.s10{width:auto; padding:0 1.05em; color:#e7ecff;}
-  .util{font-size:14px; font-weight:700; padding:.6em 1em; border-radius:10px; color:#aab6da; background:#10142a;}
+  .sc:focus,.util:focus,.sc:active,.util:active,
+  .sc:hover,.util:hover{background:#141826; border-color:#2a2f4a; color:#cdd6f4; transform:none;}
+  .sc{width:clamp(38px,4.2vw,52px); height:clamp(38px,4.2vw,52px); border-radius:11px;
+    font-size:clamp(16px,2.1vw,24px); font-weight:900; color:#e7ecff;}
+  .sc.s10{width:auto; padding:0 .8em; color:#e7ecff;}
+  .util{font-size:13px; font-weight:700; padding:.45em .8em; border-radius:9px; color:#aab6da; background:#10142a;}
   #handle{position:fixed; right:14px; bottom:14px; z-index:69; font-size:24px; cursor:pointer;
     width:54px; height:54px; border-radius:50%; border:2px solid var(--gold3);
     background:rgba(16,16,26,.9); color:#ffd54a; display:none; align-items:center; justify-content:center;}
@@ -219,10 +212,6 @@
 
   <!-- ステージ -->
   <div id="stage">
-    <div id="classBadge">
-      <div class="lead">これから発表するのは</div>
-      <div class="name" id="className">1組</div>
-    </div>
     <div id="frame"><div id="frameInner"><div id="score" class="q">？</div></div></div>
     <div id="catch"></div>
   </div>
@@ -242,14 +231,13 @@
     </div>
     <button class="startbtn" id="startBtn">▶ はじめる</button>
     <div class="intro-note">
-      クラスを選んで点数（0〜10）をタップすると、得点がカウントアップで発表されます。<br>
+      点数（0〜10）をタップすると、得点がカウントアップで発表されます。<br>
       画面を大きく使うには <b>F11キー</b> で全画面に。音を出すには会場の<b>スピーカー</b>をつないでください。
     </div>
   </div>
 
   <!-- コントロールバー -->
   <div id="bar">
-    <div class="barrow" id="classRow"><span class="barlabel">クラス</span></div>
     <div class="barrow" id="scoreRow"><span class="barlabel">てんすう</span></div>
     <div class="barrow">
       <button class="util" id="resetBtn">↺ ？に戻す</button>
@@ -281,9 +269,7 @@
   <div class="modal" id="setModal">
     <div class="card">
       <h2>⚙ 設定</h2>
-      <p class="muted">クラス名を会場に合わせて変えられます。空らんにすると初期名にもどります。</p>
-      <div id="nameFields"></div>
-      <hr style="border-color:#2a3358; margin:16px 0;">
+      <p class="muted">発表のためかた（ドラムロール）を調整できます。</p>
       <label class="toggle"><input type="checkbox" id="rollChk"> ドラムロールでためてから発表する</label>
       <div class="field">
         <label>ためる長さ</label>
@@ -303,12 +289,11 @@
       <h2>❔ 使い方</h2>
       <p class="muted">指でタップして操作します。得点ボタンは<b>押しても見た目が変わりません</b>（何点か観客にバレないように）。</p>
       <div class="keys">
-        <kbd>クラス</kbd><span>画面下のクラスボタンをタップ</span>
         <kbd>てんすう</kbd><span>0〜10をタップ → カウントアップで発表</span>
         <kbd>画面タップ</kbd><span>ドラムロール中＝今すぐ発表／発表後＝次へ（？に戻す）／待機中＝バー開閉</span>
         <kbd>✎ お題</kbd><span>下の金帯にお題を表示</span>
       </div>
-      <p class="muted" style="margin-top:14px;">キーボードでも操作できます：<kbd>0〜9</kbd>点数／<kbd>M</kbd>満点／<kbd>←→</kbd>クラス／<kbd>Space</kbd>今すぐ発表・次へ／<kbd>R</kbd>？に戻す／<kbd>F</kbd>全画面／<kbd>S</kbd>音／<kbd>H</kbd>バー</p>
+      <p class="muted" style="margin-top:14px;">キーボードでも操作できます：<kbd>0〜9</kbd>点数／<kbd>M</kbd>満点／<kbd>Space</kbd>今すぐ発表・次へ／<kbd>R</kbd>？に戻す／<kbd>F</kbd>全画面／<kbd>S</kbd>音／<kbd>H</kbd>バー</p>
       <div class="actions"><button class="primary" id="helpClose">とじる</button></div>
     </div>
   </div>
@@ -317,9 +302,7 @@
 (function(){
   "use strict";
 
-  var DEFAULT_NAMES = ["1組","2組","3組","4組","5組"];
   var state = {
-    classes: DEFAULT_NAMES.slice(), current:0,
     phase:"standby",            // standby / rolling / counting / revealed
     sound:true, drumroll:true, rollMs:2600,
     odai:"", odaiSub:"",
@@ -329,7 +312,6 @@
   try{
     var saved = JSON.parse(localStorage.getItem("ogiri-gp2")||"null");
     if(saved){
-      if(Array.isArray(saved.classes)&&saved.classes.length===5) state.classes=saved.classes;
       if(typeof saved.sound==="boolean") state.sound=saved.sound;
       if(typeof saved.drumroll==="boolean") state.drumroll=saved.drumroll;
       if(typeof saved.rollMs==="number") state.rollMs=saved.rollMs;
@@ -339,7 +321,7 @@
   }catch(e){}
   function persist(){
     try{ localStorage.setItem("ogiri-gp2", JSON.stringify({
-      classes:state.classes, sound:state.sound, drumroll:state.drumroll,
+      sound:state.sound, drumroll:state.drumroll,
       rollMs:state.rollMs, odai:state.odai, odaiSub:state.odaiSub })); }catch(e){}
   }
 
@@ -349,7 +331,7 @@
     1:"うーん、おしい？",0:"ドンマイ！！"};
 
   var $=function(id){return document.getElementById(id);};
-  var scoreEl=$("score"), classNameEl=$("className"), catchEl=$("catch"),
+  var scoreEl=$("score"), catchEl=$("catch"),
       bar=$("bar"), stage=$("stage"), root=document.documentElement;
 
   /* ===== サウンド（Web Audio・外部ファイル不要／低音・厚み重視） ===== */
@@ -519,14 +501,10 @@
       else{ cx.beginPath(); cx.arc(0,0,p.size/2,0,Math.PI*2); cx.fill(); }
       cx.restore(); if(p.y>cv.height+40*dpr) parts.splice(i,1); }
     if(parts.length) rafId=requestAnimationFrame(loop); else{ cx.clearRect(0,0,cv.width,cv.height); rafId=null; } }
-  function flash(){ var f=$("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+  function flash(){ var f=$("flash"); f.classList.remove("go","go2"); void f.offsetWidth; f.classList.add("go"); }
+  function confirmFlash(){ var f=$("flash"); f.classList.remove("go","go2"); void f.offsetWidth; f.classList.add("go2"); }
+  function framePulse(){ var fr=$("frame"); fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse"); }
 
-  /* ===== 表示 ===== */
-  function setClassDisplay(){
-    classNameEl.textContent=state.classes[state.current];
-    var btns=document.querySelectorAll(".cls");
-    for(var i=0;i<btns.length;i++) btns[i].classList.toggle("cur", i===state.current);
-  }
   function clearTimers(){ if(state.rollTimer){clearTimeout(state.rollTimer);state.rollTimer=null;}
     if(state.countIv){clearInterval(state.countIv);state.countIv=null;}
     if(state.countTimer){clearTimeout(state.countTimer);state.countTimer=null;} stopDrumroll(); }
@@ -611,12 +589,16 @@
   }
   function finish(score){
     state.phase="revealed"; showCatch(score); flourishSfx(score);
+    framePulse();                       // 確定の合図（全点数共通）
     if(score===10){
       scoreEl.className="max"; document.body.classList.add("celebrate");
       var ip=$("ippon"); ip.classList.remove("go"); void ip.offsetWidth; ip.classList.add("go");
       flash(); burst(180); setTimeout(function(){burst(120);},500); setTimeout(function(){burst(120);},1100);
-    } else if(score>=8){ burst(80); }
-    else if(score>=6){ burst(40); }
+    } else {
+      confirmFlash();                   // 満点以外も画面をフラッシュして「確定」を明示
+      if(score>=8){ burst(80); }
+      else if(score>=6){ burst(40); }
+    }
   }
   function showCatch(score){ catchEl.innerHTML=CATCH[score]; void catchEl.offsetWidth; catchEl.className="show"; }
 
@@ -631,14 +613,8 @@
   }
 
   /* ===== コントロールバー組み立て ===== */
-  var classRow=$("classRow"), scoreRow=$("scoreRow");
+  var scoreRow=$("scoreRow");
   function buildBar(){
-    var olds=classRow.querySelectorAll(".cls"); for(var i=0;i<olds.length;i++) olds[i].remove();
-    state.classes.forEach(function(name,idx){
-      var b=document.createElement("button"); b.className="cls"; b.textContent=name;
-      b.addEventListener("click",function(){ selectClass(idx); this.blur(); });
-      classRow.appendChild(b);
-    });
     if(!scoreRow.dataset.built){
       for(var s=0;s<=10;s++){ (function(sv){
         var b=document.createElement("button"); b.className="sc"+(sv===10?" s10":"");
@@ -648,9 +624,7 @@
       })(s); }
       scoreRow.dataset.built="1";
     }
-    setClassDisplay();
   }
-  function selectClass(i){ state.current=i; setClassDisplay(); toStandby(); }
 
   /* ===== バー表示・タッチ操作 ===== */
   function showBar(){ bar.classList.remove("hidden"); }
@@ -688,22 +662,13 @@
 
   /* ===== 設定モーダル ===== */
   function openSettings(){
-    var wrap=$("nameFields"); wrap.innerHTML="";
-    state.classes.forEach(function(name,i){
-      var row=document.createElement("div"); row.className="field";
-      var lab=document.createElement("label"); lab.textContent="クラス"+(i+1);
-      var inp=document.createElement("input"); inp.type="text"; inp.value=name; inp.maxLength=12; inp.dataset.idx=i;
-      row.appendChild(lab); row.appendChild(inp); wrap.appendChild(row);
-    });
     $("rollChk").checked=state.drumroll; $("rollMs").value=state.rollMs;
     $("rollMsVal").textContent=(state.rollMs/1000).toFixed(1)+"秒"; $("setModal").classList.add("show");
   }
   $("rollMs").addEventListener("input",function(){ $("rollMsVal").textContent=(this.value/1000).toFixed(1)+"秒"; });
   $("setClose").addEventListener("click",function(){ $("setModal").classList.remove("show"); });
   $("setSave").addEventListener("click",function(){
-    var inputs=$("nameFields").querySelectorAll("input[type=text]");
-    for(var i=0;i<inputs.length;i++){ var idx=+inputs[i].dataset.idx; var v=inputs[i].value.trim(); state.classes[idx]=v||DEFAULT_NAMES[idx]; }
-    state.drumroll=$("rollChk").checked; state.rollMs=+$("rollMs").value; persist(); buildBar(); toStandby(); $("setModal").classList.remove("show");
+    state.drumroll=$("rollChk").checked; state.rollMs=+$("rollMs").value; persist(); toStandby(); $("setModal").classList.remove("show");
   });
 
   /* ===== キーボード（任意） ===== */
@@ -714,8 +679,6 @@
     var k=e.key;
     if(k>="0"&&k<="9"){ pressScore(parseInt(k,10)); e.preventDefault(); return; }
     if(k==="m"||k==="M"){ pressScore(10); e.preventDefault(); return; }
-    if(k==="ArrowRight"){ selectClass((state.current+1)%5); e.preventDefault(); return; }
-    if(k==="ArrowLeft"){ selectClass((state.current+4)%5); e.preventDefault(); return; }
     if(k===" "||k==="Enter"){ if(state.phase==="rolling") revealNow(); else if(state.phase==="revealed") toStandby(); e.preventDefault(); return; }
     if(k==="r"||k==="R"||k==="Backspace"){ toStandby(); e.preventDefault(); return; }
     if(k==="f"||k==="F"){ toggleFullscreen(); e.preventDefault(); return; }
