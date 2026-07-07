@@ -534,7 +534,9 @@ textarea.fi{resize:vertical;min-height:105px;font-size:12px;line-height:1.6;}
     <div class="spanel" id="panel-cond">
       <div class="fsec">
         <div class="ftitle">生徒間の距離条件</div>
-        <div class="infob">2名を選んで「近づける」または「遠ざける」距離を設定します。距離はマンハッタン距離（縦横の席数の合計）で計算します。</div>
+        <div class="infob">2名を選んで「近づける」または「遠ざける」距離を設定します。距離は縦・横・斜めのいずれも「1席」と数えます（例：斜めの隣＝1席）。<br>
+        ・<b>○席以内に近づける</b>…2人の距離が○席以内（1席以内＝縦・横・斜めの隣）<br>
+        ・<b>○席以上遠ざける</b>…2人の席の<b>間に他の席が○席以上</b>入ります（例：2席以上→間に2席以上。斜め方向でも同じ）</div>
         <div class="fg">
           <label class="flbl">生徒A</label>
           <select class="fi" id="condStudentA" onfocus="refreshCondStudentSelects()" ontouchstart="refreshCondStudentSelects()"><option value="">-- 選択 --</option></select>
@@ -1940,30 +1942,30 @@ function refreshCondStudentSelects(){
 // CONDITION CONFLICT DETECTION
 // ============================================================
 function detectConditionConflicts(conds){
-  if(!conds||conds.length<2) return [];
+  if(!conds||!conds.length) return [];
   const students = curClass()?.students||[];
   const room = curRoom();
   const conflicts = [];
+  const nameOf = id => students.find(s=>s.id===id)?.name||'?';
 
   const nearConds = conds.filter(c=>c.type==='near');
   const farConds  = conds.filter(c=>c.type==='far');
 
-  // ── パターン1: 同一ペアへの矛盾条件（near <= d1 かつ far >= d2 で d2 > d1）
+  // ── パターン1: 同一ペアへの矛盾条件
+  //   near: 距離<=d1、far: 距離>=d2+1（間にd2席） → d2+1>d1（=d2>=d1）なら両立不可能
   conds.forEach(c1=>{
     conds.forEach(c2=>{
       if(c1.id===c2.id) return;
       const sameAB=(c1.aId===c2.aId&&c1.bId===c2.bId)||(c1.aId===c2.bId&&c1.bId===c2.aId);
-      if(sameAB&&c1.type==='near'&&c2.type==='far'&&c2.dist>c1.dist){
-        const sA=students.find(s=>s.id===c1.aId)?.name||'?';
-        const sB=students.find(s=>s.id===c1.bId)?.name||'?';
-        const msg=`「${sA}」と「${sB}」に矛盾する条件（${c1.dist}席以内に近づける ＆ ${c2.dist}席以上離す）`;
+      if(sameAB&&c1.type==='near'&&c2.type==='far'&&c2.dist>=c1.dist){
+        const msg=`「${nameOf(c1.aId)}」と「${nameOf(c1.bId)}」に矛盾する条件（${c1.dist}席以内に近づける ＆ 間に${c2.dist}席以上あけて遠ざける）`;
         if(!conflicts.includes(msg)) conflicts.push(msg);
       }
     });
   });
 
   // ── パターン2: near連鎖でfarが不可能になる
-  //   near(A,B,d1)+near(B,C,d2) → dist(A,C)<=d1+d2 なのに far(A,C,d3) で d3>d1+d2
+  //   near(A,B,d1)+near(B,C,d2) → dist(A,C)<=d1+d2 なのに far(A,C,d3) は距離d3+1以上を要求
   const INF=9999;
   const ids=[...new Set(conds.flatMap(c=>[c.aId,c.bId]))];
   const upper={};
@@ -1978,44 +1980,52 @@ function detectConditionConflicts(conds){
   })));
   farConds.forEach(fc=>{
     const ub=upper[fc.aId]?.[fc.bId]??INF;
-    if(ub<fc.dist&&ub<INF){
-      const sA=students.find(s=>s.id===fc.aId)?.name||'?';
-      const sB=students.find(s=>s.id===fc.bId)?.name||'?';
-      conflicts.push(`「${sA}」と「${sB}」を${fc.dist}席以上離したいが、near条件の連鎖で最大${ub}席しか離せません`);
+    if(ub<fc.dist+1&&ub<INF){
+      conflicts.push(`「${nameOf(fc.aId)}」と「${nameOf(fc.bId)}」の間に${fc.dist}席以上あけたいが、「近づける」条件の連鎖により距離は最大${ub}席（間${Math.max(0,ub-1)}席）になります`);
     }
   });
 
   // ── パターン3: 実際のグリッドで全条件を同時に満たす座席の組み合わせが存在するか確認
-  if(room&&conds.length>=2){
+  //   条件に関わる生徒だけを1人ずつ仮置きし、置いた時点で条件違反したら枝刈りする
+  //   バックトラック探索。探索量が上限を超えたら判定不能として警告しない（誤警告防止）。
+  if(room&&conds.length){
     const enabledSeats=room.seats.filter(s=>s.enabled&&!s.skipAssign);
     const condIds=[...new Set(conds.flatMap(c=>[c.aId,c.bId]))];
     const n=enabledSeats.length;
-    // 条件関係者が2〜4名かつ座席数が現実的な範囲でのみチェック
-    if(condIds.length>=2&&condIds.length<=4&&n>=condIds.length&&n<=49){
-      // condIdの各組み合わせ（n^len通り）を試す
+    if(condIds.length>=2&&condIds.length<=8&&n>=condIds.length){
       const len=condIds.length;
-      let possible=false;
-      const check=(idxArr)=>{
-        if(idxArr.length===len){
-          // 重複チェック
-          if(new Set(idxArr).size<len) return;
-          const assign={};
-          condIds.forEach((id,i)=>{assign[id]=enabledSeats[idxArr[i]];});
-          for(const c of conds){
-            const sa=assign[c.aId];const sb=assign[c.bId];
-            if(!sa||!sb) continue;
-            const d=Math.abs(sa.row-sb.row)+Math.abs(sa.col-sb.col);
-            if(c.type==='near'&&d>c.dist) return;
-            if(c.type==='far'&&d<c.dist) return;
+      // 各生徒に関わる条件を先に整理（相手が既に置かれているものだけ判定）
+      const condsOf=condIds.map((id,i)=>conds
+        .map(c=>{
+          if(c.aId===id&&condIds.indexOf(c.bId)<i) return {c,other:condIds.indexOf(c.bId)};
+          if(c.bId===id&&condIds.indexOf(c.aId)<i) return {c,other:condIds.indexOf(c.aId)};
+          return null;
+        }).filter(Boolean));
+      let nodes=0; const BUDGET=300000;
+      let possible=false, aborted=false;
+      const placed=new Array(len).fill(null);
+      const used=new Set();
+      const rec=(i)=>{
+        if(possible||aborted) return;
+        if(i===len){ possible=true; return; }
+        for(let k=0;k<n;k++){
+          if(used.has(k)) continue;
+          if(++nodes>BUDGET){ aborted=true; return; }
+          const seat=enabledSeats[k];
+          let ok=true;
+          for(const {c,other} of condsOf[i]){
+            if(!condSatisfied(c,seat,placed[other])){ ok=false; break; }
           }
-          possible=true;
-          return;
+          if(!ok) continue;
+          placed[i]=seat; used.add(k);
+          rec(i+1);
+          placed[i]=null; used.delete(k);
+          if(possible||aborted) return;
         }
-        for(let i=0;i<n&&!possible;i++) check([...idxArr,i]);
       };
-      check([]);
-      if(!possible){
-        const names=condIds.map(id=>students.find(s=>s.id===id)?.name||'?');
+      rec(0);
+      if(!possible&&!aborted){
+        const names=condIds.map(nameOf);
         conflicts.push(`「${names.join('」「')}」への条件を同時に満たす座席の組み合わせが現在の教室レイアウトに存在しません（不可能な条件の組み合わせです）`);
       }
     }
@@ -2072,7 +2082,7 @@ function renderCondList(){
     const b=students.find(s=>s.id===c.bId);
     if(!a||!b)return '';
     const icon=c.type==='near'?'🔵':'🔴';
-    const desc=c.type==='near'?`${c.dist}席以内に近づける`:`${c.dist}席以上遠ざける`;
+    const desc=c.type==='near'?`${c.dist}席以内に近づける（斜めも1席と数える）`:`${c.dist}席以上遠ざける（間に${c.dist}席以上あける）`;
     return `<div class="cond-item">
       <span class="cond-icon">${icon}</span>
       <div class="cond-body">
@@ -2104,12 +2114,28 @@ function seatPos(seatId){
   const seat=curRoom().seats.find(s=>s.id===seatId);
   return seat?{row:seat.row,col:seat.col}:null;
 }
-function manhattan(s1,s2){
-  return Math.abs(s1.row-s2.row)+Math.abs(s1.col-s2.col);
+// 席の距離：縦・横・斜めのいずれも「1席」と数える（チェス盤距離）。
+// 例）真横・真後ろ・斜めの隣 → 距離1
+function seatDist(s1,s2){
+  return Math.max(Math.abs(s1.row-s2.row),Math.abs(s1.col-s2.col));
+}
+// 条件の判定ルール：
+//   near（○席以内に近づける）… seatDist <= dist（1席以内＝縦・横・斜めの隣）
+//   far （○席以上遠ざける）  … 2人の席の間に他の席が dist 席以上入る
+//                              ＝ seatDist >= dist+1（斜め方向でも同様に数える）
+function condSatisfied(c, pA, pB){
+  const d=seatDist(pA,pB);
+  if(c.type==='near') return d<=c.dist;
+  return d>=c.dist+1;
 }
 
 // --- Check if assignment satisfies all conditions ---
 function checkConstraints(assignment, conds, students, seats){
+  return listCondViolations(assignment,conds,students,seats).length===0;
+}
+
+// 満たされていない条件の説明文リストを返す（警告表示用）
+function listCondViolations(assignment, conds, students, seats){
   // Build seatId -> position map
   const posMap={};
   seats.forEach(s=>{ posMap[s.id]={row:s.row,col:s.col}; });
@@ -2117,17 +2143,23 @@ function checkConstraints(assignment, conds, students, seats){
   const studentSeat={};
   Object.entries(assignment).forEach(([seatId,studentId])=>{ studentSeat[studentId]=seatId; });
 
+  const viols=[];
   for(const c of conds){
     const seatA=studentSeat[c.aId];
     const seatB=studentSeat[c.bId];
     if(!seatA||!seatB)continue;
     const pA=posMap[seatA], pB=posMap[seatB];
     if(!pA||!pB)continue;
-    const dist=Math.abs(pA.row-pB.row)+Math.abs(pA.col-pB.col);
-    if(c.type==='near'&&dist>c.dist)return false;
-    if(c.type==='far'&&dist<c.dist)return false;
+    if(!condSatisfied(c,pA,pB)){
+      const nA=students.find(s=>s.id===c.aId)?.name||'?';
+      const nB=students.find(s=>s.id===c.bId)?.name||'?';
+      const d=seatDist(pA,pB);
+      viols.push(c.type==='near'
+        ? `${nA}↔${nB}：${c.dist}席以内に近づける（現在${d}席）`
+        : `${nA}↔${nB}：間に${c.dist}席以上あける（現在 間${d-1}席）`);
+    }
   }
-  return true;
+  return viols;
 }
 
 // --- Gender zone assignment ---
@@ -2220,63 +2252,53 @@ function shuffleInstant(){
   }
   const gErr=checkGenderMatch();
   if(gErr){showToast(`⚠ 席替えできません：${gErr}`);return;}
-  const condConf=detectConditionConflicts(getConditions());
-  if(condConf.length){ showToast(`⚠ 条件に矛盾の可能性（${condConf.length}件）。条件タブを確認してください`); }
   const conds=getConditions();
   const mode=getGenderMode();
   const zsplit=getZoneSplit();
 
-  let assignment=null;
-  let attempts=0;
-  const MAX=800;
+  // 事前チェック：条件同士が矛盾していないか（実行前に警告して中止できるようにする）
+  const condConf=detectConditionConflicts(conds);
+  if(condConf.length){
+    const goOn=confirm(`⚠ 距離条件をすべて満たすことができません：\n\n${condConf.map(m=>'・'+m).join('\n')}\n\nこのまま席替えを実行すると、満たせない条件が出ます。実行しますか？\n（「キャンセル」で中止して条件タブを見直せます）`);
+    if(!goOn){ showToast('席替えを中止しました。条件タブをご確認ください'); return; }
+  }
 
-  if(mode!=='free'){
-    // 男女配置ルールを適用
-    assignment=buildGenderZoneSeats(room.seats,cls.students,mode,zsplit);
-    // 距離条件チェック（最大試行）
-    if(conds.length&&assignment){
-      let ok=checkConstraints(assignment,conds,cls.students,room.seats);
-      while(!ok&&attempts<MAX){
-        assignment=buildGenderZoneSeats(room.seats,cls.students,mode,zsplit);
-        ok=checkConstraints(assignment,conds,cls.students,room.seats);
-        attempts++;
-      }
-      if(!ok){
-        showToast('距離条件を完全には満たせませんでした（近似解で配置）');
-      }
+  // 1回分の配置を生成（男女ルール／自由 → ピン固定まで反映した最終形を返す）
+  // ※ピン適用後に距離条件を判定しないと、ピンの入替えで条件が壊れることがある
+  const buildOnce=()=>{
+    let a;
+    if(mode!=='free'){
+      a=buildGenderZoneSeats(room.seats,cls.students,mode,zsplit);
+    }else{
+      const ss=shuffle(cls.students);
+      const se=shuffle([...enabled]);
+      a={};
+      ss.forEach((s,i)=>{a[se[i].id]=s.id;});
     }
-  } else {
-    // 自由モード：距離条件のみ
-    if(conds.length){
-      while(attempts<MAX){
-        const ss=shuffle(cls.students);
-        const se=shuffle([...enabled]);
-        const newA={};
-        ss.forEach((s,i)=>{newA[se[i].id]=s.id;});
-        if(checkConstraints(newA,conds,cls.students,room.seats)){
-          assignment=newA;break;
-        }
-        attempts++;
-      }
-      if(!assignment){
-        // 条件を満たす解なし → 最善の解を使う
-        const ss=shuffle(cls.students);
-        const se=shuffle([...enabled]);
-        assignment={};
-        ss.forEach((s,i)=>{assignment[se[i].id]=s.id;});
-        showToast('距離条件を完全には満たせませんでした（近似解で配置）');
-      }
-    } else {
-      const shuffledStudents=shuffle(cls.students);
-      const shuffledSeats=shuffle([...enabled]);
-      assignment={};
-      shuffledStudents.forEach((s,i)=>{assignment[shuffledSeats[i].id]=s.id;});
+    if(!a) return null;
+    return applyPinsToAssignment(a,cls.students,room.seats);
+  };
+
+  let assignment=buildOnce();
+  let attempts=0;
+  const MAX=2000;
+
+  if(conds.length&&assignment){
+    let ok=checkConstraints(assignment,conds,cls.students,room.seats);
+    while(!ok&&attempts<MAX){
+      assignment=buildOnce();
+      ok=checkConstraints(assignment,conds,cls.students,room.seats);
+      attempts++;
+    }
+    if(!ok){
+      // 配置前に警告し、中止できるようにする
+      const viols=listCondViolations(assignment,conds,cls.students,room.seats);
+      const goOn=confirm(`⚠ 距離条件を満たす配置が見つかりませんでした。\n\n満たせない条件：\n${viols.map(v=>'・'+v).join('\n')}\n\n固定（ピン）や男女指定席との組み合わせで不可能になっている場合があります。\nこのまま配置しますか？（「キャンセル」で中止）`);
+      if(!goOn){ showToast('席替えを中止しました。条件・固定・席設定をご確認ください'); return; }
     }
   }
 
   if(assignment){
-    // ピン固定を適用
-    assignment=applyPinsToAssignment(assignment,cls.students,room.seats);
     app.assignments[akey()]=assignment;
     saveHistory(assignment);
     save();
@@ -2588,39 +2610,54 @@ function startRoulette(mode){
   if(cls.students.length>enabled.length){showToast(`生徒数が有効席数を超えています`);return;}
   const gErr=checkGenderMatch();
   if(gErr){showToast(`⚠ 席替えできません：${gErr}`);return;}
-  const condConf2=detectConditionConflicts(getConditions());
-  if(condConf2.length){ showToast(`⚠ 条件に矛盾の可能性（${condConf2.length}件）。条件タブを確認してください`); }
+  const conds=getConditions();
+
+  // 事前チェック：条件同士が矛盾していないか（実行前に警告して中止できるようにする）
+  const condConf2=detectConditionConflicts(conds);
+  if(condConf2.length){
+    const goOn=confirm(`⚠ 距離条件をすべて満たすことができません：\n\n${condConf2.map(m=>'・'+m).join('\n')}\n\nこのままルーレットを始めると、満たせない条件が出ます。始めますか？\n（「キャンセル」で中止して条件タブを見直せます）`);
+    if(!goOn){ showToast('中止しました。条件タブをご確認ください'); return; }
+  }
+
+  // Pre-decide final assignments using constraints
+  const gMode=getGenderMode();
+  const gZsplit=getZoneSplit();
+
+  // 1回分の配置を生成（男女ルール／自由 → ピン固定まで反映した最終形を返す）
+  // ※ピン適用後に距離条件を判定しないと、ピンの入替えで条件が壊れることがある
+  const buildOnce=()=>{
+    let a;
+    if(gMode!=='free'){
+      a=buildGenderZoneSeats(room.seats,cls.students,gMode,gZsplit);
+    }else{
+      const sh=shuffle(cls.students);const se=shuffle([...enabled]);a={};
+      sh.forEach((s,i)=>{a[se[i].id]=s.id;});
+    }
+    if(!a) return null;
+    return applyPinsToAssignment(a,cls.students,enabled);
+  };
+
+  let finalAssign=buildOnce();
+  if(conds.length&&finalAssign){
+    let attempts=0;
+    let ok=checkConstraints(finalAssign,conds,cls.students,room.seats);
+    while(!ok&&attempts<5000){
+      finalAssign=buildOnce();
+      ok=checkConstraints(finalAssign,conds,cls.students,room.seats);
+      attempts++;
+    }
+    if(!ok){
+      // 配置前に警告し、中止できるようにする
+      const viols=listCondViolations(finalAssign,conds,cls.students,room.seats);
+      const goOn=confirm(`⚠ 距離条件を満たす配置が見つかりませんでした。\n\n満たせない条件：\n${viols.map(v=>'・'+v).join('\n')}\n\n固定（ピン）や男女指定席との組み合わせで不可能になっている場合があります。\nこのままルーレットを始めますか？（「キャンセル」で中止）`);
+      if(!goOn){ showToast('中止しました。条件・固定・席設定をご確認ください'); return; }
+    }
+  }
+  if(lastPinUnplaced.length) showToast(`固定を反映できなかった生徒：${lastPinUnplaced.join('、')}（席数をご確認ください）`);
 
   rlMode=mode;
   rlRunning=false;rlIndex=0;rlActiveSeatIdx=-1;
   rlAllStudents=cls.students.map(s=>s.name);
-
-  // Pre-decide final assignments using constraints
-  const conds=getConditions();
-  const gMode=getGenderMode();
-  const gZsplit=getZoneSplit();
-  let finalAssign=null;
-  let attempts=0;
-  if(gMode!=='free'){
-    finalAssign=buildGenderZoneSeats(room.seats,cls.students,gMode,gZsplit);
-    if(conds.length&&finalAssign){
-      let ok=checkConstraints(finalAssign,conds,cls.students,room.seats);
-      while(!ok&&attempts<5000){finalAssign=buildGenderZoneSeats(room.seats,cls.students,gMode,gZsplit);ok=checkConstraints(finalAssign,conds,cls.students,room.seats);attempts++;}
-    }
-  } else if(conds.length){
-    let tries=0;
-    while(tries<5000){
-      const sh=shuffle(cls.students);const se2=shuffle([...enabled]);const ta={};sh.forEach((s,i)=>{ta[se2[i].id]=s.id;});
-      if(checkConstraints(ta,conds,cls.students,room.seats)){finalAssign=ta;break;}
-      tries++;
-    }
-    if(!finalAssign){const sh=shuffle(cls.students);const se3=shuffle([...enabled]);finalAssign={};sh.forEach((s,i)=>{finalAssign[se3[i].id]=s.id;});}
-  } else {
-    const sh=shuffle(cls.students);const se=shuffle([...enabled]);finalAssign={};sh.forEach((s,i)=>{finalAssign[se[i].id]=s.id;});
-  }
-  // ピン固定を適用
-  finalAssign=applyPinsToAssignment(finalAssign,cls.students,enabled);
-  if(lastPinUnplaced.length) showToast(`固定を反映できなかった生徒：${lastPinUnplaced.join('、')}（席数をご確認ください）`);
   // Build queue from the finalAssign (randomize order of revelation)
   const assignPairs=Object.entries(finalAssign).map(([seatId,studentId])=>({studentId,seatId}));
   const shuffledQueue=shuffle(assignPairs);
