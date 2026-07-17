@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ワードウルフ 進行アプリ</title>
+<style>
+  :root{
+    --bg1:#0c1024; --bg2:#131a3a; --accent:#ffd23f; --accent2:#ff7a59;
+    --wolf:#ff5470; --good:#3ddc97; --ink:#f4f6ff; --muted:#9aa6d6;
+    --panel:rgba(255,255,255,.06); --panel-b:rgba(255,255,255,.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+  html,body{height:100%;}
+  body{
+    margin:0; overflow:hidden; touch-action:manipulation;
+    color:var(--ink);
+    background:
+      radial-gradient(120vmax 80vmax at 80% -10%, rgba(255,122,89,.18), transparent 60%),
+      radial-gradient(120vmax 90vmax at 10% 110%, rgba(61,220,151,.14), transparent 60%),
+      linear-gradient(160deg, var(--bg1), var(--bg2));
+    font-family:"Yu Gothic UI","Yu Gothic","游ゴシック体","Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+  }
+  #app{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:3vmin;}
+  .screen{display:none; width:100%; max-width:1100px; max-height:100%; flex-direction:column; align-items:center; text-align:center; gap:3vmin;}
+  .screen.active{display:flex; animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(14px);}to{opacity:1; transform:none;}}
+
+  h1{margin:0; font-size:clamp(28px,6vw,64px); font-weight:900; letter-spacing:.02em;
+    background:linear-gradient(180deg,#fff,var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 6px 30px rgba(255,210,63,.18);}
+  .sub{color:var(--muted); font-size:clamp(13px,2.2vw,20px); margin:0; line-height:1.6;}
+  .big{font-size:clamp(40px,12vw,140px); font-weight:900; line-height:1.05;}
+
+  .btn{
+    border:none; cursor:pointer; font-family:inherit; font-weight:800;
+    color:#1a1430; background:linear-gradient(180deg,#ffe17a,var(--accent));
+    padding:.7em 1.6em; border-radius:999px; font-size:clamp(18px,3.4vw,30px);
+    box-shadow:0 10px 30px rgba(255,210,63,.32), inset 0 -3px 0 rgba(0,0,0,.12);
+    transition:transform .12s, box-shadow .12s, filter .12s;
+  }
+  .btn:active{transform:translateY(2px) scale(.99); box-shadow:0 6px 18px rgba(255,210,63,.28);}
+  .btn.ghost{background:var(--panel); color:var(--ink); border:2px solid var(--panel-b); box-shadow:none; font-weight:700;}
+  .btn.sm{font-size:clamp(14px,2.4vw,20px); padding:.55em 1.1em;}
+  .btn.wide{min-width:min(70vw,520px);}
+  .row{display:flex; gap:2.5vmin; flex-wrap:wrap; align-items:center; justify-content:center;}
+
+  .panel{background:var(--panel); border:1px solid var(--panel-b); border-radius:22px; padding:3vmin 4vmin;}
+
+  /* setup */
+  .label{font-size:clamp(13px,2.2vw,18px); color:var(--muted); font-weight:700; margin-bottom:1vmin;}
+  .seg{display:flex; gap:1.4vmin; flex-wrap:wrap; justify-content:center;}
+  .chip{border:2px solid var(--panel-b); background:var(--panel); color:var(--ink); font-weight:800;
+    border-radius:16px; padding:.55em 1.1em; font-size:clamp(16px,3vw,26px); cursor:pointer; min-width:2.6em;}
+  .chip.on{border-color:var(--accent); background:linear-gradient(180deg,rgba(255,210,63,.28),rgba(255,210,63,.12)); color:#fff; box-shadow:0 0 0 3px rgba(255,210,63,.18);}
+  .chip.cat{font-size:clamp(13px,2.2vw,18px); min-width:0;}
+
+  /* reveal */
+  .turnno{font-size:clamp(60px,22vw,240px); font-weight:900; line-height:1;
+    background:linear-gradient(180deg,#fff,var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .holdbtn{position:relative; width:min(78vw,560px); height:clamp(150px,34vh,320px); border-radius:28px; border:3px dashed var(--panel-b);
+    background:var(--panel); color:var(--ink); font-size:clamp(18px,3.2vw,28px); font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:1vmin; overflow:hidden;}
+  .holdbtn .word{display:none; font-size:clamp(40px,11vw,110px); font-weight:900; color:#fff; line-height:1.1;}
+  .holdbtn.show{border-style:solid; border-color:var(--accent); background:linear-gradient(160deg,#2a2150,#3a2a66);}
+  .holdbtn.show .word{display:block;}
+  .holdbtn.show .hint{display:none;}
+  .holdbtn .hint{color:var(--muted); font-weight:700; pointer-events:none;}
+  .dots{display:flex; gap:1.2vmin; flex-wrap:wrap; justify-content:center;}
+  .dot{width:clamp(12px,2.4vw,18px); height:clamp(12px,2.4vw,18px); border-radius:50%; background:var(--panel-b);}
+  .dot.done{background:var(--good);}
+  .dot.cur{background:var(--accent); box-shadow:0 0 0 4px rgba(255,210,63,.2);}
+
+  /* timer */
+  .clock{font-size:clamp(70px,26vw,300px); font-weight:900; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:.02em;}
+  .clock.warn{color:var(--accent2);}
+  .clock.over{color:var(--wolf); animation:pulse .7s infinite;}
+  @keyframes pulse{50%{opacity:.4;}}
+  .ring{position:relative; width:min(60vmin,420px); height:min(60vmin,420px); display:flex; align-items:center; justify-content:center;}
+  svg.prog{position:absolute; inset:0; transform:rotate(-90deg);}
+  svg.prog circle{fill:none; stroke-width:10;}
+  .track{stroke:rgba(255,255,255,.08);}
+  .bar{stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .3s linear, stroke .3s;}
+
+  /* result */
+  .reveal-no{font-size:clamp(80px,30vw,320px); font-weight:900; line-height:1; color:var(--wolf);
+    text-shadow:0 0 40px rgba(255,84,112,.5); animation:pop .5s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes pop{from{transform:scale(.3); opacity:0;}to{transform:scale(1); opacity:1;}}
+  .words{display:flex; gap:2.5vmin; flex-wrap:wrap; justify-content:center;}
+  .wcard{border-radius:18px; padding:2.4vmin 3.4vmin; min-width:min(70vw,260px); border:2px solid var(--panel-b); background:var(--panel);}
+  .wcard .t{font-size:clamp(12px,2vw,16px); color:var(--muted); font-weight:800; letter-spacing:.1em;}
+  .wcard .v{font-size:clamp(28px,7vw,52px); font-weight:900; margin-top:.3em;}
+  .wcard.wolf{border-color:var(--wolf); background:linear-gradient(160deg,rgba(255,84,112,.18),rgba(255,84,112,.05));}
+  .wcard.wolf .v{color:var(--wolf);}
+  .wcard.good{border-color:var(--good); background:linear-gradient(160deg,rgba(61,220,151,.16),rgba(61,220,151,.05));}
+  .wcard.good .v{color:var(--good);}
+
+  .footer{position:fixed; left:0; right:0; bottom:1.4vmin; text-align:center; color:var(--muted); font-size:clamp(10px,1.6vw,13px); opacity:.7;}
+  .hide{display:none!important;}
+  #fx{position:fixed; inset:0; pointer-events:none; z-index:60;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 設定画面 ===== -->
+  <section class="screen active" id="s-setup">
+    <h1>🐺 ワードウルフ</h1>
+    <p class="sub">グループごとに人数を選んで、テレビ画面でお題を順番に確認します。<br>みんなはほぼ同じお題、でも1人（または2人）だけ違うお題＝ウルフ！</p>
+
+    <div class="panel">
+      <div class="label">このグループの人数</div>
+      <div class="seg" id="seg-players"></div>
+
+      <div style="height:2.4vmin"></div>
+      <div class="label">ウルフの人数</div>
+      <div class="seg" id="seg-wolves"></div>
+
+      <div style="height:2.4vmin"></div>
+      <div class="label">お題のジャンル</div>
+      <div class="seg" id="seg-cat"></div>
+    </div>
+
+    <button class="btn wide" id="btn-start">お題を配る ▶</button>
+    <p class="sub" id="setup-note"></p>
+  </section>
+
+  <!-- ===== お題確認画面 ===== -->
+  <section class="screen" id="s-reveal">
+    <p class="sub" id="reveal-warn">他の人は画面を見ないでください</p>
+    <div class="turnno"><span id="turn-no">1</span><span style="font-size:.4em;font-weight:800;color:var(--muted)">番</span></div>
+    <button class="holdbtn" id="holdbtn">
+      <span class="hint">ここを長押しすると<br>あなたのお題が見えます</span>
+      <span class="word" id="reveal-word"></span>
+    </button>
+    <div class="dots" id="dots"></div>
+    <div class="row">
+      <button class="btn" id="btn-next">確認したら 次の人へ ▶</button>
+    </div>
+  </section>
+
+  <!-- ===== お話しタイム ===== -->
+  <section class="screen" id="s-talk">
+    <h1>お話しタイム</h1>
+    <p class="sub">自分のお題を言わずに、それっぽく話そう。誰がウルフか探せ！</p>
+    <div class="ring">
+      <svg class="prog" viewBox="0 0 200 200">
+        <circle class="track" cx="100" cy="100" r="92"></circle>
+        <circle class="bar" id="prog-bar" cx="100" cy="100" r="92"></circle>
+      </svg>
+      <div class="clock" id="clock">3:00</div>
+    </div>
+    <div class="row" id="time-presets">
+      <button class="btn ghost sm" data-sec="120">2分</button>
+      <button class="btn ghost sm" data-sec="180">3分</button>
+      <button class="btn ghost sm" data-sec="300">5分</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-timer">スタート</button>
+      <button class="btn ghost" id="btn-skip">指差しへ ▶</button>
+    </div>
+  </section>
+
+  <!-- ===== 指差しタイム ===== -->
+  <section class="screen" id="s-point">
+    <h1>指差しタイム</h1>
+    <p class="sub">「せーの！」で、ウルフだと思う人を指差そう。</p>
+    <div class="big" id="point-count">3</div>
+    <button class="btn wide" id="btn-result">結果を見る 🐺</button>
+  </section>
+
+  <!-- ===== 結果画面 ===== -->
+  <section class="screen" id="s-result">
+    <p class="sub">ウルフだったのは…</p>
+    <div class="reveal-no" id="wolf-no"></div>
+    <p class="sub" id="wolf-extra"></p>
+    <div class="words">
+      <div class="wcard good"><div class="t">みんな（市民）のお題</div><div class="v" id="word-citizen"></div></div>
+      <div class="wcard wolf"><div class="t">ウルフのお題</div><div class="v" id="word-wolf"></div></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-again">同じ人数でもう一回 🔁</button>
+      <button class="btn ghost" id="btn-back">設定に戻る</button>
+    </div>
+  </section>
+
+</div>
+<canvas id="fx"></canvas>
+<div class="footer">ワードウルフ進行アプリ ／ my-tools</div>
+
+<script>
+"use strict";
+
+/* ===== お題ペア（市民のお題 / ウルフのお題） ===== */
+const TOPICS = {
+  "たべもの": [
+    ["ラーメン","うどん"],["寿司","刺身"],["カレー","シチュー"],["うどん","そば"],
+    ["たこ焼き","お好み焼き"],["ハンバーガー","ホットドッグ"],["チョコ","クッキー"],
+    ["ケーキ","プリン"],["アイス","かき氷"],["おにぎり","サンドイッチ"],
+    ["コーラ","サイダー"],["ぎょうざ","しゅうまい"],["ピザ","グラタン"],["焼き肉","バーベキュー"],
+  ],
+  "学校": [
+    ["鉛筆","シャープペン"],["消しゴム","修正テープ"],["黒板","ホワイトボード"],
+    ["体育","部活"],["テスト","宿題"],["給食","お弁当"],["掃除","片付け"],
+    ["運動会","文化祭"],["遠足","修学旅行"],["先生","校長先生"],["図書館","本屋"],["合唱","演奏"],
+  ],
+  "あそび": [
+    ["ゲーム","アニメ"],["マンガ","小説"],["テレビ","動画サイト"],["カラオケ","映画館"],
+    ["トランプ","UNO"],["かくれんぼ","おにごっこ"],["花火","お祭り"],["遊園地","水族館"],
+  ],
+  "スポーツ": [
+    ["サッカー","フットサル"],["野球","ソフトボール"],["バスケ","バレー"],
+    ["水泳","マラソン"],["スキー","スノーボード"],["卓球","バドミントン"],["相撲","柔道"],
+  ],
+  "いきもの": [
+    ["犬","猫"],["パンダ","コアラ"],["ライオン","トラ"],["ペンギン","アザラシ"],
+    ["金魚","メダカ"],["カブトムシ","クワガタ"],["うさぎ","ハムスター"],["カラス","ハト"],
+  ],
+  "くらし・場所": [
+    ["電車","バス"],["飛行機","新幹線"],["コンビニ","スーパー"],["公園","広場"],
+    ["風呂","シャワー"],["ふとん","ベッド"],["傘","レインコート"],["海","プール"],
+    ["スマホ","タブレット"],["信号","横断歩道"],["朝ごはん","夜ごはん"],
+  ],
+  "きせつ・行事": [
+    ["夏休み","冬休み"],["桜","梅"],["雪だるま","かまくら"],["サンタクロース","トナカイ"],
+    ["お年玉","おこづかい"],["こいのぼり","かしわもち"],["七夕","お月見"],["海水浴","花火大会"],
+  ],
+};
+const CATS = Object.keys(TOPICS);
+
+/* ===== 状態 ===== */
+const state = { players:4, wolves:1, cat:"おまかせ", assign:[], citizen:"", wolf:"", wolfSet:new Set(), idx:0 };
+
+/* ===== 画面切り替え ===== */
+const screens = ["s-setup","s-reveal","s-talk","s-point","s-result"];
+function show(id){ screens.forEach(s=>document.getElementById(s).classList.toggle("active", s===id)); }
+const $ = id => document.getElementById(id);
+
+/* ===== 設定UI ===== */
+function buildSeg(el, items, get, set){
+  el.innerHTML="";
+  items.forEach(it=>{
+    const b=document.createElement("button");
+    b.className="chip"+(it.cls||"");
+    b.textContent=it.label;
+    b.onclick=()=>{ set(it.value); refreshChips(); };
+    b.dataset.val=it.value;
+    el.appendChild(b);
+  });
+}
+function refreshChips(){
+  $("seg-players").querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", +c.dataset.val===state.players));
+  // ウルフ人数：人数に応じて選べる数を制限（最大2、かつ人数の半分未満）
+  const maxW = state.players>=6 ? 2 : 1;
+  $("seg-wolves").querySelectorAll(".chip").forEach(c=>{
+    const v=+c.dataset.val;
+    c.classList.toggle("hide", v>maxW);
+    c.classList.toggle("on", v===state.wolves);
+  });
+  if(state.wolves>maxW){ state.wolves=maxW; refreshChips(); return; }
+  $("seg-cat").querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.val===state.cat));
+  $("setup-note").textContent = `${state.players}人グループ・ウルフ${state.wolves}人で進めます。`;
+}
+buildSeg($("seg-players"), [4,5,6].map(n=>({label:n+"人", value:n})), null, v=>state.players=v);
+buildSeg($("seg-wolves"), [1,2].map(n=>({label:n+"人", value:n})), null, v=>state.wolves=v);
+buildSeg($("seg-cat"), [{label:"おまかせ",value:"おまかせ",cls:" cat"}].concat(CATS.map(c=>({label:c,value:c,cls:" cat"}))), null, v=>state.cat=v);
+refreshChips();
+
+/* ===== お題を配る ===== */
+function rand(n){ return Math.floor(Math.random()*n); }
+function dealTopics(){
+  const pool = state.cat==="おまかせ" ? CATS.flatMap(c=>TOPICS[c]) : TOPICS[state.cat];
+  const pair = pool[rand(pool.length)].slice();
+  // どちらを市民側にするかもランダム
+  if(Math.random()<0.5) pair.reverse();
+  state.citizen = pair[0];
+  state.wolf = pair[1];
+  // ウルフになる番号を選ぶ
+  const nums=[...Array(state.players).keys()];
+  state.wolfSet=new Set();
+  for(let i=0;i<state.wolves;i++){
+    const k=rand(nums.length);
+    state.wolfSet.add(nums.splice(k,1)[0]);
+  }
+  state.assign = [...Array(state.players).keys()].map(i => state.wolfSet.has(i)? state.wolf : state.citizen);
+  state.idx=0;
+}
+
+/* ===== お題確認画面 ===== */
+const hold=$("holdbtn");
+function renderReveal(){
+  $("turn-no").textContent = state.idx+1;
+  $("reveal-word").textContent = state.assign[state.idx];
+  hold.classList.remove("show");
+  $("btn-next").textContent = state.idx===state.players-1 ? "全員かくにん完了 ▶" : "確認したら 次の人へ ▶";
+  const dots=$("dots"); dots.innerHTML="";
+  for(let i=0;i<state.players;i++){
+    const d=document.createElement("div");
+    d.className="dot"+(i<state.idx?" done":i===state.idx?" cur":"");
+    dots.appendChild(d);
+  }
+}
+function holdOn(e){ e.preventDefault(); hold.classList.add("show"); }
+function holdOff(){ hold.classList.remove("show"); }
+hold.addEventListener("pointerdown", holdOn);
+hold.addEventListener("pointerup", holdOff);
+hold.addEventListener("pointerleave", holdOff);
+hold.addEventListener("pointercancel", holdOff);
+hold.addEventListener("contextmenu", e=>e.preventDefault());
+
+$("btn-next").onclick=()=>{
+  holdOff();
+  if(state.idx < state.players-1){ state.idx++; renderReveal(); }
+  else { setTime(180); show("s-talk"); }
+};
+
+/* ===== タイマー ===== */
+let total=180, remain=180, timerId=null, running=false;
+const C=2*Math.PI*92; $("prog-bar").style.strokeDasharray=C;
+function fmt(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function setTime(sec){ stopTimer(); total=sec; remain=sec; paintClock(); }
+function paintClock(){
+  const c=$("clock"); c.textContent=fmt(remain);
+  c.classList.toggle("warn", remain<=30 && remain>0);
+  c.classList.toggle("over", remain<=0);
+  const ratio = total>0 ? Math.max(0,remain)/total : 0;
+  $("prog-bar").style.strokeDashoffset = C*(1-ratio);
+  $("prog-bar").style.stroke = remain<=0 ? "var(--wolf)" : remain<=30 ? "var(--accent2)" : "var(--accent)";
+}
+function tick(){
+  remain -= 0.2; paintClock();
+  if(remain<=0 && remain>-0.21){ beep(); }
+}
+function startTimer(){ if(running)return; running=true; $("btn-timer").textContent="一時停止"; timerId=setInterval(tick,200); }
+function pauseTimer(){ running=false; $("btn-timer").textContent="さいかい"; if(timerId)clearInterval(timerId); timerId=null; }
+function stopTimer(){ running=false; if(timerId)clearInterval(timerId); timerId=null; $("btn-timer").textContent="スタート"; }
+$("btn-timer").onclick=()=>{ running?pauseTimer():startTimer(); };
+$("time-presets").querySelectorAll("button").forEach(b=> b.onclick=()=>setTime(+b.dataset.sec));
+$("btn-skip").onclick=()=>{ stopTimer(); startPoint(); };
+
+/* ===== 指差しタイム ===== */
+let pointId=null;
+function startPoint(){
+  show("s-point");
+  let n=3; $("point-count").textContent=n; beep(660,.08);
+  if(pointId)clearInterval(pointId);
+  pointId=setInterval(()=>{
+    n--;
+    if(n>0){ $("point-count").textContent=n; beep(660,.08); }
+    else { $("point-count").textContent="せーの！👉"; beep(880,.18); clearInterval(pointId); pointId=null; }
+  },1000);
+}
+$("btn-result").onclick=()=>{ if(pointId){clearInterval(pointId);pointId=null;} showResult(); };
+
+/* ===== 結果 ===== */
+function showResult(){
+  const nums=[...state.wolfSet].map(i=>i+1).sort((a,b)=>a-b);
+  $("wolf-no").textContent = nums.join("・")+"番";
+  $("wolf-extra").textContent = nums.length>1 ? `${nums.length}人がウルフでした！` : "の人がウルフでした！";
+  $("word-citizen").textContent = state.citizen;
+  $("word-wolf").textContent = state.wolf;
+  show("s-result");
+  confetti();
+}
+
+/* ===== スタート／もう一回 ===== */
+$("btn-start").onclick=()=>{ dealTopics(); renderReveal(); show("s-reveal"); };
+$("btn-again").onclick=()=>{ stopTimer(); dealTopics(); renderReveal(); show("s-reveal"); };
+$("btn-back").onclick=()=>{ stopTimer(); show("s-setup"); };
+
+/* ===== 効果音（WebAudio・ファイル不要） ===== */
+let actx=null;
+function beep(freq=520, dur=0.5){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type="triangle"; o.frequency.value=freq;
+    o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.3, actx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){/* 音が出せない環境は無視 */}
+}
+
+/* ===== 紙吹雪 ===== */
+const cv=$("fx"), cx=cv.getContext("2d"); let parts=[], confAnim=null;
+function resize(){ cv.width=innerWidth; cv.height=innerHeight; }
+addEventListener("resize", resize); resize();
+function confetti(){
+  const cols=["#ffd23f","#ff7a59","#3ddc97","#5b8cff","#ff5470","#ffffff"];
+  parts=[];
+  for(let i=0;i<160;i++){
+    parts.push({x:Math.random()*cv.width, y:-20-Math.random()*cv.height*.4,
+      vx:(Math.random()-.5)*3, vy:2+Math.random()*4, r:4+Math.random()*7,
+      c:cols[rand(cols.length)], rot:Math.random()*6, vr:(Math.random()-.5)*.3, life:1});
+  }
+  if(confAnim)cancelAnimationFrame(confAnim);
+  const t0=performance.now();
+  (function loop(t){
+    cx.clearRect(0,0,cv.width,cv.height);
+    parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.04; p.rot+=p.vr;
+      cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c;
+      cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6); cx.restore(); });
+    if(t-t0<3500){ confAnim=requestAnimationFrame(loop); } else { cx.clearRect(0,0,cv.width,cv.height); }
+  })(t0);
+}
+</script>
+</body>
+</html>
