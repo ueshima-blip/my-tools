@@ -290,6 +290,10 @@ button{font-family:inherit}
   <div class="sheet">
     <button class="close" data-close>×</button>
     <h3>メニュー</h3>
+    <h3 style="font-size:14px;margin-top:4px">アプリの更新</h3>
+    <p>新しいバージョンが出たときは、これで最新版にできます（<b>再インストール不要</b>）。</p>
+    <div class="row" style="margin-top:8px;align-items:center;gap:10px"><button class="btn primary" id="updateBtn">🔄 最新版に更新</button><span id="verInfo" class="hint"></span></div>
+    <hr>
     <p><b>バックアップ</b>（端末の引っ越し・保険に）</p>
     <div class="row" style="margin-top:8px">
       <button class="btn" id="exportBtn">書き出す（.json）</button>
@@ -380,6 +384,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
+  var APP_VER='2026.08.21';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -843,6 +848,29 @@ button{font-family:inherit}
     }
   });
 
+  /* ---------- アプリの更新（再インストール不要） ---------- */
+  (function(){ var v=document.getElementById('verInfo'); if(v)v.textContent='バージョン '+APP_VER; })();
+  function doUpdate(){
+    if(!('serviceWorker' in navigator) || location.protocol==='file:'){
+      showToast('この開き方では自動更新はありません（配布元から入手し直してください）'); return;
+    }
+    if(navigator.onLine===false){ showToast('オンラインのときに更新してください'); return; }
+    showToast('最新版に更新中…');
+    var finish=function(){ location.reload(); };
+    var clearCaches=function(){
+      if(!window.caches){ setTimeout(finish,150); return; }
+      caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){return caches.delete(k);})); })
+        .then(function(){ setTimeout(finish,200); }, function(){ setTimeout(finish,200); });
+    };
+    try{
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        var p = reg ? reg.update().catch(function(){}) : Promise.resolve();
+        return p.then(function(){ if(reg&&reg.waiting){ try{reg.waiting.postMessage('skipWaiting');}catch(e){} } });
+      }).then(clearCaches, clearCaches);
+    }catch(e){ clearCaches(); }
+  }
+  (function(){ var ub=document.getElementById('updateBtn'); if(ub)ub.addEventListener('click',doUpdate); })();
+
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
   load();var _fa=loadHolidayData();generateRecurring();lastGenDate=todayStr();tick();render();updateHolidayStatus();setInterval(tick,1000*15);
@@ -855,7 +883,19 @@ button{font-family:inherit}
   /* ---------- オフライン対応（https/localhost のときだけ。file:// では何もしない） ---------- */
   try{
     if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
-      window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+      window.addEventListener('load',function(){
+        navigator.serviceWorker.register('sw.js').then(function(reg){
+          reg.addEventListener('updatefound',function(){       // 新バージョン検知 → お知らせ
+            var nw=reg.installing; if(!nw)return;
+            nw.addEventListener('statechange',function(){
+              if(nw.state==='installed' && navigator.serviceWorker.controller){
+                showToast('新しいバージョンがあります。メニューの「最新版に更新」でどうぞ');
+              }
+            });
+          });
+          try{ reg.update(); }catch(e){}
+        }).catch(function(){});
+      });
     }
   }catch(e){}
 })();

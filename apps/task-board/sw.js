@@ -4,12 +4,15 @@
    - アプリ本体(HTML)は「ネットワーク優先」＝オンライン時は常に最新を取得し、
      更新がすぐ反映されます。オフライン時だけキャッシュを使います。
    - file:// では登録されません（index.html 側でガード）。 */
-const CACHE = 'taskboard-v3';
+const CACHE = 'taskboard-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
+
+// 「最新版に更新」ボタンから待機中の新SWを即時有効化するため
+self.addEventListener('message', (e) => { if (e.data === 'skipWaiting') self.skipWaiting(); });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
@@ -24,9 +27,9 @@ self.addEventListener('fetch', (e) => {
 
   const isPage = req.mode === 'navigate' || req.destination === 'document';
   if (isPage) {
-    // アプリ本体：ネットワーク優先（最新を取りに行き、取れたらキャッシュ更新。ダメならキャッシュ）
+    // アプリ本体：ネットワーク優先＋毎回サーバに確認（no-cache）。最新を取れたらキャッシュ更新。ダメならキャッシュ
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put('./index.html', copy)).catch(() => {});
