@@ -264,6 +264,40 @@ button{font-family:inherit}
 [data-theme="glass"] .sheet .btn:not(.primary):hover,
 [data-theme="glass"] .sheet .pill:not([aria-pressed="true"]):hover{
   filter:none;background:rgba(91,108,240,.19);border-color:rgba(91,108,240,.55)}
+
+/* ウィンドウを細くしたとき（およそ 340px 以下）は、余白と文字を詰めて
+   通常の3分の2ほどの幅（約256px）まで、折り返さずに使えるようにする。
+   ※ すべての基本ルールより後ろに置くこと（同じ詳細度なので後勝ち） */
+@media (max-width: 340px){
+  body{padding:5px}
+  .topbar{padding:9px;gap:6px}
+  .brand .jp{font-size:13px}
+  .brand .sub{font-size:9.5px;white-space:nowrap}
+  .tool{width:26px;height:26px;border-radius:8px;font-size:12.5px}
+  .addmain{margin:0 9px 7px;padding:8px;font-size:12px}
+  .board{gap:7px;padding:0 9px 7px}
+  .col{padding:9px 8px 7px;border-radius:12px}
+  .colhead{gap:6px;margin-bottom:7px}
+  .colhead h2{font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .colhead .tag{font-size:8px;letter-spacing:.08em;padding:3px 5px;white-space:nowrap}
+  .count{font-size:10px;white-space:nowrap;flex:none}
+  .later{font-size:9px;padding:2px 5px;white-space:nowrap;flex:none}
+  .list{gap:6px}
+  .task{padding:8px;gap:7px;border-radius:10px}
+  .check{width:18px;height:18px}
+  .title{font-size:12px}
+  .chip{font-size:9.5px;padding:2px 6px}
+  .meta{gap:4px;margin-top:4px}
+  .rowbtns button{width:20px;height:20px;font-size:11px}
+  .quickadd{padding:7px 8px;gap:6px}
+  .quickadd input{font-size:11.5px}
+  .statusbar{padding:8px 9px;gap:8px}
+}
+/* さらに細いときは英字タグ(TODAY / 2 WEEKS)を省き、日本語の見出しと件数を優先 */
+@media (max-width: 305px){
+  .colhead .tag{display:none}
+  .colhead h2{font-size:13px}
+}
 </style>
 </head>
 <body>
@@ -427,7 +461,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21d';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21e';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
