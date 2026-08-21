@@ -427,7 +427,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21c';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21d';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -598,6 +598,23 @@ button{font-family:inherit}
     if(aw!==bw)return aw<bw?-1:1;
     return (a.t||0)-(b.t||0);
   }
+  // 「2週間以内」用：そのタスクで一番近い日（作業日／作業週の月曜、締め切りのうち早いほう）
+  function nearestDate(t){
+    var d='9999-12-31';
+    var sched=t.workDate||t.workWeek||'';
+    if(sched && sched<d)d=sched;
+    if(t.deadline && t.deadline<d)d=t.deadline;
+    return d;
+  }
+  // 「2週間以内」は 優先を先頭に、それ以外は近い日から順に並べる
+  function compareWeekTasks(a,b){
+    if(a.prio!==b.prio)return a.prio?-1:1;
+    var an=nearestDate(a), bn=nearestDate(b);
+    if(an!==bn)return an<bn?-1:1;
+    var ad=a.deadline||'9999', bd=b.deadline||'9999';
+    if(ad!==bd)return ad<bd?-1:1;
+    return (a.t||0)-(b.t||0);
+  }
 
   /* ---------- レンダリング ---------- */
   var lists={today:document.getElementById('list-today'),week:document.getElementById('list-week')};
@@ -613,8 +630,9 @@ button{font-family:inherit}
     });
     ['today','week'].forEach(function(list){
       var ul=lists[list]; ul.innerHTML='';
-      var open=buckets[list].open.slice().sort(compareTasks);
-      var done=buckets[list].done.slice().sort(compareTasks);
+      var cmp=(list==='week')?compareWeekTasks:compareTasks;
+      var open=buckets[list].open.slice().sort(cmp);
+      var done=buckets[list].done.slice().sort(cmp);
       if(open.length===0 && (!state.showDone[list]||done.length===0)){
         var li=document.createElement('li');li.className='empty';
         li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'2週間以内のタスクはありません'));
