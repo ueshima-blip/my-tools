@@ -55,9 +55,13 @@ button{font-family:inherit}
 
 /* ---------- ボード（縦2段） ---------- */
 .board{flex:1;display:flex;flex-direction:column;gap:9px;padding:0 13px 9px;min-height:0;position:relative;z-index:2}
-.col{flex:1;display:flex;flex-direction:column;border-radius:14px;padding:11px 11px 9px;min-height:0;background:var(--col-bg);border:1px solid var(--col-border)}
+.col{flex:1 1 auto;display:flex;flex-direction:column;border-radius:14px;padding:11px 11px 9px;min-height:0;background:var(--col-bg);border:1px solid var(--col-border)}
 .colhead{display:flex;align-items:center;gap:8px;margin-bottom:9px;padding-bottom:var(--colhead-pb,0);border-bottom:var(--colhead-bd,none)}
 .colhead .tag{font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:3px 7px;border-radius:6px;font-weight:700}
+/* 本日の枠は中身の量に合わせて縮み、余ったスペースは「今後のタスク」に回す */
+.col-today{flex:0 1 auto;max-height:60%}
+.col-today .list{flex:0 1 auto}
+.col-week{flex:1 1 auto;min-height:120px}
 .col-today .tag{background:var(--tag-today-bg);color:var(--tag-today-fg);box-shadow:var(--tag-today-glow)}
 .col-week  .tag{background:var(--tag-week-bg);color:var(--tag-week-fg);box-shadow:var(--tag-week-glow)}
 .colhead h2{font-size:14px;font-weight:800;letter-spacing:.02em;color:var(--head-fg);font-family:var(--head-font,var(--jp));white-space:nowrap}
@@ -104,10 +108,6 @@ button{font-family:inherit}
 .donebar button:hover{opacity:1}
 .donebar .sp{flex:1}
 
-.quickadd{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--addrow-bg);border:1px dashed var(--addrow-border)}
-.quickadd::before{content:"＋";color:var(--accent);font-weight:700;font-size:14px}
-.quickadd input{flex:1;border:none;background:none;outline:none;font-family:var(--jp);font-size:12.5px;color:var(--title-fg)}
-.quickadd input::placeholder{color:var(--muted)}
 
 /* ---------- 目隠し ---------- */
 .cover{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
@@ -288,8 +288,6 @@ button{font-family:inherit}
   .chip{font-size:9.5px;padding:2px 6px}
   .meta{gap:4px;margin-top:4px}
   .rowbtns button{width:20px;height:20px;font-size:11px}
-  .quickadd{padding:7px 8px;gap:6px}
-  .quickadd input{font-size:11.5px}
 }
 /* さらに細いときは英字タグ(TODAY / 2 WEEKS)を省き、日本語の見出しと件数を優先 */
 @container (max-width: 305px){
@@ -316,14 +314,12 @@ button{font-family:inherit}
       <div class="colhead"><span class="tag">TODAY</span><h2>本日のタスク</h2><span class="count" id="count-today">0 / 0</span></div>
       <ul class="list" id="list-today"></ul>
       <div class="donebar" id="donebar-today" hidden><span id="donelabel-today"></span><button data-act="toggledone" data-list="today">表示</button><span class="sp"></span><button data-act="cleardone" data-list="today">完了を消す</button></div>
-      <div class="quickadd"><input id="q-today" placeholder="本日にサッと追加（!で優先）"></div>
     </section>
 
     <section class="col col-week" data-list="week">
-      <div class="colhead"><span class="tag">2 WEEKS</span><h2>2週間以内のタスク</h2><span class="later" id="later-week" hidden></span><span class="count" id="count-week">0 / 0</span></div>
+      <div class="colhead"><span class="tag">NEXT</span><h2>今後のタスク</h2><span class="count" id="count-week">0 / 0</span></div>
       <ul class="list" id="list-week"></ul>
       <div class="donebar" id="donebar-week" hidden><span id="donelabel-week"></span><button data-act="toggledone" data-list="week">表示</button><span class="sp"></span><button data-act="cleardone" data-list="week">完了を消す</button></div>
-      <div class="quickadd"><input id="q-week" placeholder="2週間以内にサッと追加（!で優先）"></div>
     </section>
   </main>
 
@@ -463,7 +459,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21g';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21h';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -612,19 +608,11 @@ button{font-family:inherit}
   }
 
   /* ---------- 振り分けロジック ---------- */
-  // 'today' | 'week'（=本日を除く2週間以内） | 'later'（15日以降＝まだ表示しない）
+  // 'today'（今日・繰越） | 'week'（それ以外＝今後のタスク。先の予定もすべて表示）
   function sectionOf(t){
-    var today=todayStr(), horizon=addDaysStr(today,14);
-    if(t.workDate){
-      if(t.workDate<=today)return 'today';                 // 今日 or 繰越（期限超過）
-      if(t.workDate<=horizon)return 'week';                // 明日〜14日後 → 2週間以内
-      return 'later';                                       // 15日以降
-    }
-    if(t.workWeek){
-      if(t.workWeek<=horizon)return 'week';                // 今週/来週/繰越週 → 2週間以内
-      return 'later';                                       // それ以降
-    }
-    return 'week';                                          // 未設定は2週間以内（バックログ）
+    var today=todayStr();
+    if(t.workDate && t.workDate<=today)return 'today';      // 今日 or 繰越（期限超過）
+    return 'week';                                          // それ以外は「今後のタスク」に近い順で表示
   }
   function compareTasks(a,b){
     if(a.prio!==b.prio)return a.prio?-1:1;
@@ -658,10 +646,9 @@ button{font-family:inherit}
 
   function render(){
     var today=todayStr();
-    var buckets={today:{open:[],done:[]},week:{open:[],done:[]}}, later=0;
+    var buckets={today:{open:[],done:[]},week:{open:[],done:[]}};
     state.tasks.forEach(function(t){
       var s=sectionOf(t);
-      if(s==='later'){ if(!t.done)later++; return; }
       buckets[s][t.done?'done':'open'].push(t);
     });
     ['today','week'].forEach(function(list){
@@ -671,7 +658,7 @@ button{font-family:inherit}
       var done=buckets[list].done.slice().sort(cmp);
       if(open.length===0 && (!state.showDone[list]||done.length===0)){
         var li=document.createElement('li');li.className='empty';
-        li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'2週間以内のタスクはありません'));
+        li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'今後のタスクはありません'));
         ul.appendChild(li);
       }
       open.forEach(function(t){ul.appendChild(taskEl(t,list));});
@@ -682,8 +669,6 @@ button{font-family:inherit}
       else bar.hidden=true;
       document.getElementById('count-'+list).textContent=done.length+' / '+(open.length+done.length);
     });
-    var lw=document.getElementById('later-week');
-    if(later){lw.hidden=false;lw.textContent='予定 '+later;}else lw.hidden=true;
     save();
   }
 
@@ -860,15 +845,6 @@ button{font-family:inherit}
   },true);
   window.addEventListener('resize',function(){ if(calPop&&calPop.style.display!=='none'&&calInput)positionCal(calInput); });
 
-  /* ---------- クイック追加（各リスト） ---------- */
-  function quickAdd(list,text){
-    var s=text.trim(),prio=false;if(/!$/.test(s)){prio=true;s=s.replace(/!+$/,'').trim();}if(!s)return;
-    var task={id:uid(),title:s,deadline:'',workDate:'',workWeek:'',prio:prio,done:false,t:Date.now()};
-    if(list==='today')task.workDate=todayStr(); else task.workWeek=mondayOf(todayStr());
-    state.tasks.push(task);render();
-  }
-  ['today','week'].forEach(function(list){var inp=document.getElementById('q-'+list);
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&inp.value.trim()){quickAdd(list,inp.value);inp.value='';}});});
   document.querySelectorAll('.donebar button').forEach(function(b){b.addEventListener('click',function(){
     var list=b.dataset.list;
     if(b.dataset.act==='toggledone'){state.showDone[list]=!state.showDone[list];render();}
