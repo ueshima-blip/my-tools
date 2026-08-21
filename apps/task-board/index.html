@@ -229,10 +229,10 @@ button{font-family:inherit}
     </section>
 
     <section class="col col-week" data-list="week">
-      <div class="colhead"><span class="tag">THIS WEEK</span><h2>今週中のタスク</h2><span class="later" id="later-week" hidden></span><span class="count" id="count-week">0 / 0</span></div>
+      <div class="colhead"><span class="tag">2 WEEKS</span><h2>2週間以内のタスク</h2><span class="later" id="later-week" hidden></span><span class="count" id="count-week">0 / 0</span></div>
       <ul class="list" id="list-week"></ul>
       <div class="donebar" id="donebar-week" hidden><span id="donelabel-week"></span><button data-act="toggledone" data-list="week">表示</button><span class="sp"></span><button data-act="cleardone" data-list="week">完了を消す</button></div>
-      <div class="quickadd"><input id="q-week" placeholder="今週にサッと追加（!で優先）"></div>
+      <div class="quickadd"><input id="q-week" placeholder="2週間以内にサッと追加（!で優先）"></div>
     </section>
   </main>
 
@@ -262,7 +262,7 @@ button{font-family:inherit}
     </div>
     <div class="fld"><span>作業する週</span>
       <div class="seg2" id="f-week"><button class="pill" data-w="this" type="button">今週</button><button class="pill" data-w="next" type="button">来週</button><button class="pill" data-w="none" type="button">指定なし</button></div>
-      <small class="hintline">「作業する日」を入れた場合は、その日が優先されます。</small>
+      <small class="hintline">今週・来週のタスクは「2週間以内」に表示されます（「作業する日」を入れた場合はその日が優先）。</small>
     </div>
     <label class="chk"><input id="f-prio" type="checkbox"> 優先（先頭に表示）</label>
     <div class="row"><button class="btn primary full" id="f-save">保存</button><button class="btn" data-close>キャンセル</button></div>
@@ -284,7 +284,7 @@ button{font-family:inherit}
     <h3 style="font-size:14px">使い方</h3>
     <ul>
       <li><b>追加</b>：「＋ タスクを追加」で締め切り・作業日・作業週を設定</li>
-      <li><b>自動表示</b>：作業日が今日なら「本日」、作業週が今週なら「今週」に自動表示。日が来れば自動で繰り上がります</li>
+      <li><b>自動表示</b>：作業日が今日なら「本日」、2週間以内なら「2週間以内」に自動表示。日が来れば自動で繰り上がります</li>
       <li><b>完了</b>：丸をクリック → 「完了」へ。<code>完了を消す</code>で削除（元に戻せます）</li>
       <li><b>編集</b>：タスクの ✎ ／ <b>優先</b>：☆ ／ <b>削除</b>：✕</li>
       <li><b>目隠し</b>：右上 ◑ または <code>Esc</code>（授業前に中身を時計表示へ）</li>
@@ -328,7 +328,7 @@ button{font-family:inherit}
       {id:uid(),title:'「＋ タスクを追加」から登録できます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+3},
       {id:uid(),title:'作業日が今日のものは自動でここに出ます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+2},
       {id:uid(),title:'中間テスト作問',deadline:addDaysStr(t,3),workDate:'',workWeek:mon,prio:true,done:false,t:Date.now()+1},
-      {id:uid(),title:'作業週が今週のものはこちらに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
+      {id:uid(),title:'作業週や作業日が2週間以内のものはここに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
     ], showDone:{today:false,week:false}};
   }
   function load(){
@@ -341,19 +341,19 @@ button{font-family:inherit}
   function byId(id){for(var i=0;i<state.tasks.length;i++)if(state.tasks[i].id===id)return state.tasks[i];return null;}
 
   /* ---------- 振り分けロジック ---------- */
-  // 'today' | 'week' | 'later'（未来＝まだ表示しない）
+  // 'today' | 'week'（=本日を除く2週間以内） | 'later'（15日以降＝まだ表示しない）
   function sectionOf(t){
-    var today=todayStr(), mon=mondayOf(today);
+    var today=todayStr(), horizon=addDaysStr(today,14);
     if(t.workDate){
       if(t.workDate<=today)return 'today';                 // 今日 or 繰越（期限超過）
-      if(mondayOf(t.workDate)===mon)return 'week';          // 今週の後日
-      return 'later';                                       // 来週以降
+      if(t.workDate<=horizon)return 'week';                // 明日〜14日後 → 2週間以内
+      return 'later';                                       // 15日以降
     }
     if(t.workWeek){
-      if(t.workWeek<=mon)return 'week';                     // 今週 or 繰越週
-      return 'later';                                       // 来週以降
+      if(t.workWeek<=horizon)return 'week';                // 今週/来週/繰越週 → 2週間以内
+      return 'later';                                       // それ以降
     }
-    return 'week';                                          // 未設定は今週バックログ
+    return 'week';                                          // 未設定は2週間以内（バックログ）
   }
   function compareTasks(a,b){
     if(a.prio!==b.prio)return a.prio?-1:1;
@@ -382,7 +382,7 @@ button{font-family:inherit}
       var done=buckets[list].done.slice().sort(compareTasks);
       if(open.length===0 && (!state.showDone[list]||done.length===0)){
         var li=document.createElement('li');li.className='empty';
-        li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'今週のタスクはありません'));
+        li.textContent=(done.length?'すべて完了しました 🎉':(list==='today'?'本日のタスクはありません':'2週間以内のタスクはありません'));
         ul.appendChild(li);
       }
       open.forEach(function(t){ul.appendChild(taskEl(t,list));});
@@ -404,10 +404,15 @@ button{font-family:inherit}
     if(t.prio)out.push(['prio','優先']);
     if(list==='today'){
       if(t.workDate&&t.workDate<todayStr())out.push(['sched urgent','繰越']);
-    }else{ // week
-      if(t.workDate)out.push(['sched',wdShort(t.workDate)+' '+fmtMD(t.workDate)]);
-      else if(t.workWeek&&t.workWeek<mondayOf(todayStr()))out.push(['sched urgent','今週(繰越)']);
-      else out.push(['sched','今週']);
+    }else{ // week = 2週間以内
+      if(t.workDate){
+        out.push(['sched',wdShort(t.workDate)+' '+fmtMD(t.workDate)]);
+      }else if(t.workWeek){
+        var mon=mondayOf(todayStr()), nextMon=addDaysStr(mon,7);
+        if(t.workWeek<mon)out.push(['sched urgent','今週(繰越)']);
+        else if(t.workWeek>=nextMon)out.push(['sched','来週']);
+        else out.push(['sched','今週']);
+      }
     }
     if(t.deadline){
       var urg=t.deadline<todayStr()?' urgent':(t.deadline===todayStr()?' urgent':'');
