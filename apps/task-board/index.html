@@ -21,7 +21,7 @@ html,body{height:100%}
 body{font-family:var(--jp);color:var(--text);display:flex;align-items:center;justify-content:center;padding:12px;
   -webkit-font-smoothing:antialiased;background:var(--bg-base);background-image:var(--bg-img);background-attachment:fixed;transition:background .3s}
 button{font-family:inherit}
-.app{width:min(var(--app-w,384px),100%);container-type:inline-size;max-width:100%;height:min(660px,calc(100vh - 24px));border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative;
+.app{width:384px;container-type:inline-size;max-width:100%;height:min(660px,calc(100vh - 24px));border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative;
   background:var(--app-bg);border:1px solid var(--app-border);box-shadow:var(--app-shadow);color:var(--text);
   backdrop-filter:var(--app-blur);-webkit-backdrop-filter:var(--app-blur)}
 .app::before{content:var(--grid-show,none);position:absolute;inset:0;pointer-events:none;opacity:.5;
@@ -32,9 +32,7 @@ button{font-family:inherit}
    → ウィンドウの端をドラッグすれば好きな大きさの付箋ウィジェットにできる */
 @media all and (display-mode: standalone), all and (display-mode: window-controls-overlay), all and (display-mode: minimal-ui){
   body{padding:0}
-  /* 「ウィンドウに合わせる」のときだけ全面表示。幅を選んだ場合はカード表示のまま */
-  .app{height:100vh;height:100dvh}
-  html[data-appw="full"] .app{width:100%;border-radius:0;border:none;box-shadow:none}
+  .app{width:100%;max-width:100%;height:100vh;height:100dvh;border-radius:0;border:none;box-shadow:none}
 }
 
 /* ---------- ヘッダー ---------- */
@@ -344,7 +342,7 @@ button{font-family:inherit}
     </div>
     <div class="fld"><span>作業する週</span>
       <div class="seg2" id="f-week"><button class="pill" data-w="this" type="button">今週</button><button class="pill" data-w="next" type="button">来週</button><button class="pill" data-w="none" type="button">指定なし</button></div>
-      <small class="hintline">今週・来週のタスクは「2週間以内」に表示されます（「作業する日」を入れた場合はその日が優先）。</small>
+      <small class="hintline">今週・来週のタスクは「今後のタスク」に表示されます（「作業する日」を入れた場合はその日が優先）。</small>
     </div>
     <label class="chk"><input id="f-prio" type="checkbox"> 優先（先頭に表示）</label>
     <div class="row"><button class="btn primary full" id="f-save">保存</button><button class="btn" data-close>キャンセル</button></div>
@@ -359,15 +357,6 @@ button{font-family:inherit}
     <h3 style="font-size:14px;margin-top:4px">アプリの更新</h3>
     <p>新しいバージョンが出たときは、これで最新版にできます（<b>再インストール不要</b>）。</p>
     <div class="row" style="margin-top:8px;align-items:center;gap:10px"><button class="btn primary" id="updateBtn">🔄 最新版に更新</button><span id="verInfo" class="hint"></span></div>
-    <hr>
-    <h3 style="font-size:14px">表示の幅</h3>
-    <p>ボードの横幅を選べます。せまくすると、机のすみに置きやすくなります。</p>
-    <div class="seg2" id="appWidth" style="margin-top:8px">
-      <button class="pill" data-aw="full" type="button">ウィンドウに合わせる</button>
-      <button class="pill" data-aw="384" type="button">標準</button>
-      <button class="pill" data-aw="320" type="button">せまい</button>
-      <button class="pill" data-aw="256" type="button">とてもせまい</button>
-    </div>
     <hr>
     <p><b>バックアップ</b>（端末の引っ越し・保険に）</p>
     <div class="row" style="margin-top:8px">
@@ -384,8 +373,8 @@ button{font-family:inherit}
     <ul>
       <li><b>追加</b>：「＋ タスクを追加」で締め切り・作業日・作業週を設定</li>
       <li><b>定期タスク</b>：上の「🔁 定期タスクを管理」で、くり返しを登録（自動でボードに出ます）</li>
-      <li><b>自動表示</b>：作業日が今日なら「本日」、2週間以内なら「2週間以内」に自動表示。日が来れば自動で繰り上がります</li>
-      <li><b>完了</b>：丸をクリック → 「完了」へ。<code>完了を消す</code>で削除（元に戻せます）</li>
+      <li><b>自動表示</b>：作業日が今日なら「本日のタスク」、それ以外は「今後のタスク」に近い日から順に表示。日が来れば自動で繰り上がります</li>
+      <li><b>完了</b>：チェックボックスをクリック → 「完了」へ。<code>完了を消す</code>で削除（元に戻せます）</li>
       <li><b>編集</b>：タスクの ✎ ／ <b>優先</b>：☆ ／ <b>削除</b>：✕</li>
       <li><b>目隠し</b>：右上 ◑ または <code>Esc</code>（授業前に中身を時計表示へ）</li>
     </ul>
@@ -404,7 +393,7 @@ button{font-family:inherit}
   <div class="sheet">
     <button class="close" data-close>×</button>
     <h3>🔁 定期タスク</h3>
-    <p>登録すると、該当日（今日〜2週間以内）に自動でボードへ表示されます。</p>
+    <p>登録すると、該当日（今日〜2週間先まで）に自動でボードへ表示されます。</p>
     <div class="holrow"><span id="holStatus" class="hint">祝日：内蔵（2024〜2035）</span><button class="btn" id="holUpdate">祝日をオンライン更新</button></div>
     <ul class="recurlist" id="recurList"></ul>
     <hr>
@@ -459,7 +448,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21h';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21i';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -483,7 +472,7 @@ button{font-family:inherit}
       {id:uid(),title:'「＋ タスクを追加」から登録できます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+3},
       {id:uid(),title:'作業日が今日のものは自動でここに出ます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+2},
       {id:uid(),title:'中間テスト作問',deadline:addDaysStr(t,3),workDate:'',workWeek:mon,prio:true,done:false,t:Date.now()+1},
-      {id:uid(),title:'作業週や作業日が2週間以内のものはここに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
+      {id:uid(),title:'今後の予定は近い日から順にここに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
     ], showDone:{today:false,week:false}, recurring:[], recurredKeys:[], recurBreaks:[]};
   }
   function load(){
@@ -622,7 +611,7 @@ button{font-family:inherit}
     if(aw!==bw)return aw<bw?-1:1;
     return (a.t||0)-(b.t||0);
   }
-  // 「2週間以内」用：そのタスクで一番近い日（作業日／作業週の月曜、締め切りのうち早いほう）
+  // 「今後のタスク」用：そのタスクで一番近い日（作業日／作業週の月曜、締め切りのうち早いほう）
   function nearestDate(t){
     var d='9999-12-31';
     var sched=t.workDate||t.workWeek||'';
@@ -630,7 +619,7 @@ button{font-family:inherit}
     if(t.deadline && t.deadline<d)d=t.deadline;
     return d;
   }
-  // 「2週間以内」は 優先を先頭に、それ以外は近い日から順に並べる
+  // 「今後のタスク」は 優先を先頭に、それ以外は近い日から順に並べる
   function compareWeekTasks(a,b){
     if(a.prio!==b.prio)return a.prio?-1:1;
     var an=nearestDate(a), bn=nearestDate(b);
@@ -678,7 +667,7 @@ button{font-family:inherit}
     if(t.recurringId)out.push(['recur','🔁']);
     if(list==='today'){
       if(t.workDate&&t.workDate<todayStr())out.push(['sched urgent','繰越']);
-    }else{ // week = 2週間以内
+    }else{ // week = 今後のタスク
       if(t.workDate){
         out.push(['sched',wdShort(t.workDate)+' '+fmtMD(t.workDate)]);
       }else if(t.workWeek){
@@ -851,22 +840,6 @@ button{font-family:inherit}
     else if(b.dataset.act==='cleardone'){clearDone(list);}
   });});
 
-  /* ---------- 表示の幅（ウィンドウを狭くできない環境でもボードを細くできる） ---------- */
-  var WKEY='taskboard.width';
-  function applyWidth(v){
-    var root=document.documentElement;
-    root.setAttribute('data-appw', v);
-    root.style.setProperty('--app-w', (v==='full') ? '100%' : (v+'px'));
-    var seg=document.getElementById('appWidth');
-    if(seg){var b=seg.querySelectorAll('.pill');
-      for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.aw===v));}
-  }
-  function setWidth(v){ applyWidth(v); lsSet(WKEY,v); }
-  (function(){
-    var seg=document.getElementById('appWidth');
-    if(seg)seg.addEventListener('click',function(e){var b=e.target.closest('.pill');if(b)setWidth(b.dataset.aw);});
-  })();
-
   /* ---------- テーマ ---------- */
   var THEMES=['neon','glass','mono'], TNAME={neon:'NEON',glass:'GLASS',mono:'MONO'};
   function setTheme(name){document.documentElement.setAttribute('data-theme',name);lsSet(TKEY,name);}
@@ -1024,7 +997,6 @@ button{font-family:inherit}
 
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
-  applyWidth(lsGet(WKEY)||'full');
   load();var _fa=loadHolidayData();generateRecurring();lastGenDate=todayStr();tick();render();updateHolidayStatus();setInterval(tick,1000*15);
   // 年1回程度、オンラインで最新の祝日を取り込む（オフライン/失敗時は内蔵テーブルのまま）
   try{
