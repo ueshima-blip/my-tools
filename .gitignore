@@ -2,3 +2,6 @@ node_modules/
 /test-results/
 /playwright-report/
 .DS_Store
+
+# タスクボード ガイドの生成画像（build_guide.mjs で再生成）
+apps/task-board/guide/board.png
