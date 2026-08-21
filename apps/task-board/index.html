@@ -357,6 +357,7 @@ button{font-family:inherit}
     <div class="fld"><span>祝日にあたるとき（任意）</span>
       <label class="chk2"><input type="checkbox" id="r-before"> 前の平日にずらす（土日祝を除く）</label>
       <label class="chk2"><input type="checkbox" id="r-after"> 次の平日にずらす（土日祝を除く）</label>
+      <label class="chk2"><input type="checkbox" id="r-skip"> 祝日は飛ばす（その日は登録しない）</label>
       <small class="hintline">チェックしないと、祝日でもその日のまま登録します。</small>
     </div>
     <label class="chk"><input id="r-prio" type="checkbox"> 優先（先頭に表示）</label>
@@ -478,6 +479,7 @@ button{font-family:inherit}
     else if(r.freq==='monthly')s='毎月 '+(+r.monthday||1)+'日';
     if(r.holidayShift==='before')s+=' ・祝日は前の平日へ';
     else if(r.holidayShift==='after')s+=' ・祝日は次の平日へ';
+    else if(r.holidayShift==='skip')s+=' ・祝日は飛ばす';
     return s;
   }
   function inBreak(dstr){
@@ -505,7 +507,7 @@ button{font-family:inherit}
       var end=(r.freq==='daily')?today:horizon;      // 毎日は当日のみ生成（増えすぎ防止）
       var d=today, guard=0;
       while(d<=end && guard++<400){
-        if(occursOn(r,d)){
+        if(occursOn(r,d) && !(r.holidayShift==='skip' && isHoliday(d))){  // 「祝日は飛ばす」なら祝日は生成しない
           var wd=shiftForHoliday(d, r.holidayShift);   // 祝日なら前/後の平日へずらす
           if(!inBreak(wd)){                             // おやすみ期間は生成しない
             var key=r.id+'|'+d;
@@ -744,9 +746,11 @@ button{font-family:inherit}
   document.querySelectorAll('.modal').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m||e.target.hasAttribute('data-close'))closeModals();});});
 
   /* ---------- 定期タスク UI ---------- */
-  var RF={freq:document.getElementById('r-freq'),wk:document.getElementById('r-weekdays'),weekFld:document.getElementById('r-week-fld'),monthFld:document.getElementById('r-month-fld'),title:document.getElementById('r-title'),monthday:document.getElementById('r-monthday'),prio:document.getElementById('r-prio'),before:document.getElementById('r-before'),after:document.getElementById('r-after')};
-  RF.before.addEventListener('change',function(){if(RF.before.checked)RF.after.checked=false;}); // 前後は同時に選べない
-  RF.after.addEventListener('change',function(){if(RF.after.checked)RF.before.checked=false;});
+  var RF={freq:document.getElementById('r-freq'),wk:document.getElementById('r-weekdays'),weekFld:document.getElementById('r-week-fld'),monthFld:document.getElementById('r-month-fld'),title:document.getElementById('r-title'),monthday:document.getElementById('r-monthday'),prio:document.getElementById('r-prio'),before:document.getElementById('r-before'),after:document.getElementById('r-after'),skip:document.getElementById('r-skip')};
+  // 祝日の扱い（前/後/飛ばす）は同時に選べない
+  [['before','after','skip'],['after','before','skip'],['skip','before','after']].forEach(function(g){
+    RF[g[0]].addEventListener('change',function(){if(RF[g[0]].checked){RF[g[1]].checked=false;RF[g[2]].checked=false;}});
+  });
   function setRecFreq(f){
     var b=RF.freq.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.f===f));
     RF.weekFld.style.display=(f==='weekly')?'':'none';
@@ -802,19 +806,19 @@ button{font-family:inherit}
   function openRecur(){
     setRecFreq('weekly');
     var b=RF.wk.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed','false');
-    RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
+    RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;RF.skip.checked=false;
     renderRecurList();renderBreakList();updateHolidayStatus();BF.start.value='';BF.end.value='';BF.label.value='';openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
   }
   document.getElementById('openRecurBtn').addEventListener('click',function(){closeModals();openRecur();});
   document.getElementById('holUpdate').addEventListener('click',function(){refreshHolidays(false);});
   document.getElementById('r-add').addEventListener('click',function(){
     var title=RF.title.value.trim();if(!title){RF.title.focus();return;}
-    var f=getRecFreq(), rule={id:uid(),title:title,prio:RF.prio.checked,freq:f,weekdays:[],monthday:1,holidayShift:(RF.before.checked?'before':(RF.after.checked?'after':'none')),t:Date.now()};
+    var f=getRecFreq(), rule={id:uid(),title:title,prio:RF.prio.checked,freq:f,weekdays:[],monthday:1,holidayShift:(RF.before.checked?'before':(RF.after.checked?'after':(RF.skip.checked?'skip':'none'))),t:Date.now()};
     if(f==='weekly'){rule.weekdays=getRecWeekdays();if(!rule.weekdays.length){showToast('曜日を1つ以上えらんでください');return;}}
     else if(f==='monthly'){var md=parseInt(RF.monthday.value,10);if(!(md>=1&&md<=31)){showToast('1〜31の日にちを入れてください');return;}rule.monthday=md;}
     state.recurring.push(rule);
     generateRecurring();save();render();renderRecurList();
-    RF.title.value='';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
+    RF.title.value='';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;RF.skip.checked=false;
     showToast('定期タスクを追加しました');
   });
 
