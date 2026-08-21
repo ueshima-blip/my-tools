@@ -143,6 +143,8 @@ button{font-family:inherit}
 .pill{padding:7px 11px;border-radius:8px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-fg);font-size:12px;font-weight:700;cursor:pointer}
 .pill[aria-pressed="true"]{background:var(--accent);color:var(--accent-on);border-color:transparent}
 .chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--head-fg);font-weight:700;cursor:pointer}
+.chk2{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12.5px;color:var(--title-fg);cursor:pointer}
+.chk2 input{width:15px;height:15px;accent-color:var(--accent);flex:none}
 .chk input{width:16px;height:16px;accent-color:var(--accent)}
 .hintline{display:block;color:var(--muted);font-size:11px;margin-top:6px}
 /* 定期タスク */
@@ -348,6 +350,11 @@ button{font-family:inherit}
         <small class="hintline">その月に無い日（例：31日）は、その月はスキップされます。</small>
       </div>
     </div>
+    <div class="fld"><span>祝日にあたるとき（任意）</span>
+      <label class="chk2"><input type="checkbox" id="r-before"> 前の平日にずらす（土日祝を除く）</label>
+      <label class="chk2"><input type="checkbox" id="r-after"> 次の平日にずらす（土日祝を除く）</label>
+      <small class="hintline">チェックしないと、祝日でもその日のまま登録します。</small>
+    </div>
     <label class="chk"><input id="r-prio" type="checkbox"> 優先（先頭に表示）</label>
     <div class="row"><button class="btn primary full" id="r-add">この定期タスクを追加</button></div>
   </div>
@@ -396,6 +403,18 @@ button{font-family:inherit}
 
   /* ---------- 定期タスク（くり返し）の自動生成 ---------- */
   var WDN=['日','月','火','水','木','金','土'];
+  /* 日本の祝日（内蔵テーブル：2024〜2035。通信不要・完全オフライン。振替休日・国民の休日を含む） */
+  var JP_HOLIDAYS=new Set(["2024-01-01","2024-01-08","2024-02-11","2024-02-12","2024-02-23","2024-03-20","2024-04-29","2024-05-03","2024-05-04","2024-05-05","2024-05-06","2024-07-15","2024-08-11","2024-08-12","2024-09-16","2024-09-22","2024-09-23","2024-10-14","2024-11-03","2024-11-04","2024-11-23","2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24","2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23","2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23","2028-01-01","2028-01-10","2028-02-11","2028-02-23","2028-03-20","2028-04-29","2028-05-03","2028-05-04","2028-05-05","2028-07-17","2028-08-11","2028-09-18","2028-09-22","2028-10-09","2028-11-03","2028-11-23","2029-01-01","2029-01-08","2029-02-11","2029-02-12","2029-02-23","2029-03-20","2029-04-29","2029-04-30","2029-05-03","2029-05-04","2029-05-05","2029-07-16","2029-08-11","2029-09-17","2029-09-23","2029-09-24","2029-10-08","2029-11-03","2029-11-23","2030-01-01","2030-01-14","2030-02-11","2030-02-23","2030-03-20","2030-04-29","2030-05-03","2030-05-04","2030-05-05","2030-05-06","2030-07-15","2030-08-11","2030-08-12","2030-09-16","2030-09-23","2030-10-14","2030-11-03","2030-11-04","2030-11-23","2031-01-01","2031-01-13","2031-02-11","2031-02-23","2031-02-24","2031-03-21","2031-04-29","2031-05-03","2031-05-04","2031-05-05","2031-05-06","2031-07-21","2031-08-11","2031-09-15","2031-09-23","2031-10-13","2031-11-03","2031-11-23","2031-11-24","2032-01-01","2032-01-12","2032-02-11","2032-02-23","2032-03-20","2032-04-29","2032-05-03","2032-05-04","2032-05-05","2032-07-19","2032-08-11","2032-09-20","2032-09-21","2032-09-22","2032-10-11","2032-11-03","2032-11-23","2033-01-01","2033-01-10","2033-02-11","2033-02-23","2033-03-20","2033-03-21","2033-04-29","2033-05-03","2033-05-04","2033-05-05","2033-07-18","2033-08-11","2033-09-19","2033-09-23","2033-10-10","2033-11-03","2033-11-23","2034-01-01","2034-01-02","2034-01-09","2034-02-11","2034-02-23","2034-03-20","2034-04-29","2034-05-03","2034-05-04","2034-05-05","2034-07-17","2034-08-11","2034-09-18","2034-09-23","2034-10-09","2034-11-03","2034-11-23","2035-01-01","2035-01-08","2035-02-11","2035-02-12","2035-02-23","2035-03-21","2035-04-29","2035-04-30","2035-05-03","2035-05-04","2035-05-05","2035-07-16","2035-08-11","2035-09-17","2035-09-23","2035-09-24","2035-10-08","2035-11-03","2035-11-23"]);
+  function isHoliday(dstr){return JP_HOLIDAYS.has(dstr);}
+  function isOffDay(dstr){var w=parseYmd(dstr).getDay();return w===0||w===6||isHoliday(dstr);} // 土日祝
+  // 祝日にあたるときだけ、前/後の平日（土日祝を除く）へずらす
+  function shiftForHoliday(dstr,mode){
+    if(!mode||mode==='none')return dstr;
+    if(!isHoliday(dstr))return dstr;
+    var step=(mode==='before')?-1:1, d=dstr, guard=0;
+    do{ d=addDaysStr(d,step); }while(isOffDay(d) && guard++<40);
+    return d;
+  }
   function occursOn(r,dstr){
     var d=parseYmd(dstr);
     if(r.freq==='daily')return true;
@@ -404,10 +423,13 @@ button{font-family:inherit}
     return false;
   }
   function recurSummary(r){
-    if(r.freq==='daily')return '毎日';
-    if(r.freq==='weekly')return '毎週 '+((r.weekdays||[]).slice().sort().map(function(w){return WDN[w];}).join('・'))+'曜';
-    if(r.freq==='monthly')return '毎月 '+(+r.monthday||1)+'日';
-    return '';
+    var s='';
+    if(r.freq==='daily')s='毎日';
+    else if(r.freq==='weekly')s='毎週 '+((r.weekdays||[]).slice().sort().map(function(w){return WDN[w];}).join('・'))+'曜';
+    else if(r.freq==='monthly')s='毎月 '+(+r.monthday||1)+'日';
+    if(r.holidayShift==='before')s+=' ・祝日は前の平日へ';
+    else if(r.holidayShift==='after')s+=' ・祝日は次の平日へ';
+    return s;
   }
   function generateRecurring(){
     if(!state.recurring||!state.recurredKeys)return 0;
@@ -420,7 +442,8 @@ button{font-family:inherit}
           var key=r.id+'|'+d;
           if(state.recurredKeys.indexOf(key)<0){
             state.recurredKeys.push(key);
-            state.tasks.push({id:uid(),title:r.title,deadline:'',workDate:d,workWeek:'',prio:!!r.prio,done:false,recurringId:r.id,t:Date.now()+added});
+            var wd=shiftForHoliday(d, r.holidayShift);   // 祝日なら前/後の平日へずらす
+            state.tasks.push({id:uid(),title:r.title,deadline:'',workDate:wd,workWeek:'',prio:!!r.prio,done:false,recurringId:r.id,t:Date.now()+added});
             added++;
           }
         }
@@ -652,7 +675,9 @@ button{font-family:inherit}
   document.querySelectorAll('.modal').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m||e.target.hasAttribute('data-close'))closeModals();});});
 
   /* ---------- 定期タスク UI ---------- */
-  var RF={freq:document.getElementById('r-freq'),wk:document.getElementById('r-weekdays'),weekFld:document.getElementById('r-week-fld'),monthFld:document.getElementById('r-month-fld'),title:document.getElementById('r-title'),monthday:document.getElementById('r-monthday'),prio:document.getElementById('r-prio')};
+  var RF={freq:document.getElementById('r-freq'),wk:document.getElementById('r-weekdays'),weekFld:document.getElementById('r-week-fld'),monthFld:document.getElementById('r-month-fld'),title:document.getElementById('r-title'),monthday:document.getElementById('r-monthday'),prio:document.getElementById('r-prio'),before:document.getElementById('r-before'),after:document.getElementById('r-after')};
+  RF.before.addEventListener('change',function(){if(RF.before.checked)RF.after.checked=false;}); // 前後は同時に選べない
+  RF.after.addEventListener('change',function(){if(RF.after.checked)RF.before.checked=false;});
   function setRecFreq(f){
     var b=RF.freq.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.f===f));
     RF.weekFld.style.display=(f==='weekly')?'':'none';
@@ -681,18 +706,18 @@ button{font-family:inherit}
   function openRecur(){
     setRecFreq('weekly');
     var b=RF.wk.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed','false');
-    RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;
+    RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
     renderRecurList();openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
   }
   document.getElementById('openRecurBtn').addEventListener('click',function(){closeModals();openRecur();});
   document.getElementById('r-add').addEventListener('click',function(){
     var title=RF.title.value.trim();if(!title){RF.title.focus();return;}
-    var f=getRecFreq(), rule={id:uid(),title:title,prio:RF.prio.checked,freq:f,weekdays:[],monthday:1,t:Date.now()};
+    var f=getRecFreq(), rule={id:uid(),title:title,prio:RF.prio.checked,freq:f,weekdays:[],monthday:1,holidayShift:(RF.before.checked?'before':(RF.after.checked?'after':'none')),t:Date.now()};
     if(f==='weekly'){rule.weekdays=getRecWeekdays();if(!rule.weekdays.length){showToast('曜日を1つ以上えらんでください');return;}}
     else if(f==='monthly'){var md=parseInt(RF.monthday.value,10);if(!(md>=1&&md<=31)){showToast('1〜31の日にちを入れてください');return;}rule.monthday=md;}
     state.recurring.push(rule);
     generateRecurring();save();render();renderRecurList();
-    RF.title.value='';RF.prio.checked=false;
+    RF.title.value='';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
     showToast('定期タスクを追加しました');
   });
 
