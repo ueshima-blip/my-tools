@@ -148,6 +148,9 @@ button{font-family:inherit}
 .chk input{width:16px;height:16px;accent-color:var(--accent)}
 .hintline{display:block;color:var(--muted);font-size:11px;margin-top:6px}
 /* 定期タスク */
+.holrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px}
+.hint{font-size:11.5px;color:var(--muted)}
+#holUpdate{padding:6px 10px;font-size:11.5px;flex:none}
 .recurlist{list-style:none;display:flex;flex-direction:column;gap:6px;margin:8px 0}
 .recurlist:empty::after{content:"（まだ登録がありません）";color:var(--muted);font-size:12px}
 .recuritem{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--task-bg);border:1px solid var(--task-border)}
@@ -323,6 +326,7 @@ button{font-family:inherit}
     <button class="close" data-close>×</button>
     <h3>🔁 定期タスク</h3>
     <p>登録すると、該当日（今日〜2週間以内）に自動でボードへ表示されます。</p>
+    <div class="holrow"><span id="holStatus" class="hint">祝日：内蔵（2024〜2035）</span><button class="btn" id="holUpdate">祝日をオンライン更新</button></div>
     <ul class="recurlist" id="recurList"></ul>
     <hr>
     <h3 style="font-size:14px">新しい定期タスク</h3>
@@ -414,7 +418,43 @@ button{font-family:inherit}
   var WDN=['日','月','火','水','木','金','土'];
   /* 日本の祝日（内蔵テーブル：2024〜2035。通信不要・完全オフライン。振替休日・国民の休日を含む） */
   var JP_HOLIDAYS=new Set(["2024-01-01","2024-01-08","2024-02-11","2024-02-12","2024-02-23","2024-03-20","2024-04-29","2024-05-03","2024-05-04","2024-05-05","2024-05-06","2024-07-15","2024-08-11","2024-08-12","2024-09-16","2024-09-22","2024-09-23","2024-10-14","2024-11-03","2024-11-04","2024-11-23","2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24","2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23","2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23","2028-01-01","2028-01-10","2028-02-11","2028-02-23","2028-03-20","2028-04-29","2028-05-03","2028-05-04","2028-05-05","2028-07-17","2028-08-11","2028-09-18","2028-09-22","2028-10-09","2028-11-03","2028-11-23","2029-01-01","2029-01-08","2029-02-11","2029-02-12","2029-02-23","2029-03-20","2029-04-29","2029-04-30","2029-05-03","2029-05-04","2029-05-05","2029-07-16","2029-08-11","2029-09-17","2029-09-23","2029-09-24","2029-10-08","2029-11-03","2029-11-23","2030-01-01","2030-01-14","2030-02-11","2030-02-23","2030-03-20","2030-04-29","2030-05-03","2030-05-04","2030-05-05","2030-05-06","2030-07-15","2030-08-11","2030-08-12","2030-09-16","2030-09-23","2030-10-14","2030-11-03","2030-11-04","2030-11-23","2031-01-01","2031-01-13","2031-02-11","2031-02-23","2031-02-24","2031-03-21","2031-04-29","2031-05-03","2031-05-04","2031-05-05","2031-05-06","2031-07-21","2031-08-11","2031-09-15","2031-09-23","2031-10-13","2031-11-03","2031-11-23","2031-11-24","2032-01-01","2032-01-12","2032-02-11","2032-02-23","2032-03-20","2032-04-29","2032-05-03","2032-05-04","2032-05-05","2032-07-19","2032-08-11","2032-09-20","2032-09-21","2032-09-22","2032-10-11","2032-11-03","2032-11-23","2033-01-01","2033-01-10","2033-02-11","2033-02-23","2033-03-20","2033-03-21","2033-04-29","2033-05-03","2033-05-04","2033-05-05","2033-07-18","2033-08-11","2033-09-19","2033-09-23","2033-10-10","2033-11-03","2033-11-23","2034-01-01","2034-01-02","2034-01-09","2034-02-11","2034-02-23","2034-03-20","2034-04-29","2034-05-03","2034-05-04","2034-05-05","2034-07-17","2034-08-11","2034-09-18","2034-09-23","2034-10-09","2034-11-03","2034-11-23","2035-01-01","2035-01-08","2035-02-11","2035-02-12","2035-02-23","2035-03-21","2035-04-29","2035-04-30","2035-05-03","2035-05-04","2035-05-05","2035-07-16","2035-08-11","2035-09-17","2035-09-23","2035-09-24","2035-10-08","2035-11-03","2035-11-23"]);
-  function isHoliday(dstr){return JP_HOLIDAYS.has(dstr);}
+  /* オンライン取得した祝日データ（内蔵テーブルより優先。年単位で上書き） */
+  var HKEY='taskboard.holidays';
+  var holUserDates=null, holUserYears=null;
+  function isHoliday(dstr){
+    if(holUserYears && holUserYears.has(dstr.slice(0,4))) return holUserDates.has(dstr); // 取得済みの年はそちらを優先
+    return JP_HOLIDAYS.has(dstr);
+  }
+  function loadHolidayData(){
+    try{var raw=lsGet(HKEY);if(raw){var d=JSON.parse(raw);if(d&&d.dates&&d.years){holUserDates=new Set(d.dates);holUserYears=new Set(d.years);return d.fetchedAt||'';}}}catch(e){}
+    return '';
+  }
+  function holidayFetchedAt(){try{var raw=lsGet(HKEY);if(raw){var d=JSON.parse(raw);return d.fetchedAt||'';}}catch(e){}return '';}
+  function updateHolidayStatus(){
+    var el=document.getElementById('holStatus'); if(!el)return;
+    var fa=holidayFetchedAt();
+    el.textContent = fa ? ('祝日：オンライン取得済み（'+fa.replace(/-/g,'/')+'）') : '祝日：内蔵（2024〜2035）';
+  }
+  function refreshHolidays(silent){
+    if(!(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
+      if(!silent)showToast('オンライン（https）で開いたときに更新できます'); return Promise.resolve(false);
+    }
+    if(!silent)showToast('祝日カレンダーを取得中…');
+    return fetch('https://holidays-jp.github.io/api/v1/date.json',{cache:'no-store'})
+      .then(function(r){if(!r.ok)throw 0;return r.json();})
+      .then(function(obj){
+        var dates=Object.keys(obj||{}).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k);});
+        if(!dates.length)throw 0;
+        var ys={}; dates.forEach(function(k){ys[k.slice(0,4)]=1;});
+        var rec={fetchedAt:todayStr(),dates:dates,years:Object.keys(ys)};
+        lsSet(HKEY,JSON.stringify(rec));
+        holUserDates=new Set(dates); holUserYears=new Set(rec.years);
+        generateRecurring(); save(); render(); updateHolidayStatus();
+        if(!silent)showToast('祝日カレンダーを更新しました（'+rec.years.length+'年分）');
+        return true;
+      })
+      .catch(function(){ if(!silent)showToast('更新できませんでした（通信環境をご確認ください）'); return false; });
+  }
   function isOffDay(dstr){var w=parseYmd(dstr).getDay();return w===0||w===6||isHoliday(dstr);} // 土日祝
   // 祝日にあたるときだけ、前/後の平日（土日祝を除く）へずらす
   function shiftForHoliday(dstr,mode){
@@ -763,9 +803,10 @@ button{font-family:inherit}
     setRecFreq('weekly');
     var b=RF.wk.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed','false');
     RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
-    renderRecurList();renderBreakList();BF.start.value='';BF.end.value='';BF.label.value='';openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
+    renderRecurList();renderBreakList();updateHolidayStatus();BF.start.value='';BF.end.value='';BF.label.value='';openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
   }
   document.getElementById('openRecurBtn').addEventListener('click',function(){closeModals();openRecur();});
+  document.getElementById('holUpdate').addEventListener('click',function(){refreshHolidays(false);});
   document.getElementById('r-add').addEventListener('click',function(){
     var title=RF.title.value.trim();if(!title){RF.title.focus();return;}
     var f=getRecFreq(), rule={id:uid(),title:title,prio:RF.prio.checked,freq:f,weekdays:[],monthday:1,holidayShift:(RF.before.checked?'before':(RF.after.checked?'after':'none')),t:Date.now()};
@@ -800,7 +841,12 @@ button{font-family:inherit}
 
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
-  load();generateRecurring();lastGenDate=todayStr();tick();render();setInterval(tick,1000*15);
+  load();var _fa=loadHolidayData();generateRecurring();lastGenDate=todayStr();tick();render();updateHolidayStatus();setInterval(tick,1000*15);
+  // 年1回程度、オンラインで最新の祝日を取り込む（オフライン/失敗時は内蔵テーブルのまま）
+  try{
+    var _ty=todayStr(), _need=!_fa || !(holUserYears&&holUserYears.has(_ty.slice(0,4))) || _fa<addDaysStr(_ty,-150);
+    if(_need && navigator.onLine!==false) refreshHolidays(true);
+  }catch(e){}
 
   /* ---------- オフライン対応（https/localhost のときだけ。file:// では何もしない） ---------- */
   try{
