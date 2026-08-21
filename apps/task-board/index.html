@@ -21,7 +21,7 @@ html,body{height:100%}
 body{font-family:var(--jp);color:var(--text);display:flex;align-items:center;justify-content:center;padding:12px;
   -webkit-font-smoothing:antialiased;background:var(--bg-base);background-image:var(--bg-img);background-attachment:fixed;transition:background .3s}
 button{font-family:inherit}
-.app{width:384px;max-width:100%;height:min(660px,calc(100vh - 24px));border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative;
+.app{width:min(var(--app-w,384px),100%);container-type:inline-size;max-width:100%;height:min(660px,calc(100vh - 24px));border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative;
   background:var(--app-bg);border:1px solid var(--app-border);box-shadow:var(--app-shadow);color:var(--text);
   backdrop-filter:var(--app-blur);-webkit-backdrop-filter:var(--app-blur)}
 .app::before{content:var(--grid-show,none);position:absolute;inset:0;pointer-events:none;opacity:.5;
@@ -32,7 +32,9 @@ button{font-family:inherit}
    → ウィンドウの端をドラッグすれば好きな大きさの付箋ウィジェットにできる */
 @media all and (display-mode: standalone), all and (display-mode: window-controls-overlay), all and (display-mode: minimal-ui){
   body{padding:0}
-  .app{width:100%;max-width:100%;height:100vh;height:100dvh;border-radius:0;border:none;box-shadow:none}
+  /* 「ウィンドウに合わせる」のときだけ全面表示。幅を選んだ場合はカード表示のまま */
+  .app{height:100vh;height:100dvh}
+  html[data-appw="full"] .app{width:100%;border-radius:0;border:none;box-shadow:none}
 }
 
 /* ---------- ヘッダー ---------- */
@@ -106,12 +108,6 @@ button{font-family:inherit}
 .quickadd::before{content:"＋";color:var(--accent);font-weight:700;font-size:14px}
 .quickadd input{flex:1;border:none;background:none;outline:none;font-family:var(--jp);font-size:12.5px;color:var(--title-fg)}
 .quickadd input::placeholder{color:var(--muted)}
-
-/* ---------- ステータスバー ---------- */
-.statusbar{display:flex;align-items:center;gap:10px;padding:9px 13px;position:relative;z-index:2;border-top:var(--status-bd,none)}
-.progresswrap{flex:1;height:6px;border-radius:999px;overflow:hidden;background:var(--prog-track)}
-.progress{height:100%;border-radius:999px;width:0;background:var(--progress);box-shadow:var(--progress-glow);transition:width .35s}
-.statusbar .pct{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent-text);min-width:34px}
 
 /* ---------- 目隠し ---------- */
 .cover{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
@@ -271,7 +267,7 @@ button{font-family:inherit}
 /* ウィンドウを細くしたとき（およそ 340px 以下）は、余白と文字を詰めて
    通常の3分の2ほどの幅（約256px）まで、折り返さずに使えるようにする。
    ※ すべての基本ルールより後ろに置くこと（同じ詳細度なので後勝ち） */
-@media (max-width: 340px){
+@container (max-width: 340px){
   body{padding:5px}
   .topbar{padding:9px;gap:6px}
   .brand .jp{font-size:13px}
@@ -294,10 +290,9 @@ button{font-family:inherit}
   .rowbtns button{width:20px;height:20px;font-size:11px}
   .quickadd{padding:7px 8px;gap:6px}
   .quickadd input{font-size:11.5px}
-  .statusbar{padding:8px 9px;gap:8px}
 }
 /* さらに細いときは英字タグ(TODAY / 2 WEEKS)を省き、日本語の見出しと件数を優先 */
-@media (max-width: 305px){
+@container (max-width: 305px){
   .colhead .tag{display:none}
   .colhead h2{font-size:13px}
 }
@@ -331,11 +326,6 @@ button{font-family:inherit}
       <div class="quickadd"><input id="q-week" placeholder="2週間以内にサッと追加（!で優先）"></div>
     </section>
   </main>
-
-  <footer class="statusbar">
-    <span class="pct" id="pct">0%</span>
-    <div class="progresswrap"><div class="progress" id="progress"></div></div>
-  </footer>
 
   <div class="cover" id="cover" title="クリックで解除">
     <div class="ctime" id="coverTime">—</div>
@@ -373,6 +363,15 @@ button{font-family:inherit}
     <h3 style="font-size:14px;margin-top:4px">アプリの更新</h3>
     <p>新しいバージョンが出たときは、これで最新版にできます（<b>再インストール不要</b>）。</p>
     <div class="row" style="margin-top:8px;align-items:center;gap:10px"><button class="btn primary" id="updateBtn">🔄 最新版に更新</button><span id="verInfo" class="hint"></span></div>
+    <hr>
+    <h3 style="font-size:14px">表示の幅</h3>
+    <p>ボードの横幅を選べます。せまくすると、机のすみに置きやすくなります。</p>
+    <div class="seg2" id="appWidth" style="margin-top:8px">
+      <button class="pill" data-aw="full" type="button">ウィンドウに合わせる</button>
+      <button class="pill" data-aw="384" type="button">標準</button>
+      <button class="pill" data-aw="320" type="button">せまい</button>
+      <button class="pill" data-aw="256" type="button">とてもせまい</button>
+    </div>
     <hr>
     <p><b>バックアップ</b>（端末の引っ越し・保険に）</p>
     <div class="row" style="margin-top:8px">
@@ -464,7 +463,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21f';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21g';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -685,7 +684,6 @@ button{font-family:inherit}
     });
     var lw=document.getElementById('later-week');
     if(later){lw.hidden=false;lw.textContent='予定 '+later;}else lw.hidden=true;
-    updateProgress(buckets);
     save();
   }
 
@@ -747,13 +745,6 @@ button{font-family:inherit}
     var backup=done.slice(), ids={};done.forEach(function(t){ids[t.id]=1;});
     state.tasks=state.tasks.filter(function(t){return !ids[t.id];});render();
     showToast(done.length+' 件を消しました',function(){state.tasks=state.tasks.concat(backup);render();},'元に戻す');
-  }
-
-  function updateProgress(b){
-    var all=state.tasks.length, done=state.tasks.filter(function(t){return t.done;}).length;
-    var pct=all?Math.round(done/all*100):0;
-    document.getElementById('progress').style.width=pct+'%';
-    document.getElementById('pct').textContent=pct+'%';
   }
 
   /* ---------- フォーム（追加・編集） ---------- */
@@ -883,6 +874,22 @@ button{font-family:inherit}
     if(b.dataset.act==='toggledone'){state.showDone[list]=!state.showDone[list];render();}
     else if(b.dataset.act==='cleardone'){clearDone(list);}
   });});
+
+  /* ---------- 表示の幅（ウィンドウを狭くできない環境でもボードを細くできる） ---------- */
+  var WKEY='taskboard.width';
+  function applyWidth(v){
+    var root=document.documentElement;
+    root.setAttribute('data-appw', v);
+    root.style.setProperty('--app-w', (v==='full') ? '100%' : (v+'px'));
+    var seg=document.getElementById('appWidth');
+    if(seg){var b=seg.querySelectorAll('.pill');
+      for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.aw===v));}
+  }
+  function setWidth(v){ applyWidth(v); lsSet(WKEY,v); }
+  (function(){
+    var seg=document.getElementById('appWidth');
+    if(seg)seg.addEventListener('click',function(e){var b=e.target.closest('.pill');if(b)setWidth(b.dataset.aw);});
+  })();
 
   /* ---------- テーマ ---------- */
   var THEMES=['neon','glass','mono'], TNAME={neon:'NEON',glass:'GLASS',mono:'MONO'};
@@ -1041,6 +1048,7 @@ button{font-family:inherit}
 
   /* ---------- 起動 ---------- */
   setTheme(lsGet(TKEY)||'neon');
+  applyWidth(lsGet(WKEY)||'full');
   load();var _fa=loadHolidayData();generateRecurring();lastGenDate=todayStr();tick();render();updateHolidayStatus();setInterval(tick,1000*15);
   // 年1回程度、オンラインで最新の祝日を取り込む（オフライン/失敗時は内蔵テーブルのまま）
   try{
