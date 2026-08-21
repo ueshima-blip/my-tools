@@ -357,6 +357,15 @@ button{font-family:inherit}
     </div>
     <label class="chk"><input id="r-prio" type="checkbox"> 優先（先頭に表示）</label>
     <div class="row"><button class="btn primary full" id="r-add">この定期タスクを追加</button></div>
+    <hr>
+    <h3 style="font-size:14px">おやすみ期間（この間は定期タスクを止める）</h3>
+    <p>夏休み・冬休みなどを登録すると、その期間は定期タスクが出なくなります（すでに出ている定期タスクも消えます）。</p>
+    <ul class="recurlist" id="breakList"></ul>
+    <div class="fld"><span>期間を追加</span>
+      <div class="qrow"><input id="b-start" type="date"> 〜 <input id="b-end" type="date"></div>
+    </div>
+    <label class="fld"><span>名前（任意）</span><input id="b-label" type="text" placeholder="例：夏休み" autocomplete="off"></label>
+    <div class="row"><button class="btn" id="b-add">おやすみ期間を追加</button></div>
   </div>
 </div>
 
@@ -390,11 +399,11 @@ button{font-family:inherit}
       {id:uid(),title:'作業日が今日のものは自動でここに出ます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+2},
       {id:uid(),title:'中間テスト作問',deadline:addDaysStr(t,3),workDate:'',workWeek:mon,prio:true,done:false,t:Date.now()+1},
       {id:uid(),title:'作業週や作業日が2週間以内のものはここに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
-    ], showDone:{today:false,week:false}, recurring:[], recurredKeys:[]};
+    ], showDone:{today:false,week:false}, recurring:[], recurredKeys:[], recurBreaks:[]};
   }
   function load(){
     var raw=lsGet(SKEY);
-    if(raw){try{var d=JSON.parse(raw);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};if(!state.recurring)state.recurring=[];if(!state.recurredKeys)state.recurredKeys=[];return;}}catch(e){}}
+    if(raw){try{var d=JSON.parse(raw);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};if(!state.recurring)state.recurring=[];if(!state.recurredKeys)state.recurredKeys=[];if(!state.recurBreaks)state.recurBreaks=[];return;}}catch(e){}}
     state=defaultState();
   }
   function save(){lsSet(SKEY,JSON.stringify(state));}
@@ -431,20 +440,40 @@ button{font-family:inherit}
     else if(r.holidayShift==='after')s+=' ・祝日は次の平日へ';
     return s;
   }
+  function inBreak(dstr){
+    var br=state.recurBreaks||[];
+    for(var i=0;i<br.length;i++){ if(br[i].start&&br[i].end&&dstr>=br[i].start&&dstr<=br[i].end)return true; }
+    return false;
+  }
   function generateRecurring(){
     if(!state.recurring||!state.recurredKeys)return 0;
+    if(!state.recurBreaks)state.recurBreaks=[];
     var today=todayStr(), horizon=addDaysStr(today,14), added=0;
+    // おやすみ期間に入った自動タスク（未完了）を取り除き、生成キーも解放（期間を消せば復活できるように）
+    if(state.recurBreaks.length){
+      var freed={}, keep=[];
+      state.tasks.forEach(function(t){
+        if(t.recurringId && !t.done && inBreak(t.workDate)){ if(t.recurKey)freed[t.recurKey]=1; }
+        else keep.push(t);
+      });
+      if(keep.length!==state.tasks.length){
+        state.tasks=keep;
+        state.recurredKeys=state.recurredKeys.filter(function(k){return !freed[k];});
+      }
+    }
     state.recurring.forEach(function(r){
       var end=(r.freq==='daily')?today:horizon;      // 毎日は当日のみ生成（増えすぎ防止）
       var d=today, guard=0;
       while(d<=end && guard++<400){
         if(occursOn(r,d)){
-          var key=r.id+'|'+d;
-          if(state.recurredKeys.indexOf(key)<0){
-            state.recurredKeys.push(key);
-            var wd=shiftForHoliday(d, r.holidayShift);   // 祝日なら前/後の平日へずらす
-            state.tasks.push({id:uid(),title:r.title,deadline:'',workDate:wd,workWeek:'',prio:!!r.prio,done:false,recurringId:r.id,t:Date.now()+added});
-            added++;
+          var wd=shiftForHoliday(d, r.holidayShift);   // 祝日なら前/後の平日へずらす
+          if(!inBreak(wd)){                             // おやすみ期間は生成しない
+            var key=r.id+'|'+d;
+            if(state.recurredKeys.indexOf(key)<0){
+              state.recurredKeys.push(key);
+              state.tasks.push({id:uid(),title:r.title,deadline:'',workDate:wd,workWeek:'',prio:!!r.prio,done:false,recurringId:r.id,recurKey:key,t:Date.now()+added});
+              added++;
+            }
           }
         }
         d=addDaysStr(d,1);
@@ -703,11 +732,38 @@ button{font-family:inherit}
       li.appendChild(body);li.appendChild(del);ul.appendChild(li);
     });
   }
+  function fmtBreak(d){return (d||'').replace(/-/g,'/');}
+  function renderBreakList(){
+    var ul=document.getElementById('breakList');ul.innerHTML='';
+    (state.recurBreaks||[]).slice().sort(function(a,b){return (a.start<b.start)?-1:1;}).forEach(function(bk){
+      var li=document.createElement('li');li.className='recuritem';
+      var body=document.createElement('div');body.className='ri-body';
+      var tt=document.createElement('div');tt.className='ri-title';tt.textContent=bk.label||'おやすみ';
+      var sub=document.createElement('div');sub.className='ri-sub';sub.textContent=fmtBreak(bk.start)+' 〜 '+fmtBreak(bk.end);
+      body.appendChild(tt);body.appendChild(sub);
+      var del=document.createElement('button');del.className='ri-del';del.textContent='✕';del.title='この期間を削除';
+      del.addEventListener('click',function(){
+        state.recurBreaks=state.recurBreaks.filter(function(x){return x.id!==bk.id;});
+        generateRecurring();save();render();renderBreakList();showToast('おやすみ期間を削除しました');
+      });
+      li.appendChild(body);li.appendChild(del);ul.appendChild(li);
+    });
+  }
+  var BF={start:document.getElementById('b-start'),end:document.getElementById('b-end'),label:document.getElementById('b-label')};
+  document.getElementById('b-add').addEventListener('click',function(){
+    var s=BF.start.value, e=BF.end.value;
+    if(!s||!e){showToast('開始日と終了日を入れてください');return;}
+    if(s>e){showToast('終了日は開始日より後にしてください');return;}
+    state.recurBreaks.push({id:uid(),start:s,end:e,label:BF.label.value.trim()});
+    generateRecurring();save();render();renderBreakList();
+    BF.start.value='';BF.end.value='';BF.label.value='';
+    showToast('おやすみ期間を追加しました');
+  });
   function openRecur(){
     setRecFreq('weekly');
     var b=RF.wk.querySelectorAll('.pill');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed','false');
     RF.title.value='';RF.monthday.value='1';RF.prio.checked=false;RF.before.checked=false;RF.after.checked=false;
-    renderRecurList();openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
+    renderRecurList();renderBreakList();BF.start.value='';BF.end.value='';BF.label.value='';openModal('recurModal');setTimeout(function(){RF.title.focus();},30);
   }
   document.getElementById('openRecurBtn').addEventListener('click',function(){closeModals();openRecur();});
   document.getElementById('r-add').addEventListener('click',function(){
