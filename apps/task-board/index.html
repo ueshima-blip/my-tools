@@ -448,7 +448,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21j';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21k';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -601,9 +601,11 @@ button{font-family:inherit}
   /* ---------- 振り分けロジック ---------- */
   // 'today'（今日・繰越） | 'week'（それ以外＝今後のタスク。先の予定もすべて表示）
   function sectionOf(t){
-    var today=todayStr();
-    if(t.workDate && t.workDate<=today)return 'today';      // 今日 or 繰越（期限超過）
-    return 'week';                                          // それ以外は「今後のタスク」に近い順で表示
+    var today=todayStr(), mon=mondayOf(today);
+    if(t.workDate && t.workDate<=today)return 'today';               // 作業日が今日 or 過ぎている
+    if(t.deadline && t.deadline<today)return 'today';                // 締め切りが過ぎている
+    if(!t.workDate && t.workWeek && t.workWeek<mon)return 'today';   // 作業する週が過ぎている
+    return 'week';                                                   // それ以外は「今後のタスク」に近い順で表示
   }
   function compareTasks(a,b){
     if(a.prio!==b.prio)return a.prio?-1:1;
@@ -668,19 +670,22 @@ button{font-family:inherit}
     if(t.prio)out.push(['prio','優先']);
     if(t.recurringId)out.push(['recur','🔁']);
     if(list==='today'){
-      if(t.workDate&&t.workDate<todayStr())out.push(['sched urgent','繰越']);
+      // 繰越（本来もっと前にやる予定だったもの）。赤系にはしない＝赤は「締め切り超過」だけ
+      var _t=todayStr();
+      if((t.workDate && t.workDate<_t) || (!t.workDate && t.workWeek && t.workWeek<mondayOf(_t)))
+        out.push(['sched','繰越']);
     }else{ // week = 今後のタスク
       if(t.workDate){
         out.push(['sched',fmtDate(t.workDate)]);
       }else if(t.workWeek){
         var mon=mondayOf(todayStr()), nextMon=addDaysStr(mon,7);
-        if(t.workWeek<mon)out.push(['sched urgent','今週(繰越)']);
+        if(t.workWeek<mon)out.push(['sched','今週(繰越)']);
         else if(t.workWeek>=nextMon)out.push(['sched','来週']);
         else out.push(['sched','今週']);
       }
     }
     if(t.deadline){
-      var urg=t.deadline<todayStr()?' urgent':(t.deadline===todayStr()?' urgent':'');
+      var urg=(t.deadline<todayStr())?' urgent':'';   // 赤系は締め切りを過ぎたものだけ
       out.push(['dl'+urg,'〆'+fmtDate(t.deadline)]);
     }
     return out;
