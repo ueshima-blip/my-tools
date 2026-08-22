@@ -64,7 +64,11 @@ button{font-family:inherit}
 .col-week  .tag{background:var(--tag-week-bg);color:var(--tag-week-fg);box-shadow:var(--tag-week-glow)}
 .colhead h2{font-size:14px;font-weight:800;letter-spacing:.02em;color:var(--head-fg);font-family:var(--head-font,var(--jp));white-space:nowrap}
 .later{font-size:10px;color:var(--muted);background:var(--chip-bg);padding:2px 7px;border-radius:999px}
-.count{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted)}
+/* 今後のタスクの並び替えスイッチ */
+.sortsw{display:flex;align-items:center;gap:4px;margin-left:auto;font-size:10.5px;color:var(--muted);cursor:pointer;white-space:nowrap;flex:none;user-select:none}
+.sortsw input{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex:none;margin:0}
+.sortsw:hover{color:var(--title-fg)}
+.count{margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted)}
 
 .list{list-style:none;display:flex;flex-direction:column;gap:7px;overflow:auto;flex:1;padding-right:3px;min-height:30px}
 .list::-webkit-scrollbar{width:6px}
@@ -315,7 +319,7 @@ button{font-family:inherit}
     </section>
 
     <section class="col col-week" data-list="week">
-      <div class="colhead"><span class="tag">NEXT</span><h2>今後のタスク</h2><span class="count" id="count-week">0 / 0</span></div>
+      <div class="colhead"><span class="tag">NEXT</span><h2>今後のタスク</h2><label class="sortsw" title="チェックを外すと締め切り順、入れると作業する日順に並びます"><input type="checkbox" id="sortByWork"><span>作業する日順</span></label><span class="count" id="count-week">0 / 0</span></div>
       <ul class="list" id="list-week"></ul>
       <div class="donebar" id="donebar-week" hidden><span id="donelabel-week"></span><button data-act="toggledone" data-list="week">表示</button><span class="sp"></span><button data-act="cleardone" data-list="week">完了を消す</button></div>
     </section>
@@ -373,7 +377,7 @@ button{font-family:inherit}
     <ul>
       <li><b>追加</b>：「＋ タスクを追加」で締め切り・作業日・作業週を設定</li>
       <li><b>定期タスク</b>：上の「🔁 定期タスクを管理」で、くり返しを登録（自動でボードに出ます）</li>
-      <li><b>自動表示</b>：作業日が今日なら「本日のタスク」、それ以外は「今後のタスク」に近い日から順に表示。日が来れば自動で繰り上がります</li>
+      <li><b>自動表示</b>：作業日が今日なら「本日のタスク」、それ以外は「今後のタスク」に締め切り順で表示（見出しの「作業する日順」にチェックで並び替え）。日が来れば自動で繰り上がります</li>
       <li><b>完了</b>：チェックボックスをクリック → 「完了」へ。<code>完了を消す</code>で削除（元に戻せます）</li>
       <li><b>編集</b>：タスクの ✎ ／ <b>優先</b>：☆ ／ <b>削除</b>：✕</li>
       <li><b>目隠し</b>：右上 ◑ または <code>Esc</code>（授業前に中身を時計表示へ）</li>
@@ -448,7 +452,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21k';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21m';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -475,11 +479,11 @@ button{font-family:inherit}
       {id:uid(),title:'作業日が今日のものは自動でここに出ます',deadline:'',workDate:t,workWeek:'',prio:false,done:false,t:Date.now()+2},
       {id:uid(),title:'中間テスト作問',deadline:addDaysStr(t,3),workDate:'',workWeek:mon,prio:true,done:false,t:Date.now()+1},
       {id:uid(),title:'今後の予定は近い日から順にここに出ます',deadline:'',workDate:'',workWeek:mon,prio:false,done:false,t:Date.now()}
-    ], showDone:{today:false,week:false}, recurring:[], recurredKeys:[], recurBreaks:[]};
+    ], showDone:{today:false,week:false}, sortWeekBy:'deadline', recurring:[], recurredKeys:[], recurBreaks:[]};
   }
   function load(){
     var raw=lsGet(SKEY);
-    if(raw){try{var d=JSON.parse(raw);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};if(!state.recurring)state.recurring=[];if(!state.recurredKeys)state.recurredKeys=[];if(!state.recurBreaks)state.recurBreaks=[];return;}}catch(e){}}
+    if(raw){try{var d=JSON.parse(raw);if(d&&Array.isArray(d.tasks)){state=d;if(!state.showDone)state.showDone={today:false,week:false};if(!state.recurring)state.recurring=[];if(!state.recurredKeys)state.recurredKeys=[];if(!state.recurBreaks)state.recurBreaks=[];if(!state.sortWeekBy)state.sortWeekBy='deadline';return;}}catch(e){}}
     state=defaultState();
   }
   function save(){lsSet(SKEY,JSON.stringify(state));}
@@ -615,21 +619,17 @@ button{font-family:inherit}
     if(aw!==bw)return aw<bw?-1:1;
     return (a.t||0)-(b.t||0);
   }
-  // 「今後のタスク」用：そのタスクで一番近い日（作業日／作業週の月曜、締め切りのうち早いほう）
-  function nearestDate(t){
-    var d='9999-12-31';
-    var sched=t.workDate||t.workWeek||'';
-    if(sched && sched<d)d=sched;
-    if(t.deadline && t.deadline<d)d=t.deadline;
-    return d;
-  }
-  // 「今後のタスク」は 優先を先頭に、それ以外は近い日から順に並べる
+  // 「今後のタスク」の並び順：既定は締め切り順。チェックを入れると作業する日順
+  function workKey(t){return t.workDate||t.workWeek||'9999';}
+  function deadKey(t){return t.deadline||'9999';}
   function compareWeekTasks(a,b){
-    if(a.prio!==b.prio)return a.prio?-1:1;
-    var an=nearestDate(a), bn=nearestDate(b);
-    if(an!==bn)return an<bn?-1:1;
-    var ad=a.deadline||'9999', bd=b.deadline||'9999';
-    if(ad!==bd)return ad<bd?-1:1;
+    if(a.prio!==b.prio)return a.prio?-1:1;              // 優先はいつも先頭
+    var byWork=(state.sortWeekBy==='work');
+    var k=byWork?workKey:deadKey, k2=byWork?deadKey:workKey;
+    var ak=k(a), bk=k(b);
+    if(ak!==bk)return ak<bk?-1:1;
+    var a2=k2(a), b2=k2(b);                              // 同じ日ならもう一方の日付で
+    if(a2!==b2)return a2<b2?-1:1;
     return (a.t||0)-(b.t||0);
   }
 
@@ -647,6 +647,7 @@ button{font-family:inherit}
     ['today','week'].forEach(function(list){
       var ul=lists[list]; ul.innerHTML='';
       var cmp=(list==='week')?compareWeekTasks:compareTasks;
+      if(list==='week'){var sw=document.getElementById('sortByWork');if(sw)sw.checked=(state.sortWeekBy==='work');}
       var open=buckets[list].open.slice().sort(cmp);
       var done=buckets[list].done.slice().sort(cmp);
       if(open.length===0 && (!state.showDone[list]||done.length===0)){
@@ -685,7 +686,7 @@ button{font-family:inherit}
       }
     }
     if(t.deadline){
-      var urg=(t.deadline<todayStr())?' urgent':'';   // 赤系は締め切りを過ぎたものだけ
+      var urg=(t.deadline<=todayStr())?' urgent':'';   // 赤系は「締め切り超過」と「当日締め切り」
       out.push(['dl'+urg,'〆'+fmtDate(t.deadline)]);
     }
     return out;
@@ -770,6 +771,8 @@ button{font-family:inherit}
     else if(q==='dl-clear')F.deadline.value='';
   });});
   document.getElementById('addMainBtn').addEventListener('click',function(){openForm(null);});
+  (function(){var sw=document.getElementById('sortByWork');
+    if(sw)sw.addEventListener('change',function(){state.sortWeekBy=sw.checked?'work':'deadline';render();});})();
 
   /* ---------- カレンダー（日付ピッカー：土=青／日・祝・国民の休日=赤） ---------- */
   var calPop=null, calInput=null, calView=null;   // calView = 表示中の月（1日のDate）
