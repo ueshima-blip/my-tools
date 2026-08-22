@@ -448,7 +448,7 @@ button{font-family:inherit}
 "use strict";
 (function(){
   /* ---------- 保存（file:// でも落ちない） ---------- */
-  var APP_VER='2026.08.21i';   // バージョン（更新のたびに変える）。メニューに表示
+  var APP_VER='2026.08.21j';   // バージョン（更新のたびに変える）。メニューに表示
   var SKEY='taskboard.v2', TKEY='taskboard.theme', mem={};
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in mem)?mem[k]:null}}
   function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
@@ -463,6 +463,8 @@ button{font-family:inherit}
   var WD=['日','月','火','水','木','金','土'];
   function wdShort(s){return WD[parseYmd(s).getDay()];}
   function fmtMD(s){var d=parseYmd(s);return (d.getMonth()+1)+'/'+d.getDate();}
+  // タスクに表示する日付は「9/1(火)」の形にそろえる（締め切り・作業する日・定期タスク共通）
+  function fmtDate(s){return fmtMD(s)+'('+wdShort(s)+')';}
 
   /* ---------- 状態 ---------- */
   var state, editingId=null;
@@ -669,7 +671,7 @@ button{font-family:inherit}
       if(t.workDate&&t.workDate<todayStr())out.push(['sched urgent','繰越']);
     }else{ // week = 今後のタスク
       if(t.workDate){
-        out.push(['sched',wdShort(t.workDate)+' '+fmtMD(t.workDate)]);
+        out.push(['sched',fmtDate(t.workDate)]);
       }else if(t.workWeek){
         var mon=mondayOf(todayStr()), nextMon=addDaysStr(mon,7);
         if(t.workWeek<mon)out.push(['sched urgent','今週(繰越)']);
@@ -679,7 +681,7 @@ button{font-family:inherit}
     }
     if(t.deadline){
       var urg=t.deadline<todayStr()?' urgent':(t.deadline===todayStr()?' urgent':'');
-      out.push(['dl'+urg,'〆'+fmtMD(t.deadline)+'('+wdShort(t.deadline)+')']);
+      out.push(['dl'+urg,'〆'+fmtDate(t.deadline)]);
     }
     return out;
   }
